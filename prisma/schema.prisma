@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Categories {
+  id         String            @id @default(uuid())
+  name       String
+  slug       String            @unique
+  parent_id  String?
+  parent     Categories?       @relation("CategoryToParent", fields: [parent_id], references: [id])
+  children   Categories[]      @relation("CategoryToParent")
+  images     Category_Images[]
+  products   Products[]
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+  is_deleted Boolean           @default(false)
+  deleted_at DateTime?
+}
+
+model Category_Images {
+  id          String     @id @default(uuid())
+  category_id String
+  category    Categories @relation(fields: [category_id], references: [id])
+  image_url   String
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+  is_deleted  Boolean    @default(false)
+  deleted_at  DateTime?
+}
+
+model Products {
+  id          String             @id @default(uuid())
+  name        String
+  slug        String             @unique
+  description String?
+  category_id String
+  category    Categories         @relation(fields: [category_id], references: [id])
+  images      Product_Images[]
+  variants    Product_Variants[]
+  reviews     Reviews[]
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+  is_deleted  Boolean            @default(false)
+  deleted_at  DateTime?
+}
+
+model Product_Images {
+  id         String    @id @default(uuid())
+  product_id String
+  product    Products  @relation(fields: [product_id], references: [id])
+  image_url  String
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
+  deleted_at DateTime?
+}
+
+model Product_Variants {
+  id             String                       @id @default(uuid())
+  product_id     String
+  product        Products                     @relation(fields: [product_id], references: [id])
+  sku            String
+  slug           String?                      @unique
+  price          Float
+  stock_quantity Int
+  attributes     Product_Variant_Attributes[]
+  cartItems      Cart_Items[]
+  orderItems     Order_Items[]
+  wishlists      Wishlists[]
+  created_at     DateTime                     @default(now())
+  updated_at     DateTime                     @updatedAt
+  is_deleted     Boolean                      @default(false)
+  deleted_at     DateTime?
+}
+
+model Product_Attributes {
+  id         String                     @id @default(uuid())
+  name       String
+  values     Product_Attribute_Values[]
+  created_at DateTime                   @default(now())
+  updated_at DateTime                   @updatedAt
+  is_deleted Boolean                    @default(false)
+  deleted_at DateTime?
+}
+
+model Product_Attribute_Values {
+  id            String                       @id @default(uuid())
+  attribute_id  String
+  attribute     Product_Attributes           @relation(fields: [attribute_id], references: [id])
+  value         String
+  variantValues Product_Variant_Attributes[]
+  created_at    DateTime                     @default(now())
+  updated_at    DateTime                     @updatedAt
+  is_deleted    Boolean                      @default(false)
+  deleted_at    DateTime?
+}
+
+model Product_Variant_Attributes {
+  id                 String                   @id @default(uuid())
+  product_variant_id String
+  attribute_value_id String
+  productVariant     Product_Variants         @relation(fields: [product_variant_id], references: [id])
+  attributeValue     Product_Attribute_Values @relation(fields: [attribute_value_id], references: [id])
+  created_at         DateTime                 @default(now())
+  updated_at         DateTime                 @updatedAt
+  is_deleted         Boolean                  @default(false)
+  deleted_at         DateTime?
+}
+
+model Carts {
+  id         String       @id @default(uuid())
+  user_id    String
+  items      Cart_Items[]
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+  is_deleted Boolean      @default(false)
+  deleted_at DateTime?
+}
+
+model Cart_Items {
+  id                 String           @id @default(uuid())
+  cart_id            String
+  product_variant_id String
+  cart               Carts            @relation(fields: [cart_id], references: [id])
+  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id])
+  quantity           Int
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+  is_deleted         Boolean          @default(false)
+  deleted_at         DateTime?
+}
+
+model Orders {
+  id             String         @id @default(uuid())
+  user_id        String
+  address_id     String
+  address        User_Addresses @relation(fields: [address_id], references: [id])
+  status         String
+  total_price    Float
+  payment_method String
+  payment_status String
+  items          Order_Items[]
+  payments       Payments[]
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  is_deleted     Boolean        @default(false)
+  deleted_at     DateTime?
+}
+
+model Order_Items {
+  id                 String           @id @default(uuid())
+  order_id           String
+  product_variant_id String
+  order              Orders           @relation(fields: [order_id], references: [id])
+  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id])
+  quantity           Int
+  price              Float
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+  is_deleted         Boolean          @default(false)
+  deleted_at         DateTime?
+}
+
+model Payments {
+  id             String    @id @default(uuid())
+  order_id       String
+  order          Orders    @relation(fields: [order_id], references: [id])
+  method         String
+  amount         Float
+  status         String
+  transaction_id String    @unique
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  is_deleted     Boolean   @default(false)
+  deleted_at     DateTime?
+}
+
+model Reviews {
+  id               String          @id @default(uuid())
+  product_id       String
+  user_id          String
+  rating           Int?
+  comment          String?
+  parent_review_id String?
+  product          Products        @relation(fields: [product_id], references: [id])
+  parentReview     Reviews?        @relation("ReviewReplies", fields: [parent_review_id], references: [id])
+  replies          Reviews[]       @relation("ReviewReplies")
+  images           Review_Images[]
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  is_deleted       Boolean         @default(false)
+  deleted_at       DateTime?
+}
+
+model Review_Images {
+  id         String    @id @default(uuid())
+  review_id  String
+  review     Reviews   @relation(fields: [review_id], references: [id])
+  image_url  String
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
+  deleted_at DateTime?
+}
+
+model Wishlists {
+  id                 String           @id @default(uuid())
+  user_id            String
+  product_variant_id String
+  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id])
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+  is_deleted         Boolean          @default(false)
+  deleted_at         DateTime?
+}
+
+model User_Addresses {
+  id           String    @id @default(uuid())
+  user_id      String
+  full_name    String
+  phone        String
+  address_line String
+  city         String
+  district     String
+  ward         String
+  is_default   Boolean
+  orders       Orders[]
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  is_deleted   Boolean   @default(false)
+  deleted_at   DateTime?
+}
+
+model Notifications {
+  id         String    @id @default(uuid())
+  user_id    String
+  title      String
+  content    String
+  is_read    Boolean   @default(false)
+  type       String
+  link       String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
+  deleted_at DateTime?
+}
