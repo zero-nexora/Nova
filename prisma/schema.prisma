@@ -9,11 +9,16 @@ datasource db {
 
 enum RoleName {
   ADMIN
-  CUSTOMER
   STAFF
 }
 
-enum PermissionName {
+enum ResourceType {
+  PRODUCT
+  CATEGORY
+  ORDER
+}
+
+enum ActionType {
   CREATE
   READ
   UPDATE
@@ -54,34 +59,31 @@ enum CouponType {
 }
 
 model Users {
-  id            String             @id @default(uuid())
-  clerkId       String             @unique
-  email         String             @unique
+  id            String           @id @default(uuid())
+  clerkId       String           @unique
+  email         String           @unique
   first_name    String?
   last_name     String?
-  username      String?            @unique
   image_url     String?
   roles         User_Roles[]
-  permissions   User_Permissions[]
   carts         Carts[]
   orders        Orders[]
   addresses     User_Addresses[]
   reviews       Reviews[]
   wishlists     Wishlists[]
   notifications Notifications[]
-  created_at    DateTime           @default(now())
-  updated_at    DateTime           @updatedAt
-  is_deleted    Boolean            @default(false)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+  is_deleted    Boolean          @default(false)
   deleted_at    DateTime?
 
   @@index([clerkId])
   @@index([email])
-  @@index([username])
 }
 
 model Roles {
   id          String             @id @default(uuid())
-  name        RoleName           @unique @default(CUSTOMER)
+  name        RoleName           @unique
   description String?
   users       User_Roles[]
   permissions Role_Permissions[]
@@ -95,48 +97,18 @@ model Roles {
 
 model Permissions {
   id          String             @id @default(uuid())
-  name        PermissionName     @unique @default(READ)
+  resource    ResourceType
+  action      ActionType
   description String?
-  users       User_Permissions[]
-  roles       Role_Permissions[]
+  roles       Role_Permissions[] // n-n với Roles
   created_at  DateTime           @default(now())
   updated_at  DateTime           @updatedAt
   is_deleted  Boolean            @default(false)
   deleted_at  DateTime?
 
-  @@index([name])
-}
-
-model User_Roles {
-  id         String    @id @default(uuid())
-  user_id    String
-  role_id    String
-  user       Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  role       Roles     @relation(fields: [role_id], references: [id], onDelete: Cascade)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  is_deleted Boolean   @default(false)
-  deleted_at DateTime?
-
-  @@index([user_id])
-  @@index([role_id])
-  @@index([user_id, role_id])
-}
-
-model User_Permissions {
-  id            String      @id @default(uuid())
-  user_id       String
-  permission_id String
-  user          Users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  permission    Permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
-  created_at    DateTime    @default(now())
-  updated_at    DateTime    @updatedAt
-  is_deleted    Boolean     @default(false)
-  deleted_at    DateTime?
-
-  @@index([user_id])
-  @@index([permission_id])
-  @@index([user_id, permission_id])
+  @@unique([resource, action], name: "resource_action_unique")
+  @@index([resource])
+  @@index([action])
 }
 
 model Role_Permissions {
@@ -150,9 +122,25 @@ model Role_Permissions {
   is_deleted    Boolean     @default(false)
   deleted_at    DateTime?
 
+  @@unique([role_id, permission_id], name: "role_permission_unique")
   @@index([role_id])
   @@index([permission_id])
-  @@index([role_id, permission_id])
+}
+
+model User_Roles {
+  id         String    @id @default(uuid())
+  user_id    String
+  role_id    String
+  user       Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role       Roles     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
+  deleted_at DateTime?
+
+  @@unique([user_id, role_id], name: "user_role_unique")
+  @@index([user_id])
+  @@index([role_id])
 }
 
 model Categories {
