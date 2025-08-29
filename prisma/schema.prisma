@@ -7,12 +7,155 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RoleName {
+  ADMIN
+  CUSTOMER
+  STAFF
+}
+
+enum PermissionName {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+enum OrderStatus {
+  PENDING
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  CASH_ON_DELIVERY
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PROMOTION
+  ACCOUNT
+  SYSTEM
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PRODUCT_RESTOCK
+}
+
+model Users {
+  id            String             @id @default(uuid())
+  clerkId       String             @unique
+  email         String             @unique
+  first_name    String?
+  last_name     String?
+  username      String?            @unique
+  image_url     String?
+  roles         User_Roles[]
+  permissions   User_Permissions[]
+  carts         Carts[]
+  orders        Orders[]
+  addresses     User_Addresses[]
+  reviews       Reviews[]
+  wishlists     Wishlists[]
+  notifications Notifications[]
+  created_at    DateTime           @default(now())
+  updated_at    DateTime           @updatedAt
+  is_deleted    Boolean            @default(false)
+  deleted_at    DateTime?
+
+  @@index([clerkId])
+  @@index([email])
+  @@index([username])
+}
+
+model Roles {
+  id          String             @id @default(uuid())
+  name        RoleName           @unique @default(CUSTOMER)
+  description String?
+  users       User_Roles[]
+  permissions Role_Permissions[]
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+  is_deleted  Boolean            @default(false)
+  deleted_at  DateTime?
+
+  @@index([name])
+}
+
+model Permissions {
+  id          String             @id @default(uuid())
+  name        PermissionName     @unique @default(READ)
+  description String?
+  users       User_Permissions[]
+  roles       Role_Permissions[]
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+  is_deleted  Boolean            @default(false)
+  deleted_at  DateTime?
+
+  @@index([name])
+}
+
+model User_Roles {
+  id         String    @id @default(uuid())
+  user_id    String
+  role_id    String
+  user       Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role       Roles     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
+  deleted_at DateTime?
+
+  @@index([user_id])
+  @@index([role_id])
+  @@index([user_id, role_id])
+}
+
+model User_Permissions {
+  id            String      @id @default(uuid())
+  user_id       String
+  permission_id String
+  user          Users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  permission    Permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+  is_deleted    Boolean     @default(false)
+  deleted_at    DateTime?
+
+  @@index([user_id])
+  @@index([permission_id])
+  @@index([user_id, permission_id])
+}
+
+model Role_Permissions {
+  id            String      @id @default(uuid())
+  role_id       String
+  permission_id String
+  role          Roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission    Permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+  is_deleted    Boolean     @default(false)
+  deleted_at    DateTime?
+
+  @@index([role_id])
+  @@index([permission_id])
+  @@index([role_id, permission_id])
+}
+
 model Categories {
   id         String            @id @default(uuid())
   name       String
   slug       String            @unique
   parent_id  String?
-  parent     Categories?       @relation("CategoryToParent", fields: [parent_id], references: [id])
+  parent     Categories?       @relation("CategoryToParent", fields: [parent_id], references: [id], onDelete: Cascade)
   children   Categories[]      @relation("CategoryToParent")
   images     Category_Images[]
   products   Products[]
@@ -20,17 +163,22 @@ model Categories {
   updated_at DateTime          @updatedAt
   is_deleted Boolean           @default(false)
   deleted_at DateTime?
+
+  @@index([slug])
+  @@index([parent_id])
 }
 
 model Category_Images {
   id          String     @id @default(uuid())
   category_id String
-  category    Categories @relation(fields: [category_id], references: [id])
+  category    Categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
   image_url   String
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt
   is_deleted  Boolean    @default(false)
   deleted_at  DateTime?
+
+  @@index([category_id])
 }
 
 model Products {
@@ -39,7 +187,7 @@ model Products {
   slug        String             @unique
   description String?
   category_id String
-  category    Categories         @relation(fields: [category_id], references: [id])
+  category    Categories         @relation(fields: [category_id], references: [id], onDelete: Cascade)
   images      Product_Images[]
   variants    Product_Variants[]
   reviews     Reviews[]
@@ -47,23 +195,28 @@ model Products {
   updated_at  DateTime           @updatedAt
   is_deleted  Boolean            @default(false)
   deleted_at  DateTime?
+
+  @@index([slug])
+  @@index([category_id])
 }
 
 model Product_Images {
   id         String    @id @default(uuid())
   product_id String
-  product    Products  @relation(fields: [product_id], references: [id])
+  product    Products  @relation(fields: [product_id], references: [id], onDelete: Cascade)
   image_url  String
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   is_deleted Boolean   @default(false)
   deleted_at DateTime?
+
+  @@index([product_id])
 }
 
 model Product_Variants {
   id             String                       @id @default(uuid())
   product_id     String
-  product        Products                     @relation(fields: [product_id], references: [id])
+  product        Products                     @relation(fields: [product_id], references: [id], onDelete: Cascade)
   sku            String
   slug           String?                      @unique
   price          Float
@@ -76,6 +229,9 @@ model Product_Variants {
   updated_at     DateTime                     @updatedAt
   is_deleted     Boolean                      @default(false)
   deleted_at     DateTime?
+
+  @@index([product_id])
+  @@index([slug])
 }
 
 model Product_Attributes {
@@ -86,142 +242,186 @@ model Product_Attributes {
   updated_at DateTime                   @updatedAt
   is_deleted Boolean                    @default(false)
   deleted_at DateTime?
+
+  @@index([name])
 }
 
 model Product_Attribute_Values {
   id            String                       @id @default(uuid())
   attribute_id  String
-  attribute     Product_Attributes           @relation(fields: [attribute_id], references: [id])
+  attribute     Product_Attributes           @relation(fields: [attribute_id], references: [id], onDelete: Cascade)
   value         String
   variantValues Product_Variant_Attributes[]
   created_at    DateTime                     @default(now())
   updated_at    DateTime                     @updatedAt
   is_deleted    Boolean                      @default(false)
   deleted_at    DateTime?
+
+  @@index([attribute_id])
 }
 
 model Product_Variant_Attributes {
   id                 String                   @id @default(uuid())
   product_variant_id String
   attribute_value_id String
-  productVariant     Product_Variants         @relation(fields: [product_variant_id], references: [id])
-  attributeValue     Product_Attribute_Values @relation(fields: [attribute_value_id], references: [id])
+  productVariant     Product_Variants         @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
+  attributeValue     Product_Attribute_Values @relation(fields: [attribute_value_id], references: [id], onDelete: Cascade)
   created_at         DateTime                 @default(now())
   updated_at         DateTime                 @updatedAt
   is_deleted         Boolean                  @default(false)
   deleted_at         DateTime?
+
+  @@index([product_variant_id])
+  @@index([attribute_value_id])
+  @@index([product_variant_id, attribute_value_id])
 }
 
 model Carts {
   id         String       @id @default(uuid())
   user_id    String
+  user       Users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
   items      Cart_Items[]
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt
   is_deleted Boolean      @default(false)
   deleted_at DateTime?
+
+  @@index([user_id])
 }
 
 model Cart_Items {
   id                 String           @id @default(uuid())
   cart_id            String
   product_variant_id String
-  cart               Carts            @relation(fields: [cart_id], references: [id])
-  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id])
+  cart               Carts            @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
   quantity           Int
   created_at         DateTime         @default(now())
   updated_at         DateTime         @updatedAt
   is_deleted         Boolean          @default(false)
   deleted_at         DateTime?
+
+  @@index([cart_id])
+  @@index([product_variant_id])
+  @@index([cart_id, product_variant_id])
 }
 
 model Orders {
   id             String         @id @default(uuid())
   user_id        String
+  user           Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
   address_id     String
-  address        User_Addresses @relation(fields: [address_id], references: [id])
-  status         String
+  address        User_Addresses @relation(fields: [address_id], references: [id], onDelete: Cascade)
+  status         OrderStatus
   total_price    Float
-  payment_method String
-  payment_status String
+  payment_method PaymentMethod
+  payment_status PaymentStatus
   items          Order_Items[]
   payments       Payments[]
   created_at     DateTime       @default(now())
   updated_at     DateTime       @updatedAt
   is_deleted     Boolean        @default(false)
   deleted_at     DateTime?
+
+  @@index([user_id])
+  @@index([address_id])
+  @@index([status])
+  @@index([payment_method])
+  @@index([payment_status])
 }
 
 model Order_Items {
   id                 String           @id @default(uuid())
   order_id           String
   product_variant_id String
-  order              Orders           @relation(fields: [order_id], references: [id])
-  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id])
+  order              Orders           @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
   quantity           Int
   price              Float
   created_at         DateTime         @default(now())
   updated_at         DateTime         @updatedAt
   is_deleted         Boolean          @default(false)
   deleted_at         DateTime?
+
+  @@index([order_id])
+  @@index([product_variant_id])
+  @@index([order_id, product_variant_id])
 }
 
 model Payments {
-  id             String    @id @default(uuid())
+  id             String        @id @default(uuid())
   order_id       String
-  order          Orders    @relation(fields: [order_id], references: [id])
-  method         String
+  order          Orders        @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  method         PaymentMethod
   amount         Float
-  status         String
-  transaction_id String    @unique
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
-  is_deleted     Boolean   @default(false)
+  status         PaymentStatus
+  transaction_id String        @unique
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  is_deleted     Boolean       @default(false)
   deleted_at     DateTime?
+
+  @@index([order_id])
+  @@index([method])
+  @@index([status])
+  @@index([transaction_id])
 }
 
 model Reviews {
   id               String          @id @default(uuid())
   product_id       String
   user_id          String
+  user             Users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   rating           Int?
   comment          String?
   parent_review_id String?
-  product          Products        @relation(fields: [product_id], references: [id])
-  parentReview     Reviews?        @relation("ReviewReplies", fields: [parent_review_id], references: [id])
+  product          Products        @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  parentReview     Reviews?        @relation("ReviewReplies", fields: [parent_review_id], references: [id], onDelete: Cascade)
   replies          Reviews[]       @relation("ReviewReplies")
   images           Review_Images[]
   created_at       DateTime        @default(now())
   updated_at       DateTime        @updatedAt
   is_deleted       Boolean         @default(false)
   deleted_at       DateTime?
+
+  @@index([product_id])
+  @@index([user_id])
+  @@index([parent_review_id])
 }
 
 model Review_Images {
   id         String    @id @default(uuid())
   review_id  String
-  review     Reviews   @relation(fields: [review_id], references: [id])
+  review     Reviews   @relation(fields: [review_id], references: [id], onDelete: Cascade)
   image_url  String
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   is_deleted Boolean   @default(false)
   deleted_at DateTime?
+
+  @@index([review_id])
 }
 
 model Wishlists {
   id                 String           @id @default(uuid())
   user_id            String
+  user               Users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
   product_variant_id String
-  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id])
+  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
   created_at         DateTime         @default(now())
   updated_at         DateTime         @updatedAt
   is_deleted         Boolean          @default(false)
   deleted_at         DateTime?
+
+  @@index([user_id])
+  @@index([product_variant_id])
+  @@index([user_id, product_variant_id])
 }
 
 model User_Addresses {
   id           String    @id @default(uuid())
   user_id      String
+  user         Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   full_name    String
   phone        String
   address_line String
@@ -234,18 +434,24 @@ model User_Addresses {
   updated_at   DateTime  @updatedAt
   is_deleted   Boolean   @default(false)
   deleted_at   DateTime?
+
+  @@index([user_id])
 }
 
 model Notifications {
-  id         String    @id @default(uuid())
+  id         String           @id @default(uuid())
   user_id    String
+  user       Users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
   title      String
   content    String
-  is_read    Boolean   @default(false)
-  type       String
+  is_read    Boolean          @default(false)
+  type       NotificationType
   link       String?
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  is_deleted Boolean   @default(false)
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+  is_deleted Boolean          @default(false)
   deleted_at DateTime?
+
+  @@index([user_id])
+  @@index([type])
 }
