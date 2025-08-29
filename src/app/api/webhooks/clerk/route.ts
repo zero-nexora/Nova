@@ -1,8 +1,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import type { WebhookEvent } from "@clerk/nextjs/server";
-import { db } from "@/lib/prisma";
-import { RoleName } from "@prisma/client";
+import { db } from "@/database/prisma";
 
 const SIGNING_SECRET = process.env.CLERK_SIGNING_SECRET;
 
@@ -50,7 +49,7 @@ export async function POST(req: Request) {
       const user = await db.users.create({
         data: {
           clerkId: data.id,
-          email: data.email_addresses[0].email_address,
+          email: data.email_addresses[0].email_address ?? null,
           first_name: data.first_name,
           last_name: data.last_name,
           image_url: data.image_url,
@@ -68,7 +67,6 @@ export async function POST(req: Request) {
           first_name: data.first_name,
           last_name: data.last_name,
           image_url: data.image_url,
-          email: data.email_addresses[0].email_address,
         },
         create: {
           clerkId: data.id,

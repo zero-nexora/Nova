@@ -10,7 +10,7 @@
     "postinstall": "prisma generate",
     "dev:webhook": "ngrok http --domain=lightly-possible-locust.ngrok-free.app 3000",
     "dev:all": "concurrently \"npm run dev:webhook\" \"npm run dev\"",
-    "seed": "npx tsx src/lib/seed.ts"
+    "seed": "npx tsx src/database/seed.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.31.6",

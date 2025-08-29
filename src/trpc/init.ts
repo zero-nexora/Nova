@@ -1,7 +1,7 @@
 import { cache } from "react";
 import superjson from "superjson";
 import { initTRPC } from "@trpc/server";
-import { db } from "@/lib/prisma";
+import { db } from "@/database/prisma";
 export const createTRPCContext = cache(async () => {});
 const t = initTRPC.create({
   /**
