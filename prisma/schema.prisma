@@ -44,7 +44,30 @@ enum RoleName {
   ADMIN
   MANAGE_PRODUCT
   MANAGE_CATEGORY
+  MANAGE_STAFF
   MANAGE_ORDER
+}
+
+enum PermissionName {
+  CREATE_PRODUCT
+  READ_PRODUCT
+  UPDATE_PRODUCT
+  DELETE_PRODUCT
+
+  CREATE_CATEGORY
+  READ_CATEGORY
+  UPDATE_CATEGORY
+  DELETE_CATEGORY
+
+  CREATE_STAFF
+  READ_STAFF
+  UPDATE_STAFF
+  DELETE_STAFF
+
+  CREATE_ORDER
+  READ_ORDER
+  UPDATE_ORDER
+  DELETE_ORDER
 }
 
 model Users {
@@ -71,32 +94,42 @@ model Users {
 }
 
 model Roles {
-  id          String       @id @default(uuid())
-  name        RoleName     @unique
+  id          String             @id @default(uuid())
+  name        RoleName           @unique
   description String?
   users       User_Roles[]
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
-  is_deleted  Boolean      @default(false)
-  deleted_at  DateTime?
+  permissions Role_Permissions[]
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+}
 
-  @@index([name])
+model Permissions {
+  id          String             @id @default(uuid())
+  name        PermissionName     @unique
+  description String?
+  roles       Role_Permissions[]
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
 }
 
 model User_Roles {
-  id         String    @id @default(uuid())
-  user_id    String
-  role_id    String
-  user       Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  role       Roles     @relation(fields: [role_id], references: [id], onDelete: Cascade)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  is_deleted Boolean   @default(false)
-  deleted_at DateTime?
+  id      String @id @default(uuid())
+  user    Users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id String
+  role    Roles  @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  role_id String
 
-  @@unique([user_id, role_id], name: "user_role_unique")
-  @@index([user_id])
-  @@index([role_id])
+  @@unique([user_id, role_id])
+}
+
+model Role_Permissions {
+  id            String      @id @default(uuid())
+  role          Roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  role_id       String
+  permission    Permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  permission_id String
+
+  @@unique([role_id, permission_id])
 }
 
 model Categories {
