@@ -1,6 +1,6 @@
 "use client";
 
-import { AppModal } from "@/components/modals/app-modal";
+import { CustomModal } from "@/components/modals/custom-modal";
 import { useEffect, useState } from "react";
 
 export const ModalProvider = () => {
@@ -13,8 +13,8 @@ export const ModalProvider = () => {
   if (!isMounted) return null;
 
   return (
-    <div>
-      <AppModal title="test" description="test">test</AppModal>
-    </div>
-  )
-}
+    <>
+      <CustomModal />
+    </>
+  );
+};

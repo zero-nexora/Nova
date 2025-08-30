@@ -1,13 +1,23 @@
 import { create } from "zustand";
+import { ReactNode } from "react";
 
-interface ModalProps {
-  isOpen: boolean;
-  openDialog: () => void;
-  closeDialog: () => void;
+interface ModalData {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  footer?: ReactNode;
 }
 
-export const useModal = create<ModalProps>((set) => ({
+interface ModalStore {
+  isOpen: boolean;
+  data?: ModalData;
+  open: (data: ModalData) => void;
+  close: () => void;
+}
+
+export const useModal = create<ModalStore>((set) => ({
   isOpen: false,
-  openDialog: () => set({ isOpen: true }),
-  closeDialog: () => set({ isOpen: false }),
+  data: undefined,
+  open: (data) => set({ isOpen: true, data }),
+  close: () => set({ isOpen: false, data: undefined }),
 }));

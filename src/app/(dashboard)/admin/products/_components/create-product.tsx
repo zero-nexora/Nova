@@ -3,9 +3,7 @@
 import { useModal } from "@/stores/modal-store";
 
 export const CreateProduct = () => {
-  const { openDialog, isOpen } = useModal();
+  const { open } = useModal();
 
-  console.log(isOpen)
-
-  return <div onClick={() => openDialog()}>CreateProduct</div>;
+  return <div onClick={() => open({ title: "Create Product", description: "Create a new product", children: "Create a new product" })}>CreateProduct</div>;
 };

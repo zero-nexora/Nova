@@ -1,3 +1,5 @@
+import { categoriesData } from "@/lib/constants";
+import { CategorySeed } from "@/lib/types";
 import { PrismaClient, RoleName, PermissionName } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -41,6 +43,7 @@ function createDescription(enumValue: string): string {
  * Seeds all permissions into the database
  */
 async function seedPermissions(): Promise<void> {
+  prisma.permissions.deleteMany();
   console.log("Seeding permissions...");
 
   const permissionValues = Object.values(PermissionName);
@@ -64,6 +67,7 @@ async function seedPermissions(): Promise<void> {
  * Seeds all roles into the database
  */
 async function seedRoles(): Promise<void> {
+  prisma.roles.deleteMany();
   console.log("Seeding roles...");
 
   const roleValues = Object.values(RoleName);
@@ -84,6 +88,7 @@ async function seedRoles(): Promise<void> {
 }
 
 async function seedRolePermissions(): Promise<void> {
+  prisma.role_Permissions.deleteMany();
   console.log("Seeding role-permission associations...");
 
   const allPermissions = await prisma.permissions.findMany();
@@ -132,6 +137,40 @@ async function seedRolePermissions(): Promise<void> {
   );
 }
 
+async function seedCategoryRecursive(
+  category: CategorySeed,
+  parentId?: string
+) {
+  const createdCategory = await prisma.categories.create({
+    data: {
+      name: category.name,
+      slug: category.slug,
+      parent_id: parentId,
+      images: {
+        create: category.images.map((url: string) => ({ image_url: url })),
+      },
+    },
+  });
+
+  if (category.children?.length) {
+    await Promise.all(
+      category.children.map((child: CategorySeed) =>
+        seedCategoryRecursive(child, createdCategory.id)
+      )
+    );
+  }
+}
+
+async function seedCategories() {
+  prisma.categories.deleteMany();
+  console.log("Seeding categories associations...");
+  for (const category of categoriesData) {
+    await seedCategoryRecursive(category);
+  }
+
+  console.log(`Seeded ${categoriesData.length} role-permission associations`);
+}
+
 /**
  * Main seeding function
  */
@@ -142,6 +181,7 @@ async function main(): Promise<void> {
     await seedPermissions();
     await seedRoles();
     await seedRolePermissions();
+    await seedCategories();
 
     console.log("Seed data completed successfully!");
   } catch (error) {
