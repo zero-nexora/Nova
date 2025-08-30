@@ -1,20 +1,32 @@
-import { RoleName } from "@prisma/client";
+import { Home, Box, Tag, ShoppingCart, Settings } from "lucide-react";
 
-export const roles = [
+const PREFIX = "/admin";
+
+export const sidebarRoutes = [
   {
-    name: RoleName.ADMIN,
-    description: "Full access to all resources",
+    label: "Dashboard",
+    path: `${PREFIX}/`,
+    icon: Home,
   },
   {
-    name: RoleName.MANAGE_PRODUCT,
-    description: "Can manage products",
+    label: "Product",
+    path: `${PREFIX}/products`,
+    icon: Box,
   },
   {
-    name: RoleName.MANAGE_CATEGORY,
-    description: "Can manage categories",
+    label: "Category",
+    path: `${PREFIX}/categories`,
+    icon: Tag,
   },
   {
-    name: RoleName.MANAGE_ORDER,
-    description: "Can manage orders",
+    label: "Order",
+    path: `${PREFIX}/orders`,
+    icon: ShoppingCart,
+  },
+  {
+    label: "Setting",
+    path: `${PREFIX}/settings`,
+    icon: Settings,
   },
 ];
+

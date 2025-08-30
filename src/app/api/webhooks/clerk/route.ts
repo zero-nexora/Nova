@@ -6,6 +6,7 @@ import type {
   DeletedObjectJSON,
 } from "@clerk/nextjs/server";
 import { db } from "@/database/prisma";
+import { RoleName } from "@prisma/client";
 
 const SIGNING_SECRET = process.env.CLERK_SIGNING_SECRET;
 
@@ -71,10 +72,11 @@ async function handleWebhookEvent(event: WebhookEvent) {
 }
 
 async function handleUserCreated(userData: UserJSON) {
+  const email = userData.email_addresses[0]?.email_address ?? null;
   const user = await db.users.create({
     data: {
       clerkId: userData.id,
-      email: userData.email_addresses[0]?.email_address ?? null,
+      email,
       first_name: userData.first_name,
       last_name: userData.last_name,
       image_url: userData.image_url,
@@ -82,6 +84,23 @@ async function handleUserCreated(userData: UserJSON) {
   });
 
   console.log(`User created: ${user.id}`);
+
+  if (email === process.env.EMAIL_ADMIN) {
+    const role = await db.roles.findUnique({
+      where: {
+        name: RoleName.ADMIN,
+      },
+    });
+
+    if (role) {
+      await db.user_Roles.create({
+        data: {
+          role_id: role.id,
+          user_id: user.id,
+        },
+      });
+    }
+  }
 }
 
 async function handleUserUpdated(userData: UserJSON) {

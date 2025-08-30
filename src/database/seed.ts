@@ -2,95 +2,161 @@ import { PrismaClient, RoleName, PermissionName } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function main() {
+// Types for better type safety
+type RolePermission = {
+  id: string;
+  role_id: string;
+  permission_id: string;
+};
+
+// Role-Permission mapping configuration
+const ROLE_PERMISSIONS_MAP: Record<RoleName, PermissionName[]> = {
+  [RoleName.ADMIN]: Object.values(PermissionName),
+  [RoleName.MANAGE_PRODUCT]: [
+    PermissionName.READ_PRODUCT,
+    PermissionName.CREATE_PRODUCT,
+  ],
+  [RoleName.MANAGE_CATEGORY]: [
+    PermissionName.READ_CATEGORY,
+    PermissionName.CREATE_CATEGORY,
+  ],
+  [RoleName.MANAGE_STAFF]: [
+    PermissionName.READ_STAFF,
+    PermissionName.CREATE_STAFF,
+  ],
+  [RoleName.MANAGE_ORDER]: [
+    PermissionName.READ_ORDER,
+    PermissionName.CREATE_ORDER,
+  ],
+};
+
+/**
+ * Creates a human-readable description from enum value
+ */
+function createDescription(enumValue: string): string {
+  return enumValue.replace(/_/g, " ").toLowerCase();
+}
+
+/**
+ * Seeds all permissions into the database
+ */
+async function seedPermissions(): Promise<void> {
+  console.log("Seeding permissions...");
+
   const permissionValues = Object.values(PermissionName);
 
-  for (const perm of permissionValues) {
-    await prisma.permissions.upsert({
-      where: { name: perm },
+  const upsertPromises = permissionValues.map((permission) =>
+    prisma.permissions.upsert({
+      where: { name: permission },
       update: {},
       create: {
-        name: perm,
-        description: perm.replace(/_/g, " ").toLowerCase(),
+        name: permission,
+        description: createDescription(permission),
       },
-    });
-  }
+    })
+  );
+
+  await Promise.all(upsertPromises);
+  console.log(`Seeded ${permissionValues.length} permissions`);
+}
+
+/**
+ * Seeds all roles into the database
+ */
+async function seedRoles(): Promise<void> {
+  console.log("Seeding roles...");
 
   const roleValues = Object.values(RoleName);
-  for (const role of roleValues) {
-    await prisma.roles.upsert({
+
+  const upsertPromises = roleValues.map((role) =>
+    prisma.roles.upsert({
       where: { name: role },
       update: {},
       create: {
         name: role,
-        description: role.replace(/_/g, " ").toLowerCase(),
+        description: createDescription(role),
       },
-    });
-  }
+    })
+  );
 
-  const allPermissions = await prisma.permissions.findMany();
-
-  for (const role of roleValues) {
-    const dbRole = await prisma.roles.findUnique({
-      where: { name: role },
-    });
-
-    if (!dbRole) continue;
-
-    let rolePermissions: PermissionName[] = [];
-
-    if (role === RoleName.ADMIN) {
-      rolePermissions = permissionValues;
-    } else if (role === RoleName.MANAGE_PRODUCT) {
-      rolePermissions = [
-        PermissionName.READ_PRODUCT,
-        PermissionName.CREATE_PRODUCT,
-      ];
-    } else if (role === RoleName.MANAGE_CATEGORY) {
-      rolePermissions = [
-        PermissionName.READ_CATEGORY,
-        PermissionName.CREATE_CATEGORY,
-      ];
-    } else if (role === RoleName.MANAGE_STAFF) {
-      rolePermissions = [
-        PermissionName.READ_STAFF,
-        PermissionName.CREATE_STAFF,
-      ];
-    } else if (role === RoleName.MANAGE_ORDER) {
-      rolePermissions = [
-        PermissionName.READ_ORDER,
-        PermissionName.CREATE_ORDER,
-      ];
-    }
-
-    for (const perm of rolePermissions) {
-      const dbPerm = allPermissions.find((p) => p.name === perm);
-      if (!dbPerm) continue;
-
-      await prisma.role_Permissions.upsert({
-        where: {
-          role_id_permission_id: {
-            role_id: dbRole.id,
-            permission_id: dbPerm.id,
-          },
-        },
-        update: {},
-        create: {
-          role_id: dbRole.id,
-          permission_id: dbPerm.id,
-        },
-      });
-    }
-  }
-
-  console.log("Seed data completed successfully.");
+  await Promise.all(upsertPromises);
+  console.log(`Seeded ${roleValues.length} roles`);
 }
 
+async function seedRolePermissions(): Promise<void> {
+  console.log("Seeding role-permission associations...");
+
+  const allPermissions = await prisma.permissions.findMany();
+  const permissionMap = new Map(allPermissions.map((p) => [p.name, p]));
+
+  const allRoles = await prisma.roles.findMany();
+  const roleMap = new Map(allRoles.map((r) => [r.name, r]));
+
+  const rolePermissionPromises: Promise<RolePermission>[] = [];
+
+  for (const [roleName, permissions] of Object.entries(ROLE_PERMISSIONS_MAP)) {
+    const role = roleMap.get(roleName as RoleName);
+    if (!role) {
+      console.warn(`Role ${roleName} not found in database`);
+      continue;
+    }
+
+    for (const permissionName of permissions) {
+      const permission = permissionMap.get(permissionName);
+      if (!permission) {
+        console.warn(`Permission ${permissionName} not found in database`);
+        continue;
+      }
+
+      rolePermissionPromises.push(
+        prisma.role_Permissions.upsert({
+          where: {
+            role_id_permission_id: {
+              role_id: role.id,
+              permission_id: permission.id,
+            },
+          },
+          update: {},
+          create: {
+            role_id: role.id,
+            permission_id: permission.id,
+          },
+        })
+      );
+    }
+  }
+
+  await Promise.all(rolePermissionPromises);
+  console.log(
+    `Seeded ${rolePermissionPromises.length} role-permission associations`
+  );
+}
+
+/**
+ * Main seeding function
+ */
+async function main(): Promise<void> {
+  try {
+    console.log("🌱 Starting database seeding...");
+
+    await seedPermissions();
+    await seedRoles();
+    await seedRolePermissions();
+
+    console.log("Seed data completed successfully!");
+  } catch (error) {
+    console.error("Error during seeding:", error);
+    throw error;
+  }
+}
+
+// Execute the seeding
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((error) => {
+    console.error("Fatal error:", error);
     process.exit(1);
   })
   .finally(async () => {
+    console.log("🔌 Disconnecting from database...");
     await prisma.$disconnect();
   });
