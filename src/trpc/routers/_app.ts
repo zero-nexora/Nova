@@ -1,8 +1,5 @@
 import { createTRPCRouter } from "../init";
-import { authRouter } from "@/modules/auth/server/produres";
 
-export const appRouter = createTRPCRouter({
-  auth: authRouter,
-});
+export const appRouter = createTRPCRouter({});
 
 export type AppRouter = typeof appRouter;
