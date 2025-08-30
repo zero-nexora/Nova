@@ -2,14 +2,25 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Separator } from "@/components/ui/separator";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { sidebarRoutes } from "@/lib/constants";
 import clsx from "clsx";
 import { Menu } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 interface MenuOptionsProps {
@@ -51,9 +62,32 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
           }
         )}
       >
-        <SheetHeader className="hidden">
-          <SheetTitle className="sr-only">Menu Options</SheetTitle>
+        <SheetHeader>
+          <SheetTitle className="sr-only" />
         </SheetHeader>
+        <p className="text-muted-foreground text-xs mb-2">MENU LINKS</p>
+        <Separator className="mb-4" />
+        <nav className="relative">
+          <Command className="rounded-lg overflow-visible bg-transparent">
+            <CommandInput placeholder="Search..." />
+            <CommandList className="py-4 overflow-visible">
+              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandGroup className="overflow-visible">
+                {sidebarRoutes.map((route) => (
+                  <CommandItem key={route.path} className="w-full md:w-[320px]">
+                    <Link
+                      href={route.path}
+                      className="flex items-center gap-2  rounded-md transition-all w-[320px] md:w-full"
+                    >
+                      {route.icon && <route.icon className="h-4 w-4" />}
+                      {route.label}
+                    </Link>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </nav>
       </SheetContent>
     </Sheet>
   );
