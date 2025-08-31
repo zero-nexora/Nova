@@ -14,7 +14,7 @@ import { UpdateCategoryForm } from "@/components/forms/update-category-form";
 export const CategoriesTable = () => {
   const trpc = useTRPC();
   const { mutate, isPending: isUpdatePending } = useMutation(
-    trpc.categoriesAdmin.updateCategory.mutationOptions()
+    trpc.categoriesAdmin.update.mutationOptions()
   );
   const { open } = useModal();
 
