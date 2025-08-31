@@ -1,5 +1,5 @@
 import { categoriesData } from "@/lib/constants";
-import { CategorySeed } from "@/lib/types";
+import { CategorySeedType } from "@/lib/types";
 import { PrismaClient, RoleName, PermissionName } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -138,7 +138,7 @@ async function seedRolePermissions(): Promise<void> {
 }
 
 async function seedCategoryRecursive(
-  category: CategorySeed,
+  category: CategorySeedType,
   parentId?: string
 ) {
   const createdCategory = await prisma.categories.create({
@@ -146,15 +146,14 @@ async function seedCategoryRecursive(
       name: category.name,
       slug: category.slug,
       parent_id: parentId,
-      images: {
-        create: category.images.map((url: string) => ({ image_url: url })),
-      },
+      image_url: category.image_url,
+      public_id: category.public_id
     },
   });
 
   if (category.children?.length) {
     await Promise.all(
-      category.children.map((child: CategorySeed) =>
+      category.children.map((child: CategorySeedType) =>
         seedCategoryRecursive(child, createdCategory.id)
       )
     );

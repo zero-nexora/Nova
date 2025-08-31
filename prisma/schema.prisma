@@ -133,34 +133,24 @@ model Role_Permissions {
 }
 
 model Categories {
-  id         String            @id @default(uuid())
-  name       String
-  slug       String            @unique
-  parent_id  String?
-  parent     Categories?       @relation("CategoryToParent", fields: [parent_id], references: [id], onDelete: Cascade)
-  children   Categories[]      @relation("CategoryToParent")
-  images     Category_Images[]
-  products   Products[]
-  created_at DateTime          @default(now())
-  updated_at DateTime          @updatedAt
-  is_deleted Boolean           @default(false)
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  parent_id String?
+  parent    Categories?  @relation("CategoryToParent", fields: [parent_id], references: [id], onDelete: Cascade)
+  children  Categories[] @relation("CategoryToParent")
+  products  Products[]
+
+  image_url String?
+  public_id String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
   deleted_at DateTime?
 
   @@index([slug])
   @@index([parent_id])
-}
-
-model Category_Images {
-  id          String     @id @default(uuid())
-  category_id String
-  category    Categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
-  image_url   String
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  is_deleted  Boolean    @default(false)
-  deleted_at  DateTime?
-
-  @@index([category_id])
 }
 
 model Products {
