@@ -12,7 +12,7 @@ const CategoriesPage = async () => {
   await queryClient.prefetchQuery(trpc.categoriesAdmin.getMany.queryOptions());
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Categories"
         description="Manage your product categories"
@@ -24,9 +24,9 @@ const CategoriesPage = async () => {
         <Suspense
           fallback={<DataTableSkeleton columnCount={7} rowCount={10} />}
         >
-          <CategoriesTable />
         </Suspense>
       </HydrationBoundary>
+          <CategoriesTable />
     </div>
   );
 };

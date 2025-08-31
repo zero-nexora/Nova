@@ -5,10 +5,6 @@ import { UpdateCategorySchema } from "@/lib/types";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Card,
-  CardContent,
-} from "../ui/card";
-import {
   Form,
   FormControl,
   FormField,
@@ -37,27 +33,23 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
   const isLoading = form.formState.isLoading;
 
   return (
-    <Card className="bg-transparent">
-      <CardContent >
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(() => {})}>
-            <FormField
-              control={form.control}
-              name="name"
-              disabled={isLoading}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(() => {})}>
+        <FormField
+          control={form.control}
+          name="name"
+          disabled={isLoading}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </form>
+    </Form>
   );
 };
