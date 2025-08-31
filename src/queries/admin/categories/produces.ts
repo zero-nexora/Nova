@@ -1,13 +1,5 @@
-import {
-  CategoryColumn,
-  CategoryWithChildren,
-  UpdateCategorySchema,
-} from "@/lib/types";
-import {
-  adminOrManageCategoryProcedure,
-  baseProcedure,
-  createTRPCRouter,
-} from "@/trpc/init";
+import { CategoryColumn, CategoryWithChildren } from "@/lib/types";
+import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import {
   createCategorySchema,
@@ -20,47 +12,106 @@ import slugify from "slugify";
 import z from "zod";
 
 export const categoriesAdminRouter = createTRPCRouter({
-  getMany: baseProcedure.query(async ({ ctx }) => {
-    const categories = await ctx.db.categories.findMany({
-      where: { parent_id: null },
-      include: {
-        children: {
-          include: {
-            children: {
-              include: {
-                children: true,
+  getAll: adminOrManageCategoryProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(10),
+        search: z.string().optional(),
+        sortBy: z.string().optional(),
+        sortOrder: z.enum(["asc", "desc"]).default("desc"),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const { page, limit, search, sortBy = "created_at", sortOrder } = input;
+
+        const offset = (page - 1) * limit;
+
+        const whereClause: any = {
+          is_deleted: false, // Only get non-deleted categories
+        };
+
+        if (search) {
+          whereClause.OR = [
+            { name: { contains: search, mode: "insensitive" } },
+            { slug: { contains: search, mode: "insensitive" } },
+          ];
+        }
+
+        const [categories, totalItems] = await Promise.all([
+          ctx.db.categories.findMany({
+            where: whereClause,
+            orderBy: { [sortBy]: sortOrder },
+            skip: offset,
+            take: limit,
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              children: {
+                where: { is_deleted: false },
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              _count: {
+                select: {
+                  products: {
+                    where: { is_deleted: false },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          }),
+          ctx.db.categories.count({ where: whereClause }),
+        ]);
 
-    function flatten(
-      categories: CategoryWithChildren[],
-      parentName: string | null = null
-    ): CategoryColumn[] {
-      return categories.flatMap((category) => {
-        const current: CategoryColumn = {
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Transform the data to match your CategoryColumn interface
+        const transformedData = categories.map((category) => ({
           id: category.id,
           name: category.name,
-          parentName,
+          slug: category.slug,
+          parentName: category.parent?.name || null,
+          parentId: category.parent_id,
           image_url: category.image_url,
+          public_id: category.public_id,
           created_at: category.created_at,
           updated_at: category.updated_at,
           is_deleted: category.is_deleted,
+          deleted_at: category.deleted_at,
+          childrenCount: category.children.length,
+          productsCount: category._count.products,
+          // Include children info if needed
+          children: category.children,
+        }));
+
+        return {
+          data: transformedData,
+          pagination: {
+            currentPage: page,
+            totalPages,
+            totalItems,
+            pageSize: limit,
+            hasNextPage: page < totalPages,
+            hasPreviousPage: page > 1,
+          },
         };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
 
-        const children = category.children
-          ? flatten(category.children, category.name)
-          : [];
-
-        return [current, ...children];
-      });
-    }
-
-    return flatten(categories);
-  }),
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get all categories",
+        });
+      }
+    }),
 
   getById: adminOrManageCategoryProcedure
     .input(getCategoryByIdSchema)

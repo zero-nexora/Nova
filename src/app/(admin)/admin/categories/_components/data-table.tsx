@@ -6,7 +6,6 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getPaginationRowModel,
   getSortedRowModel,
   getFilteredRowModel,
   SortingState,
@@ -30,27 +29,42 @@ import {
   ChevronsRight,
 } from "lucide-react";
 
+interface PaginationData {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  pagination: PaginationData;
+  onPageChange: (page: number) => void;
+  onSearch?: (searchValue: string) => void;
   searchKey?: string;
   searchPlaceholder?: string;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  pagination,
+  onPageChange,
+  onSearch,
   searchKey,
   searchPlaceholder = "Search...",
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [searchValue, setSearchValue] = useState("");
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
@@ -59,31 +73,40 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
     },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
+    manualPagination: true,
+    pageCount: pagination.totalPages,
   });
 
-  const totalRows = table.getFilteredRowModel().rows.length;
-  const currentPage = table.getState().pagination.pageIndex + 1;
-  const totalPages = table.getPageCount();
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    if (onSearch) {
+      onSearch(value);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      onPageChange(page);
+    }
+  };
+
+  const startItem = (pagination.currentPage - 1) * pagination.pageSize + 1;
+  const endItem = Math.min(
+    pagination.currentPage * pagination.pageSize,
+    pagination.totalItems
+  );
 
   return (
     <div className="space-y-4">
       {/* Search */}
-      {searchKey && (
+      {searchKey && onSearch && (
         <div className="flex items-center py-4">
           <Input
             placeholder={searchPlaceholder}
-            value={
-              (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
+            value={searchValue}
+            onChange={(event) => handleSearch(event.target.value)}
             className="max-w-sm"
+            disabled={isLoading}
           />
         </div>
       )}
@@ -126,7 +149,18 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              // Loading skeleton rows
+              Array.from({ length: pagination.pageSize }).map((_, index) => (
+                <TableRow key={`loading-${index}`}>
+                  {columns.map((_, colIndex) => (
+                    <TableCell key={`loading-cell-${colIndex}`}>
+                      <div className="h-4 bg-muted animate-pulse rounded" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : data?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -158,48 +192,51 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between px-2">
           <div className="text-sm text-muted-foreground">
-            Showing {Math.min((currentPage - 1) * 10 + 1, totalRows)} to{" "}
-            {Math.min(currentPage * 10, totalRows)} of {totalRows} results
+            Showing {startItem} to {endItem} of {pagination.totalItems} results
           </div>
 
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => handlePageChange(1)}
+              disabled={pagination.currentPage === 1 || isLoading}
             >
               <ChevronsLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1 || isLoading}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
             <span className="text-sm">
-              Page {currentPage} of {totalPages}
+              Page {pagination.currentPage} of {pagination.totalPages}
             </span>
 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={
+                pagination.currentPage === pagination.totalPages || isLoading
+              }
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={
+                pagination.currentPage === pagination.totalPages || isLoading
+              }
             >
               <ChevronsRight className="h-4 w-4" />
             </Button>
