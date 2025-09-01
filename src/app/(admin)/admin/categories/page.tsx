@@ -9,7 +9,7 @@ import { CreateCategory } from "./_components/create-category";
 const CategoriesPage = async () => {
   const queryClient = getQueryClient();
 
-  await queryClient.prefetchQuery(trpc.categoriesAdmin.getMany.queryOptions());
+  await queryClient.prefetchQuery(trpc.categoriesAdmin.getAll.queryOptions({}));
 
   return (
     <div className="space-y-4">
