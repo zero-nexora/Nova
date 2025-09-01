@@ -29,6 +29,7 @@
     "@trpc/tanstack-react-query": "^11.5.0",
     "class-variance-authority": "^0.7.1",
     "client-only": "^0.0.1",
+    "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "concurrently": "^9.2.1",

@@ -141,33 +141,32 @@ async function seedCategoryRecursive(
   category: CategorySeedType,
   parentId?: string
 ) {
-  const createdCategory = await prisma.categories.create({
+  const created = await prisma.categories.create({
     data: {
       name: category.name,
       slug: category.slug,
       parent_id: parentId,
       image_url: category.image_url,
-      public_id: category.public_id
+      public_id: category.public_id,
     },
   });
 
   if (category.children?.length) {
     await Promise.all(
-      category.children.map((child: CategorySeedType) =>
-        seedCategoryRecursive(child, createdCategory.id)
+      category.children.map((child) =>
+        seedCategoryRecursive(child, created.id)
       )
     );
   }
 }
 
-async function seedCategories() {
-  prisma.categories.deleteMany();
-  console.log("Seeding categories associations...");
+export async function seedCategories() {
+  await prisma.categories.deleteMany();
+  console.log("🌱 Seeding categories...");
   for (const category of categoriesData) {
     await seedCategoryRecursive(category);
   }
-
-  console.log(`Seeded ${categoriesData.length} role-permission associations`);
+  console.log("Categories seeded successfully");
 }
 
 /**

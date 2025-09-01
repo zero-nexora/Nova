@@ -1,339 +1,453 @@
-// // hooks/use-categories.ts
-// import { api } from "@/trpc/react";
-// import { useToast } from "@/hooks/use-toast";
-// import { useRouter } from "next/navigation";
-// import { useMemo } from "react";
+"use client";
 
-// // Types based on your schema and procedures
-// export interface GetAllCategoriesInput {
-//   page?: number;
-//   limit?: number;
-//   search?: string;
-//   sortBy?: string;
-//   sortOrder?: "asc" | "desc";
-// }
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { toast } from "sonner";
+import { useTRPC } from "@/trpc/client";
 
-// export interface CreateCategoryInput {
-//   name: string;
-//   parent_id?: string;
-//   image_url?: string;
-//   public_id?: string;
-// }
+// ==================== Types ====================
+export interface GetAllCategoriesInput {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
 
-// export interface UpdateCategoryInput {
-//   id: string;
-//   name?: string;
-//   parent_id?: string;
-//   image_url?: string;
-//   public_id?: string;
-// }
+export interface CreateCategoryInput {
+  name: string;
+  parent_id?: string;
+  image_url?: string;
+  public_id?: string;
+}
 
-// export interface DeleteCategoryInput {
-//   id: string;
-//   hard_delete?: boolean;
-// }
+export interface UpdateCategoryInput {
+  id: string;
+  name?: string;
+  parent_id?: string;
+  image_url?: string;
+  public_id?: string;
+}
 
-// // Hook for getting all categories with pagination
-// export function useGetAllCategories(input: GetAllCategoriesInput = {}) {
-//   const query = api.categories.getAll.useQuery(input);
+export interface DeleteCategoryInput {
+  id: string;
+  hard_delete?: boolean;
+}
 
-//   return {
-//     categories: query.data?.data ?? [],
-//     pagination: query.data?.pagination,
-//     isLoading: query.isLoading,
-//     isError: query.isError,
-//     error: query.error,
-//     refetch: query.refetch,
-//     isFetching: query.isFetching,
-//   };
-// }
+export interface CategoryOption {
+  value: string;
+  label: string;
+  parentId?: string | null;
+  isChild: boolean;
+}
 
-// // Hook for getting category by ID
-// export function useGetCategoryById(id: string, enabled: boolean = true) {
-//   const query = api.categories.getById.useQuery(
-//     { id },
-//     { enabled: enabled && !!id }
-//   );
+export interface CategoryStats {
+  totalProducts?: number;
+  totalChildren?: number;
+  totalCategories?: number;
+  totalParentCategories?: number;
+  totalChildCategories?: number;
+}
 
-//   return {
-//     category: query.data,
-//     isLoading: query.isLoading,
-//     isError: query.isError,
-//     error: query.error,
-//     refetch: query.refetch,
-//   };
-// }
+// ==================== Query Keys & Utils ====================
+const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
+  all: () => trpc.categoriesAdmin.getAll.queryOptions({}),
+  byId: (id: string) => trpc.categoriesAdmin.getById.queryOptions({ id }),
+  bySlug: (slug: string) => trpc.categoriesAdmin.getBySlug.queryOptions({ slug }),
+});
 
-// // Hook for getting category by slug
-// export function useGetCategoryBySlug(slug: string, enabled: boolean = true) {
-//   const query = api.categories.getBySlug.useQuery(
-//     { slug },
-//     { enabled: enabled && !!slug }
-//   );
+// ==================== Query Hooks ====================
+export function useGetAllCategories(input: GetAllCategoriesInput = {}) {
+  const trpc = useTRPC();
 
-//   return {
-//     category: query.data,
-//     isLoading: query.isLoading,
-//     isError: query.isError,
-//     error: query.error,
-//     refetch: query.refetch,
-//   };
-// }
+  const query = useQuery(trpc.categoriesAdmin.getAll.queryOptions(input));
 
-// // Hook for creating category
-// export function useCreateCategory() {
-//   const { toast } = useToast();
-//   const router = useRouter();
-//   const utils = api.useUtils();
+  return {
+    categories: query.data?.data ?? [],
+    pagination: query.data?.pagination,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+    isFetching: query.isFetching,
+  };
+}
 
-//   const mutation = api.categories.create.useMutation({
-//     onSuccess: (data) => {
-//       toast({
-//         title: "Success",
-//         description: "Category created successfully",
-//       });
-//       // Invalidate categories list
-//       utils.categories.getAll.invalidate();
-//       utils.categories.getById.invalidate();
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: "Error",
-//         description: error.message || "Failed to create category",
-//         variant: "destructive",
-//       });
-//     },
-//   });
+export function useGetCategoryById(id: string, enabled = true) {
+  const trpc = useTRPC();
 
-//   return {
-//     createCategory: mutation.mutate,
-//     createCategoryAsync: mutation.mutateAsync,
-//     isLoading: mutation.isLoading,
-//     isError: mutation.isError,
-//     error: mutation.error,
-//     isSuccess: mutation.isSuccess,
-//     reset: mutation.reset,
-//   };
-// }
+  const query = useQuery({
+    ...trpc.categoriesAdmin.getById.queryOptions({ id }),
+    enabled: enabled && !!id,
+  });
 
-// // Hook for updating category
-// export function useUpdateCategory() {
-//   const { toast } = useToast();
-//   const utils = api.useUtils();
+  return {
+    category: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
 
-//   const mutation = api.categories.update.useMutation({
-//     onSuccess: (data) => {
-//       toast({
-//         title: "Success",
-//         description: "Category updated successfully",
-//       });
-//       // Invalidate related queries
-//       utils.categories.getAll.invalidate();
-//       utils.categories.getById.invalidate({ id: data.id });
-//       utils.categories.getBySlug.invalidate({ slug: data.slug });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: "Error",
-//         description: error.message || "Failed to update category",
-//         variant: "destructive",
-//       });
-//     },
-//   });
+export function useGetCategoryBySlug(slug: string, enabled = true) {
+  const trpc = useTRPC();
 
-//   return {
-//     updateCategory: mutation.mutate,
-//     updateCategoryAsync: mutation.mutateAsync,
-//     isLoading: mutation.isLoading,
-//     isError: mutation.isError,
-//     error: mutation.error,
-//     isSuccess: mutation.isSuccess,
-//     reset: mutation.reset,
-//   };
-// }
+  const query = useQuery({
+    ...trpc.categoriesAdmin.getBySlug.queryOptions({ slug }),
+    enabled: enabled && !!slug,
+  });
 
-// // Hook for deleting category
-// export function useDeleteCategory() {
-//   const { toast } = useToast();
-//   const utils = api.useUtils();
+  return {
+    category: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
 
-//   const mutation = api.categories.delete.useMutation({
-//     onSuccess: (data, variables) => {
-//       toast({
-//         title: "Success",
-//         description: variables.hard_delete 
-//           ? "Category permanently deleted" 
-//           : "Category moved to trash",
-//       });
-//       // Invalidate categories list
-//       utils.categories.getAll.invalidate();
-//       utils.categories.getById.invalidate();
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: "Error",
-//         description: error.message || "Failed to delete category",
-//         variant: "destructive",
-//       });
-//     },
-//   });
+// ==================== Mutation Hooks ====================
+export function useCreateCategory() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-//   return {
-//     deleteCategory: mutation.mutate,
-//     deleteCategoryAsync: mutation.mutateAsync,
-//     isLoading: mutation.isLoading,
-//     isError: mutation.isError,
-//     error: mutation.error,
-//     isSuccess: mutation.isSuccess,
-//     reset: mutation.reset,
-//   };
-// }
+  const mutation = useMutation({
+    ...trpc.categoriesAdmin.create.mutationOptions(),
+    onSuccess: () => {
+      toast.success("Category created successfully");
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create category");
+    },
+  });
 
-// // Hook for restoring category
-// export function useRestoreCategory() {
-//   const { toast } = useToast();
-//   const utils = api.useUtils();
+  return {
+    createCategory: mutation.mutate,
+    createCategoryAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error,
+    isSuccess: mutation.isSuccess,
+    reset: mutation.reset,
+  };
+}
 
-//   const mutation = api.categories.restore.useMutation({
-//     onSuccess: (data) => {
-//       toast({
-//         title: "Success",
-//         description: "Category restored successfully",
-//       });
-//       // Invalidate categories list
-//       utils.categories.getAll.invalidate();
-//       utils.categories.getById.invalidate({ id: data.id });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: "Error",
-//         description: error.message || "Failed to restore category",
-//         variant: "destructive",
-//       });
-//     },
-//   });
+export function useUpdateCategory() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-//   return {
-//     restoreCategory: mutation.mutate,
-//     restoreCategoryAsync: mutation.mutateAsync,
-//     isLoading: mutation.isLoading,
-//     isError: mutation.isError,
-//     error: mutation.error,
-//     isSuccess: mutation.isSuccess,
-//     reset: mutation.reset,
-//   };
-// }
+  const mutation = useMutation({
+    ...trpc.categoriesAdmin.update.mutationOptions(),
+    onSuccess: (data) => {
+      toast.success("Category updated successfully");
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
+      
+      if (data.slug) {
+        queryClient.invalidateQueries(getCategoryQueryKeys(trpc).bySlug(data.slug));
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update category");
+    },
+  });
 
-// // Composite hook for category management
-// export function useCategoryManagement() {
-//   const createMutation = useCreateCategory();
-//   const updateMutation = useUpdateCategory();
-//   const deleteMutation = useDeleteCategory();
-//   const restoreMutation = useRestoreCategory();
+  return {
+    updateCategory: mutation.mutate,
+    updateCategoryAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error,
+    isSuccess: mutation.isSuccess,
+    reset: mutation.reset,
+  };
+}
 
-//   const isAnyLoading = useMemo(() => {
-//     return (
-//       createMutation.isLoading ||
-//       updateMutation.isLoading ||
-//       deleteMutation.isLoading ||
-//       restoreMutation.isLoading
-//     );
-//   }, [
-//     createMutation.isLoading,
-//     updateMutation.isLoading,
-//     deleteMutation.isLoading,
-//     restoreMutation.isLoading,
-//   ]);
+export function useDeleteCategory() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-//   return {
-//     // Create
-//     createCategory: createMutation.createCategory,
-//     createCategoryAsync: createMutation.createCategoryAsync,
-//     isCreating: createMutation.isLoading,
+  const mutation = useMutation({
+    ...trpc.categoriesAdmin.delete.mutationOptions(),
+    onSuccess: (_, variables) => {
+      const message = variables.hard_delete
+        ? "Category permanently deleted"
+        : "Category moved to trash";
+      toast.success(message);
+
+      // Invalidate all categories queries
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+      // Invalidate all individual category queries
+      queryClient.invalidateQueries({
+        predicate: (query) => 
+          query.queryKey[0] === "categoriesAdmin.getById" ||
+          query.queryKey[0] === "categoriesAdmin.getBySlug"
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete category");
+    },
+  });
+
+  return {
+    deleteCategory: mutation.mutate,
+    deleteCategoryAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error,
+    isSuccess: mutation.isSuccess,
+    reset: mutation.reset,
+  };
+}
+
+export function useRestoreCategory() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    ...trpc.categoriesAdmin.restore.mutationOptions(),
+    onSuccess: (data) => {
+      toast.success("Category restored successfully");
+
+      // Invalidate related queries
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
+      
+      if (data.slug) {
+        queryClient.invalidateQueries(getCategoryQueryKeys(trpc).bySlug(data.slug));
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to restore category");
+    },
+  });
+
+  return {
+    restoreCategory: mutation.mutate,
+    restoreCategoryAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error,
+    isSuccess: mutation.isSuccess,
+    reset: mutation.reset,
+  };
+}
+
+// ==================== Composite Hooks ====================
+export function useCategoryManagement() {
+  const create = useCreateCategory();
+  const update = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+  const restore = useRestoreCategory();
+
+  const isAnyLoading = useMemo(() => {
+    return create.isLoading || update.isLoading || deleteCategory.isLoading || restore.isLoading;
+  }, [create.isLoading, update.isLoading, deleteCategory.isLoading, restore.isLoading]);
+
+  const resetAll = () => {
+    create.reset();
+    update.reset();
+    deleteCategory.reset();
+    restore.reset();
+  };
+
+  return {
+    // Create operations
+    createCategory: create.createCategory,
+    createCategoryAsync: create.createCategoryAsync,
+    isCreating: create.isLoading,
     
-//     // Update
-//     updateCategory: updateMutation.updateCategory,
-//     updateCategoryAsync: updateMutation.updateCategoryAsync,
-//     isUpdating: updateMutation.isLoading,
+    // Update operations
+    updateCategory: update.updateCategory,
+    updateCategoryAsync: update.updateCategoryAsync,
+    isUpdating: update.isLoading,
     
-//     // Delete
-//     deleteCategory: deleteMutation.deleteCategory,
-//     deleteCategoryAsync: deleteMutation.deleteCategoryAsync,
-//     isDeleting: deleteMutation.isLoading,
+    // Delete operations
+    deleteCategory: deleteCategory.deleteCategory,
+    deleteCategoryAsync: deleteCategory.deleteCategoryAsync,
+    isDeleting: deleteCategory.isLoading,
     
-//     // Restore
-//     restoreCategory: restoreMutation.restoreCategory,
-//     restoreCategoryAsync: restoreMutation.restoreCategoryAsync,
-//     isRestoring: restoreMutation.isLoading,
+    // Restore operations
+    restoreCategory: restore.restoreCategory,
+    restoreCategoryAsync: restore.restoreCategoryAsync,
+    isRestoring: restore.isLoading,
     
-//     // General state
-//     isAnyLoading,
-    
-//     // Reset functions
-//     resetAll: () => {
-//       createMutation.reset();
-//       updateMutation.reset();
-//       deleteMutation.reset();
-//       restoreMutation.reset();
-//     },
-//   };
-// }
+    // General state
+    isAnyLoading,
+    resetAll,
+  };
+}
 
-// // Hook for category options (useful for dropdowns)
-// export function useCategoryOptions() {
-//   const { categories, isLoading } = useGetAllCategories({
-//     limit: 100, // Get more for options
-//     sortBy: "name",
-//     sortOrder: "asc",
-//   });
+// ==================== Utility Hooks ====================
+export function useCategoryOptions() {
+  const { categories, isLoading } = useGetAllCategories({
+    limit: 100,
+    sortBy: "name",
+    sortOrder: "asc",
+  });
 
-//   const options = useMemo(() => {
-//     return categories.map((category) => ({
-//       value: category.id,
-//       label: category.parentName 
-//         ? `${category.parentName} > ${category.name}` 
-//         : category.name,
-//       parentId: category.parentId,
-//       isChild: !!category.parentId,
-//     }));
-//   }, [categories]);
+  const options: CategoryOption[] = useMemo(() => {
+    return categories.map((category) => ({
+      value: category.id,
+      label: category.parentName 
+        ? `${category.parentName} > ${category.name}` 
+        : category.name,
+      parentId: category.parentId,
+      isChild: !!category.parentId,
+    }));
+  }, [categories]);
 
-//   const parentOptions = useMemo(() => {
-//     return categories
-//       .filter((cat) => !cat.parentId) // Only root categories
-//       .map((category) => ({
-//         value: category.id,
-//         label: category.name,
-//       }));
-//   }, [categories]);
+  const parentOptions = useMemo(() => {
+    return categories
+      .filter((cat) => !cat.parentId)
+      .map((category) => ({
+        value: category.id,
+        label: category.name,
+      }));
+  }, [categories]);
 
-//   return {
-//     options,
-//     parentOptions,
-//     isLoading,
-//   };
-// }
+  const childOptions = useMemo(() => {
+    return categories
+      .filter((cat) => !!cat.parentId)
+      .map((category) => ({
+        value: category.id,
+        label: category.name,
+        parentId: category.parentId,
+      }));
+  }, [categories]);
 
-// // Hook for category statistics
-// export function useCategoryStats(categoryId?: string) {
+  return {
+    options,
+    parentOptions,
+    childOptions,
+    isLoading,
+  };
+}
+
+// export function useCategoryStats(categoryId?: string): CategoryStats {
 //   const { categories } = useGetAllCategories();
-  
-//   const stats = useMemo(() => {
+
+//   return useMemo(() => {
 //     if (categoryId) {
-//       const category = categories.find(cat => cat.id === categoryId);
+//       const category = categories.find((cat) => cat.id === categoryId);
 //       return {
 //         totalProducts: category?.productsCount || 0,
 //         totalChildren: category?.childrenCount || 0,
 //       };
 //     }
 
+//     const parentCategories = categories.filter((cat) => !cat.parentId);
+//     const childCategories = categories.filter((cat) => cat.parentId);
+
 //     return {
 //       totalCategories: categories.length,
-//       totalParentCategories: categories.filter(cat => !cat.parentId).length,
-//       totalChildCategories: categories.filter(cat => cat.parentId).length,
+//       totalParentCategories: parentCategories.length,
+//       totalChildCategories: childCategories.length,
 //       totalProducts: categories.reduce((sum, cat) => sum + (cat.productsCount || 0), 0),
 //     };
 //   }, [categories, categoryId]);
-
-//   return stats;
 // }
+
+// ==================== Cache Utils ====================
+export function useCategoryUtils() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const queryKeys = getCategoryQueryKeys(trpc);
+
+  const invalidateAllCategories = () => {
+    queryClient.invalidateQueries(queryKeys.all());
+  };
+
+  const invalidateCategoryById = (id: string) => {
+    queryClient.invalidateQueries(queryKeys.byId(id));
+  };
+
+  const invalidateCategoryBySlug = (slug: string) => {
+    queryClient.invalidateQueries(queryKeys.bySlug(slug));
+  };
+
+  const refetchAllCategories = () => {
+    return queryClient.refetchQueries(queryKeys.all());
+  };
+
+  const prefetchCategory = (id: string) => {
+    return queryClient.prefetchQuery(queryKeys.byId(id));
+  };
+
+  const setCategoryData = (id: string, data: any) => {
+    queryClient.setQueryData(queryKeys.byId(id).queryKey, data);
+  };
+
+  const getCachedCategory = (id: string) => {
+    return queryClient.getQueryData(queryKeys.byId(id).queryKey);
+  };
+
+  return {
+    invalidateAllCategories,
+    invalidateCategoryById,
+    invalidateCategoryBySlug,
+    refetchAllCategories,
+    prefetchCategory,
+    setCategoryData,
+    getCachedCategory,
+  };
+}
+
+// ==================== Action Hooks ====================
+export function useCategoryActions() {
+  const { 
+    createCategory, 
+    updateCategory, 
+    deleteCategory, 
+    restoreCategory,
+    isAnyLoading 
+  } = useCategoryManagement();
+
+  const handleCreateCategory = async (data: CreateCategoryInput) => {
+    try {
+      const result = await createCategory(data);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error };
+    }
+  };
+
+  const handleUpdateCategory = async (data: UpdateCategoryInput) => {
+    try {
+      const result = await updateCategory(data);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error };
+    }
+  };
+
+  const handleDeleteCategory = async (id: string, hardDelete = false) => {
+    try {
+      const result = await deleteCategory({ id, hard_delete: hardDelete });
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error };
+    }
+  };
+
+  const handleRestoreCategory = async (id: string) => {
+    try {
+      const result = await restoreCategory({ id });
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error };
+    }
+  };
+
+  return {
+    handleCreateCategory,
+    handleUpdateCategory,
+    handleDeleteCategory,
+    handleRestoreCategory,
+    isLoading: isAnyLoading,
+  };
+}

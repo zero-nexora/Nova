@@ -1,10 +1,8 @@
-import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
-import { CategoriesTable } from "./_components/categories-table";
 import { PageHeader } from "@/components/global/page-header";
-import { Suspense } from "react";
-import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { CreateCategory } from "./_components/create-category";
+import { CategoriesTable } from "./_components/categories-table";
+import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 
 const CategoriesPage = async () => {
   const queryClient = getQueryClient();
@@ -21,12 +19,8 @@ const CategoriesPage = async () => {
       </PageHeader>
 
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <Suspense
-          fallback={<DataTableSkeleton columnCount={7} rowCount={10} />}
-        >
-        </Suspense>
-      </HydrationBoundary>
           <CategoriesTable />
+      </HydrationBoundary>
     </div>
   );
 };

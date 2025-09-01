@@ -1,4 +1,3 @@
-import { CategoryColumn, CategoryWithChildren } from "@/lib/types";
 import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import {
@@ -52,20 +51,6 @@ export const categoriesAdminRouter = createTRPCRouter({
                   name: true,
                 },
               },
-              children: {
-                where: { is_deleted: false },
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-              _count: {
-                select: {
-                  products: {
-                    where: { is_deleted: false },
-                  },
-                },
-              },
             },
           }),
           ctx.db.categories.count({ where: whereClause }),
@@ -86,10 +71,6 @@ export const categoriesAdminRouter = createTRPCRouter({
           updated_at: category.updated_at,
           is_deleted: category.is_deleted,
           deleted_at: category.deleted_at,
-          childrenCount: category.children.length,
-          productsCount: category._count.products,
-          // Include children info if needed
-          children: category.children,
         }));
 
         return {

@@ -34,7 +34,7 @@ export function DataTableSkeleton({
             <TableRow key={rowIndex}>
               {Array.from({ length: columnCount }).map((_, cellIndex) => (
                 <TableCell key={cellIndex}>
-                  <Skeleton className="h-4 w-[80px]" />
+                  <Skeleton className="h-6 w-[80px]" />
                 </TableCell>
               ))}
             </TableRow>

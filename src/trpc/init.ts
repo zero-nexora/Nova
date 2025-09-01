@@ -57,6 +57,18 @@ export const adminOrManageOrderProcedure = createRoleProcedure(
   "Admins or Manage order only"
 );
 
+export const adminOrEmployee = createRoleProcedure(
+  [
+    RoleName.ADMIN,
+    RoleName.MANAGE_ORDER,
+    RoleName.MANAGE_CATEGORY,
+    RoleName.MANAGE_PRODUCT,
+    RoleName.MANAGE_PRODUCT,
+    RoleName.MANAGE_STAFF,
+  ],
+  "Admins or employee only"
+);
+
 function createRoleProcedure(allowedRoles: RoleName[], message: string) {
   return protectedProcedure.use(async ({ ctx, next }) => {
     const user = await ctx.db.users.findUnique({

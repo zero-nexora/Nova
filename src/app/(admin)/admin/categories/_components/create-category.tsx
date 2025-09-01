@@ -1,14 +1,16 @@
 "use client";
 
-import { Button } from '@/components/ui/button'
-import { useModal } from '@/stores/modal-store'
-import React from 'react'
+import { CreateCategoryForm } from "@/components/forms/create-category-form";
+import { Button } from "@/components/ui/button";
+import { useModal } from "@/stores/modal-store";
+import React from "react";
 
 export const CreateCategory = () => {
-  const {open} = useModal();
+  const { open } = useModal();
+
   return (
     <div>
-      <Button>Create</Button>
+      <Button onClick={() => open({ title: "Create Category", description: "Create a new category", children: <CreateCategoryForm /> })}>Create</Button>
     </div>
-  )
-}
+  );
+};

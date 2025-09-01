@@ -8,6 +8,7 @@ export interface CategorySeedType {
   public_id: string | null;
   children?: CategorySeedType[];
 }
+
 export type CategoryTree = Categories & { children: CategoryTree[] };
 
 export interface CategoryColumn {
@@ -23,13 +24,6 @@ export interface CategoryColumn {
 export type CategoryWithChildren = Categories & {
   children?: CategoryWithChildren[];
 };
-
-export const UpdateCategorySchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1, "Name is required").optional(),
-  parent_id: z.string().uuid().nullable().optional(),
-  is_deleted: z.boolean().optional(),
-});
 
 export interface CategoryWithRelations {
   id: string;

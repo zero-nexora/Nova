@@ -1,30 +1,37 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createCategoryColumns } from "./columns";
 import { CategoryColumn } from "@/lib/types";
 import { useTRPC } from "@/trpc/client";
-import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { DataTable } from "./data-table";
 import { useModal } from "@/stores/modal-store";
 import { UpdateCategoryForm } from "@/components/forms/update-category-form";
 
+// custom hook debounce
+function useDebounce<T>(value: T, delay: number) {
+  const [debounced, setDebounced] = useState(value);
 
-// debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
 
+  return debounced;
+}
 
 export const CategoriesTable = () => {
   const trpc = useTRPC();
   const { open } = useModal();
 
-  // State cho pagination và search
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const pageSize = 10;
 
-  // Query data với pagination parameters
+  // debounce search input
+  const debouncedSearch = useDebounce(searchInput, 500);
+
   const {
     data: response,
     isPending,
@@ -34,11 +41,10 @@ export const CategoriesTable = () => {
     ...trpc.categoriesAdmin.getAll.queryOptions({
       page: currentPage,
       limit: pageSize,
-      search: searchQuery,
+      search: debouncedSearch,
     }),
     retry: 3,
     staleTime: 5 * 60 * 1000,
-    // Query key sẽ tự động update khi page hoặc search thay đổi
   });
 
   const deleteMutation = useMutation({});
@@ -62,18 +68,15 @@ export const CategoriesTable = () => {
     console.log("Viewing category:", category);
   }, []);
 
-  // Handle page change
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
 
-  // Handle search với debounce effect
   const handleSearch = useCallback((value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(1); // Reset về trang 1 khi search
+    setSearchInput(value);
+    setCurrentPage(1);
   }, []);
 
-  // Memoize columns
   const columns = useMemo(
     () =>
       createCategoryColumns({
@@ -84,12 +87,6 @@ export const CategoriesTable = () => {
     [handleEditCategory, handleDeleteCategory, handleViewCategory]
   );
 
-  // Loading state
-  if (isPending && currentPage === 1 && !searchQuery) {
-    return <DataTableSkeleton columnCount={7} rowCount={10} />;
-  }
-
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -104,7 +101,6 @@ export const CategoriesTable = () => {
     );
   }
 
-  // Prepare pagination data
   const paginationData = {
     currentPage,
     totalPages: response?.pagination.totalPages || 1,

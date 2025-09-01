@@ -124,9 +124,12 @@ async function handleUserUpdated(userData: UserJSON) {
 }
 
 async function handleUserDeleted(userData: DeletedObjectJSON) {
-  const user = await db.users.delete({
+  const user = await db.users.findUnique({ where: { clerkId: userData.id } });
+  if (!user) throw new Response("User not found", { status: 404 });
+
+  const deletedUser = await db.users.delete({
     where: { clerkId: userData.id },
   });
 
-  console.log(`User deleted: ${user.id}`);
+  console.log(`User deleted: ${deletedUser}`);
 }
