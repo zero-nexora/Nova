@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { createCategoryColumns } from "./columns";
 import { CategoryColumn } from "@/lib/types";
-import { useTRPC } from "@/trpc/client";
 import { DataTable } from "./data-table";
 import { useModal } from "@/stores/modal-store";
 import { UpdateCategoryForm } from "@/components/forms/update-category-form";
+import { useGetAllCategories } from "../hooks/custom-hook";
 
 // custom hook debounce
 function useDebounce<T>(value: T, delay: number) {
@@ -22,7 +22,6 @@ function useDebounce<T>(value: T, delay: number) {
 }
 
 export const CategoriesTable = () => {
-  const trpc = useTRPC();
   const { open } = useModal();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,20 +31,12 @@ export const CategoriesTable = () => {
   // debounce search input
   const debouncedSearch = useDebounce(searchInput, 500);
 
-  const {
-    data: response,
-    isPending,
-    error,
-    refetch,
-  } = useQuery({
-    ...trpc.categoriesAdmin.getAll.queryOptions({
-      page: currentPage,
+  const { categories, error, refetch, isFetching, pagination } =
+    useGetAllCategories({
       limit: pageSize,
+      page: currentPage,
       search: debouncedSearch,
-    }),
-    retry: 3,
-    staleTime: 5 * 60 * 1000,
-  });
+    });
 
   const deleteMutation = useMutation({});
 
@@ -103,21 +94,21 @@ export const CategoriesTable = () => {
 
   const paginationData = {
     currentPage,
-    totalPages: response?.pagination.totalPages || 1,
-    totalItems: response?.pagination.totalItems || 0,
+    totalPages: pagination?.totalPages || 1,
+    totalItems: pagination?.totalItems || 0,
     pageSize,
   };
 
   return (
     <DataTable
       columns={columns}
-      data={response?.data || []}
+      data={categories || []}
       pagination={paginationData}
       onPageChange={handlePageChange}
       onSearch={handleSearch}
       searchKey="name"
       searchPlaceholder="Search categories..."
-      isLoading={isPending}
+      isLoading={isFetching}
     />
   );
 };

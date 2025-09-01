@@ -1,9 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
+import {
+  LocalImagePreview,
+  UploadedImage,
+} from "@/queries/admin/uploads/types";
+import { convertFileToBase64, generateUniqueId } from "@/lib/utils";
+import { useCategoriesStore } from "@/stores/admin/categories-store";
 
 // ==================== Types ====================
 export interface GetAllCategoriesInput {
@@ -53,19 +59,28 @@ export interface CategoryStats {
 const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.categoriesAdmin.getAll.queryOptions({}),
   byId: (id: string) => trpc.categoriesAdmin.getById.queryOptions({ id }),
-  bySlug: (slug: string) => trpc.categoriesAdmin.getBySlug.queryOptions({ slug }),
+  bySlug: (slug: string) =>
+    trpc.categoriesAdmin.getBySlug.queryOptions({ slug }),
 });
 
 // ==================== Query Hooks ====================
 export function useGetAllCategories(input: GetAllCategoriesInput = {}) {
   const trpc = useTRPC();
+  const setCategories = useCategoriesStore((state) => state.setCategories);
 
   const query = useQuery(trpc.categoriesAdmin.getAll.queryOptions(input));
+
+  useEffect(() => {
+    if (query.data?.data) {
+      setCategories(query.data.data, query.data?.pagination);
+    }
+  }, [query.data?.data, query.data?.pagination]);
 
   return {
     categories: query.data?.data ?? [],
     pagination: query.data?.pagination,
     isLoading: query.isLoading,
+    isPending: query.isPending,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
@@ -142,13 +157,15 @@ export function useUpdateCategory() {
     ...trpc.categoriesAdmin.update.mutationOptions(),
     onSuccess: (data) => {
       toast.success("Category updated successfully");
-      
+
       // Invalidate related queries
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
-      
+
       if (data.slug) {
-        queryClient.invalidateQueries(getCategoryQueryKeys(trpc).bySlug(data.slug));
+        queryClient.invalidateQueries(
+          getCategoryQueryKeys(trpc).bySlug(data.slug)
+        );
       }
     },
     onError: (error: any) => {
@@ -183,9 +200,9 @@ export function useDeleteCategory() {
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       // Invalidate all individual category queries
       queryClient.invalidateQueries({
-        predicate: (query) => 
+        predicate: (query) =>
           query.queryKey[0] === "categoriesAdmin.getById" ||
-          query.queryKey[0] === "categoriesAdmin.getBySlug"
+          query.queryKey[0] === "categoriesAdmin.getBySlug",
       });
     },
     onError: (error: any) => {
@@ -216,9 +233,11 @@ export function useRestoreCategory() {
       // Invalidate related queries
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
-      
+
       if (data.slug) {
-        queryClient.invalidateQueries(getCategoryQueryKeys(trpc).bySlug(data.slug));
+        queryClient.invalidateQueries(
+          getCategoryQueryKeys(trpc).bySlug(data.slug)
+        );
       }
     },
     onError: (error: any) => {
@@ -245,8 +264,18 @@ export function useCategoryManagement() {
   const restore = useRestoreCategory();
 
   const isAnyLoading = useMemo(() => {
-    return create.isLoading || update.isLoading || deleteCategory.isLoading || restore.isLoading;
-  }, [create.isLoading, update.isLoading, deleteCategory.isLoading, restore.isLoading]);
+    return (
+      create.isLoading ||
+      update.isLoading ||
+      deleteCategory.isLoading ||
+      restore.isLoading
+    );
+  }, [
+    create.isLoading,
+    update.isLoading,
+    deleteCategory.isLoading,
+    restore.isLoading,
+  ]);
 
   const resetAll = () => {
     create.reset();
@@ -260,22 +289,22 @@ export function useCategoryManagement() {
     createCategory: create.createCategory,
     createCategoryAsync: create.createCategoryAsync,
     isCreating: create.isLoading,
-    
+
     // Update operations
     updateCategory: update.updateCategory,
     updateCategoryAsync: update.updateCategoryAsync,
     isUpdating: update.isLoading,
-    
+
     // Delete operations
     deleteCategory: deleteCategory.deleteCategory,
     deleteCategoryAsync: deleteCategory.deleteCategoryAsync,
     isDeleting: deleteCategory.isLoading,
-    
+
     // Restore operations
     restoreCategory: restore.restoreCategory,
     restoreCategoryAsync: restore.restoreCategoryAsync,
     isRestoring: restore.isLoading,
-    
+
     // General state
     isAnyLoading,
     resetAll,
@@ -293,8 +322,8 @@ export function useCategoryOptions() {
   const options: CategoryOption[] = useMemo(() => {
     return categories.map((category) => ({
       value: category.id,
-      label: category.parentName 
-        ? `${category.parentName} > ${category.name}` 
+      label: category.parentName
+        ? `${category.parentName} > ${category.name}`
         : category.name,
       parentId: category.parentId,
       isChild: !!category.parentId,
@@ -399,12 +428,12 @@ export function useCategoryUtils() {
 
 // ==================== Action Hooks ====================
 export function useCategoryActions() {
-  const { 
-    createCategory, 
-    updateCategory, 
-    deleteCategory, 
+  const {
+    createCategory,
+    updateCategory,
+    deleteCategory,
     restoreCategory,
-    isAnyLoading 
+    isAnyLoading,
   } = useCategoryManagement();
 
   const handleCreateCategory = async (data: CreateCategoryInput) => {
@@ -451,3 +480,116 @@ export function useCategoryActions() {
     isLoading: isAnyLoading,
   };
 }
+
+export const useImageUploader = (
+  maxFiles: number,
+  folder?: string,
+  onChange?: (images: UploadedImage[]) => void
+) => {
+  const trpc = useTRPC();
+  const [localPreviews, setLocalPreviews] = useState<LocalImagePreview[]>([]);
+
+  const uploadMutation = useMutation(
+    trpc.upload.uploadImages.mutationOptions({})
+  );
+
+  const deleteMutation = useMutation(
+    trpc.upload.deleteImage.mutationOptions({})
+  );
+
+  const isUploading = uploadMutation.isPending || deleteMutation.isPending;
+  const canAddMoreFiles = localPreviews.length < maxFiles;
+
+  const addFilesToPreview = useCallback(
+    async (fileList: FileList | null) => {
+      if (!fileList) return;
+
+      const files = Array.from(fileList);
+      const availableSlots = Math.max(0, maxFiles - localPreviews.length);
+      const filesToProcess = files.slice(0, availableSlots);
+
+      try {
+        const newPreviews = await Promise.all(
+          filesToProcess.map(async (file) => ({
+            id: generateUniqueId(),
+            file,
+            base64Url: await convertFileToBase64(file),
+          }))
+        );
+
+        setLocalPreviews((current) => [...current, ...newPreviews]);
+      } catch (error) {
+        toast.error("Error processing files");
+        console.error("File processing error:", error);
+      }
+    },
+    [localPreviews.length, maxFiles]
+  );
+
+  const removePreview = useCallback((previewId: string) => {
+    setLocalPreviews((current) =>
+      current.filter((preview) => preview.id !== previewId)
+    );
+  }, []);
+
+  const clearAllPreviews = useCallback(() => {
+    setLocalPreviews([]);
+  }, []);
+
+  const uploadImages = useCallback(async () => {
+    if (localPreviews.length === 0) return;
+
+    const uploadPayload = {
+      images: localPreviews.map((preview) => ({
+        base64: preview.base64Url,
+        filename: preview.file.name,
+      })),
+      folder,
+    };
+
+    try {
+      const response = await uploadMutation.mutateAsync(uploadPayload);
+      const uploadedImages = response.data as UploadedImage[];
+
+      onChange?.(uploadedImages);
+      setLocalPreviews([]);
+      toast.success(`Successfully uploaded ${uploadedImages.length} images`);
+    } catch (error) {
+      toast.error("Upload failed. Please try again.");
+      console.error("Upload error:", error);
+    }
+  }, [localPreviews, folder, uploadMutation, onChange]);
+
+  const deleteImage = useCallback(
+    async (publicId: string, currentImages: UploadedImage[]) => {
+      try {
+        const response = await deleteMutation.mutateAsync({
+          public_id: publicId,
+        });
+
+        if (response.result === "ok") {
+          const updatedImages = currentImages.filter(
+            (image) => image.publicId !== publicId
+          );
+          onChange?.(updatedImages);
+          toast.success("Image deleted successfully");
+        }
+      } catch (error) {
+        toast.error("Delete failed. Please try again.");
+        console.error("Delete error:", error);
+      }
+    },
+    [deleteMutation, onChange]
+  );
+
+  return {
+    localPreviews,
+    isUploading,
+    canAddMoreFiles,
+    addFilesToPreview,
+    removePreview,
+    clearAllPreviews,
+    uploadImages,
+    deleteImage,
+  };
+};

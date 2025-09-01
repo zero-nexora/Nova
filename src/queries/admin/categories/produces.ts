@@ -27,9 +27,7 @@ export const categoriesAdminRouter = createTRPCRouter({
 
         const offset = (page - 1) * limit;
 
-        const whereClause: any = {
-          is_deleted: false, // Only get non-deleted categories
-        };
+        const whereClause: any = {};
 
         if (search) {
           whereClause.OR = [
@@ -98,7 +96,7 @@ export const categoriesAdminRouter = createTRPCRouter({
     .input(getCategoryByIdSchema)
     .query(async ({ ctx, input }) => {
       const category = await ctx.db.categories.findFirst({
-        where: { id: input.id, is_deleted: false },
+        where: { id: input.id },
         include: {
           parent: {
             select: {

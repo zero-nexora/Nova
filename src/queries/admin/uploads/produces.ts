@@ -46,6 +46,6 @@ export const uploadRouter = createTRPCRouter({
         invalidate: true,
       });
 
-      return { data: res.result };
+      return { result: res.result };
     }),
 });
