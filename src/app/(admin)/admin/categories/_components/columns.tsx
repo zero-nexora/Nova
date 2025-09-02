@@ -1,7 +1,9 @@
 import { ActionMenu } from "@/components/global/action-menu";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CategoryColumn } from "@/lib/types";
 import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
 import Image from "next/image";
 
 type CategoryColumnsProps = {
@@ -17,7 +19,17 @@ export const createCategoryColumns = ({
 }: CategoryColumnsProps): ColumnDef<CategoryColumn>[] => [
   {
     accessorKey: "name",
-    header: "Category Name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Name
+          <ArrowUpDown className="h-4 w-4" />
+        </Button>
+      );
+    },
     cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
     enableSorting: true,
   },

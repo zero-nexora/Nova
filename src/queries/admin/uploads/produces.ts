@@ -1,51 +1,48 @@
-import z from "zod";
-import { uploadImageSchema } from "./types";
+import { z } from "zod";
 import { cloudinary } from "@/lib/cloudinary";
 import { adminOrEmployee, createTRPCRouter } from "@/trpc/init";
+
+const folder = process.env.CLOUDINARY_UPLOAD_FOLDER;
 
 export const uploadRouter = createTRPCRouter({
   uploadImages: adminOrEmployee
     .input(
-      z.object({
-        images: z.array(uploadImageSchema),
-        folder: z.string().optional(),
-      })
+      z.object({ images: z.array(z.string({ message: "Image is required" })) })
     )
     .mutation(async ({ input }) => {
-      const folder = input.folder || process.env.CLOUDINARY_UPLOAD_FOLDER;
-      const upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET;
-
       const results = await Promise.all(
-        input.images.map(async (image) => {
-          const res = await cloudinary.uploader.upload(image.base64, {
-            folder: image.folder || folder,
-            resource_type: "image",
-            overwrite: false,
-            upload_preset,
-          });
-
-          return {
-            url: res.secure_url,
-            publicId: res.public_id,
-          };
-        })
+        input.images.map((base64) =>
+          cloudinary.uploader
+            .upload(base64, {
+              folder,
+              resource_type: "image",
+              overwrite: false,
+            })
+            .then(({ secure_url, public_id }) => ({
+              imageUrl: secure_url,
+              publicId: public_id,
+            }))
+        )
       );
 
       return { data: results };
     }),
-
-  deleteImage: adminOrEmployee
+  removeImages: adminOrEmployee
     .input(
       z.object({
-        public_id: z.string({ message: "public_id is required " }),
+        publicIds: z.array(z.string({ message: "Public ID is required" })),
       })
     )
     .mutation(async ({ input }) => {
-      const res = await cloudinary.uploader.destroy(input.public_id, {
-        resource_type: "image",
-        invalidate: true,
-      });
+      const results = await Promise.all(
+        input.publicIds.map((publicId) =>
+          cloudinary.uploader
+            .destroy(publicId, { resource_type: "image" })
+            .then(() => ({ publicId, success: true }))
+            .catch(() => ({ publicId, success: false }))
+        )
+      );
 
-      return { result: res.result };
+      return { data: results };
     }),
 });

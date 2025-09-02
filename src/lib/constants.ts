@@ -2,6 +2,8 @@ import { Home, Box, Tag, ShoppingCart, Settings } from "lucide-react";
 import { CategorySeedType } from "./types";
 
 const PREFIX = "/admin";
+export const MAX_FILES = 10;
+export const MAX_FILE_CATEGORY = 10;
 
 export const sidebarRoutes = [
   {

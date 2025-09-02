@@ -16,6 +16,7 @@ export interface CategoryColumn {
   name: string;
   parentName?: string | null;
   image_url?: string | null;
+  public_id?: string | null; 
   created_at: Date;
   updated_at: Date;
   is_deleted: boolean;

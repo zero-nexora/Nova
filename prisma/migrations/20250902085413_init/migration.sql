@@ -81,25 +81,14 @@ CREATE TABLE "public"."Categories" (
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "parent_id" TEXT,
+    "image_url" TEXT,
+    "public_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Categories_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Category_Images" (
-    "id" TEXT NOT NULL,
-    "category_id" TEXT NOT NULL,
-    "image_url" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
-
-    CONSTRAINT "Category_Images_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -392,9 +381,6 @@ CREATE INDEX "Categories_slug_idx" ON "public"."Categories"("slug");
 CREATE INDEX "Categories_parent_id_idx" ON "public"."Categories"("parent_id");
 
 -- CreateIndex
-CREATE INDEX "Category_Images_category_id_idx" ON "public"."Category_Images"("category_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Products_slug_key" ON "public"."Products"("slug");
 
 -- CreateIndex
@@ -543,9 +529,6 @@ ALTER TABLE "public"."Role_Permissions" ADD CONSTRAINT "Role_Permissions_permiss
 
 -- AddForeignKey
 ALTER TABLE "public"."Categories" ADD CONSTRAINT "Categories_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."Categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Category_Images" ADD CONSTRAINT "Category_Images_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."Categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Products" ADD CONSTRAINT "Products_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."Categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;

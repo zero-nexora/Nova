@@ -1,11 +1,18 @@
 import z from "zod";
 
-export const createCategorySchema = z.object({
+export const CreateCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
-  parent_id: z.string().uuid().optional().nullable(),
-  image_url: z.string().url().optional().nullable(),
-  public_id: z.string().optional().nullable(),
+  parentId: z.string().uuid().optional().nullable(),
+  images: z.any()
+  // images: z.optional(
+  //   z.object({
+  //     imageUrl: z.string().url().optional().nullable(),
+  //     publicId: z.string().optional().nullable(),
+  //   })
+  // ),
 });
+
+export type CreateCategoryType = z.infer<typeof CreateCategorySchema>;
 
 export const updateCategorySchema = z.object({
   id: z.string().uuid(),

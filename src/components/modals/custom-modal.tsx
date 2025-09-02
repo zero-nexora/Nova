@@ -14,9 +14,9 @@ export const CustomModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={close}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{data?.title}</DialogTitle>
+          <DialogTitle className="text-3xl font-bold">{data?.title}</DialogTitle>
           {data?.description && (
             <DialogDescription>{data.description}</DialogDescription>
           )}

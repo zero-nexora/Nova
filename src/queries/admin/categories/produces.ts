@@ -1,96 +1,52 @@
 import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import {
-  createCategorySchema,
+  CreateCategorySchema,
   deleteCategorySchema,
   getCategoryByIdSchema,
   getCategoryBySlugSchema,
   updateCategorySchema,
 } from "./types";
 import slugify from "slugify";
-import z from "zod";
 
 export const categoriesAdminRouter = createTRPCRouter({
-  getAll: adminOrManageCategoryProcedure
-    .input(
-      z.object({
-        page: z.number().min(1).default(1),
-        limit: z.number().min(1).max(100).default(10),
-        search: z.string().optional(),
-        sortBy: z.string().optional(),
-        sortOrder: z.enum(["asc", "desc"]).default("desc"),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      try {
-        const { page, limit, search, sortBy = "created_at", sortOrder } = input;
-
-        const offset = (page - 1) * limit;
-
-        const whereClause: any = {};
-
-        if (search) {
-          whereClause.OR = [
-            { name: { contains: search, mode: "insensitive" } },
-            { slug: { contains: search, mode: "insensitive" } },
-          ];
-        }
-
-        const [categories, totalItems] = await Promise.all([
-          ctx.db.categories.findMany({
-            where: whereClause,
-            orderBy: { [sortBy]: sortOrder },
-            skip: offset,
-            take: limit,
-            include: {
-              parent: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
+  getAll: adminOrManageCategoryProcedure.query(async ({ ctx }) => {
+    try {
+      const categories = await ctx.db.categories.findMany({
+        include: {
+          parent: {
+            select: {
+              id: true,
+              name: true,
             },
-          }),
-          ctx.db.categories.count({ where: whereClause }),
-        ]);
-
-        const totalPages = Math.ceil(totalItems / limit);
-
-        // Transform the data to match your CategoryColumn interface
-        const transformedData = categories.map((category) => ({
-          id: category.id,
-          name: category.name,
-          slug: category.slug,
-          parentName: category.parent?.name || null,
-          parentId: category.parent_id,
-          image_url: category.image_url,
-          public_id: category.public_id,
-          created_at: category.created_at,
-          updated_at: category.updated_at,
-          is_deleted: category.is_deleted,
-          deleted_at: category.deleted_at,
-        }));
-
-        return {
-          data: transformedData,
-          pagination: {
-            currentPage: page,
-            totalPages,
-            totalItems,
-            pageSize: limit,
-            hasNextPage: page < totalPages,
-            hasPreviousPage: page > 1,
           },
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
+        },
+      });
 
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get all categories",
-        });
-      }
-    }),
+      const transformedData = categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        parentName: category.parent?.name || null,
+        parentId: category.parent_id,
+        image_url: category.image_url,
+        public_id: category.public_id,
+        created_at: category.created_at,
+        updated_at: category.updated_at,
+        is_deleted: category.is_deleted,
+        deleted_at: category.deleted_at,
+      }));
+
+      return { data: transformedData };
+    } catch (error) {
+      if (error instanceof TRPCError) throw error;
+
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get all categories",
+      });
+    }
+  }),
 
   getById: adminOrManageCategoryProcedure
     .input(getCategoryByIdSchema)
@@ -194,67 +150,10 @@ export const categoriesAdminRouter = createTRPCRouter({
       return category;
     }),
 
-  // getTree: adminOrManageCategoryProcedure
-  //   .input(
-  //     z.object({
-  //       max_depth: z.number().min(1).max(5).default(3),
-  //     })
-  //   )
-  //   .query(async ({ ctx, input }) => {
-  //     const rootCategories = await ctx.db.categories.findMany({
-  //       where: {
-  //         parent_id: null,
-  //         is_deleted: false,
-  //       },
-  //       include: {
-  //         children: {
-  //           where: { is_deleted: false },
-  //           include: {
-  //             children:
-  //               input.max_depth > 2
-  //                 ? {
-  //                     where: { is_deleted: false },
-  //                     include:
-  //                       input.max_depth > 3
-  //                         ? {
-  //                             children: {
-  //                               where: { is_deleted: false },
-  //                             },
-  //                           }
-  //                         : undefined,
-  //                   }
-  //                 : undefined,
-  //             _count: {
-  //               select: {
-  //                 products: true,
-  //                 children: {
-  //                   where: { is_deleted: false },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-  //         _count: {
-  //           select: {
-  //             products: true,
-  //             children: {
-  //               where: { is_deleted: false },
-  //             },
-  //           },
-  //         },
-  //       },
-  //       orderBy: {
-  //         name: "asc",
-  //       },
-  //     });
-
-  //     return rootCategories;
-  //   }),
-
   create: adminOrManageCategoryProcedure
-    .input(createCategorySchema)
+    .input(CreateCategorySchema)
     .mutation(async ({ ctx, input }) => {
-      const { name, image_url, parent_id, public_id } = input;
+      const { name, images, parentId } = input;
       try {
         const baseSlug = slugify(name, {
           lower: true,
@@ -275,9 +174,9 @@ export const categoriesAdminRouter = createTRPCRouter({
           counter++;
         }
 
-        if (parent_id) {
+        if (parentId) {
           const parentCategory = await ctx.db.categories.findFirst({
-            where: { id: parent_id, is_deleted: false },
+            where: { id: parentId, is_deleted: false },
           });
 
           if (!parentCategory)
@@ -290,9 +189,9 @@ export const categoriesAdminRouter = createTRPCRouter({
         const category = await ctx.db.categories.create({
           data: {
             name,
-            parent_id,
-            public_id,
-            image_url,
+            parent_id: parentId,
+            public_id: images?.publicId,
+            image_url: images?.imageUrl,
             slug,
           },
         });
@@ -376,7 +275,7 @@ export const categoriesAdminRouter = createTRPCRouter({
       const { id, hard_delete } = input;
 
       try {
-        const category = await ctx.db.categories.delete({
+        const category = await ctx.db.categories.findFirst({
           where: { id, ...(hard_delete ? {} : { is_deleted: false }) },
         });
 
