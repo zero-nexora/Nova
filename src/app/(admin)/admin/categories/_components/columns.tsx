@@ -9,13 +9,13 @@ import Image from "next/image";
 type CategoryColumnsProps = {
   onEdit: (category: CategoryColumn) => void;
   onDelete: (category: CategoryColumn) => void;
-  onView?: (category: CategoryColumn) => void;
+  onToggle: (category: CategoryColumn) => void;
 };
 
 export const createCategoryColumns = ({
   onEdit,
   onDelete,
-  onView,
+  onToggle,
 }: CategoryColumnsProps): ColumnDef<CategoryColumn>[] => [
   {
     accessorKey: "name",
@@ -85,9 +85,13 @@ export const createCategoryColumns = ({
     header: "Status",
     cell: ({ row }) =>
       row.original.is_deleted ? (
-        <Badge variant="destructive">Deleted</Badge>
+        <Badge variant="destructive" className="cursor-pointer" onClick={() => onToggle(row.original)}>
+          Deleted
+        </Badge>
       ) : (
-        <Badge variant="default">Active</Badge>
+        <Badge variant="default" className="cursor-pointer" onClick={() => onToggle(row.original)}>
+          Active
+        </Badge>
       ),
     enableSorting: true,
   },
@@ -96,7 +100,6 @@ export const createCategoryColumns = ({
     header: "Actions",
     cell: ({ row }) => (
       <ActionMenu
-        onView={onView ? () => onView(row.original) : undefined}
         onEdit={() => onEdit(row.original)}
         onDelete={() => onDelete(row.original)}
       />

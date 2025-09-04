@@ -2,43 +2,41 @@ import z from "zod";
 
 export const CreateCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
-  parentId: z.string().uuid().optional().nullable(),
-  images: z.any()
-  // images: z.optional(
-  //   z.object({
-  //     imageUrl: z.string().url().optional().nullable(),
-  //     publicId: z.string().optional().nullable(),
-  //   })
-  // ),
+  parentId: z.string().uuid().nullable(),
+  image_url: z.string().url("Invalid image URL format").optional().nullable(),
+  public_id: z.string().min(1).optional().nullable(),
 });
 
 export type CreateCategoryType = z.infer<typeof CreateCategorySchema>;
 
-export const updateCategorySchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1, "Category name is required").optional(),
-  parent_id: z.string().uuid().optional().nullable(),
-  image_url: z.string().url().optional().nullable(),
-  public_id: z.string().optional().nullable(),
+export const GetCategoryByIdSchema = z.object({
+  id: z.string().uuid("Invalid category ID format"),
 });
 
-export const getCategoryByIdSchema = z.object({
-  id: z.string().uuid(),
+export type GetCategoryByIdType = z.infer<typeof GetCategoryByIdSchema>;
+
+export const GetCategoryBySlugSchema = z.object({
+  slug: z.string().min(1, "Slug is required"),
 });
 
-export const getCategoryBySlugSchema = z.object({
-  slug: z.string("Slug is required"),
+export type GetCategoryBySlugType = z.infer<typeof GetCategoryByIdSchema>;
+
+export const UpdateCategorySchema = z.object({
+  id: z.string().uuid("Invalid category ID format"),
+  name: z
+    .string()
+    .min(1, "Category name is required")
+    .max(255, "Category name too long")
+    .optional(),
+  parent_id: z.string().uuid("Invalid parent ID format").optional().nullable(),
+  image_url: z.string().url("Invalid image URL format").optional().nullable(),
+  public_id: z.string().min(1).optional().nullable(),
 });
 
-export const getCategoriesSchema = z.object({
-  limit: z.number().min(1).max(100).default(10),
-  cursor: z.string().uuid().optional(),
-  parent_id: z.string().uuid().optional().nullable(),
-  include_deleted: z.boolean().default(false),
-  search: z.string().optional(),
+export type UpdateCategoryType = z.infer<typeof UpdateCategorySchema>;
+
+export const DeleteCategorySchema = z.object({
+  id: z.string().uuid("Invalid category ID format"),
 });
 
-export const deleteCategorySchema = z.object({
-  id: z.string().uuid(),
-  hard_delete: z.boolean().default(false),
-});
+export type DeleteCategoryType = z.infer<typeof DeleteCategorySchema>;

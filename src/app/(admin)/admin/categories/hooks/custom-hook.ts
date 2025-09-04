@@ -9,57 +9,21 @@ import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "./types";
 import { MAX_FILE_CATEGORY } from "@/lib/constants";
 
-export interface CreateCategoryInput {
-  name: string;
-  parent_id?: string;
-  image_url?: string;
-  public_id?: string;
-}
-
-export interface UpdateCategoryInput {
-  id: string;
-  name?: string;
-  parent_id?: string;
-  image_url?: string;
-  public_id?: string;
-}
-
-export interface DeleteCategoryInput {
-  id: string;
-  hard_delete?: boolean;
-}
-
-export interface CategoryOption {
-  value: string;
-  label: string;
-  parentId?: string | null;
-  isChild: boolean;
-}
-
-export interface CategoryStats {
-  totalProducts?: number;
-  totalChildren?: number;
-  totalCategories?: number;
-  totalParentCategories?: number;
-  totalChildCategories?: number;
-}
-
-// ==================== Query Keys & Utils ====================
 const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
-  all: () => trpc.categoriesAdmin.getAll.queryOptions(),
-  byId: (id: string) => trpc.categoriesAdmin.getById.queryOptions({ id }),
+  all: () => trpc.admin.categoriesRouter.getAll.queryOptions(),
+  byId: (id: string) =>
+    trpc.admin.categoriesRouter.getById.queryOptions({ id }),
   bySlug: (slug: string) =>
-    trpc.categoriesAdmin.getBySlug.queryOptions({ slug }),
+    trpc.admin.categoriesRouter.getBySlug.queryOptions({ slug }),
 });
 
-// ==================== Query Hooks ====================
 export function useGetAllCategories() {
   const trpc = useTRPC();
   const setCategories = useCategoriesStore((state) => state.setCategories);
   const setLoading = useCategoriesStore((state) => state.setLoading);
 
   const { data, isFetching } = useQuery(
-    trpc.categoriesAdmin.getAll.queryOptions()
+    trpc.admin.categoriesRouter.getAll.queryOptions()
   );
 
   useEffect(() => {
@@ -82,14 +46,13 @@ export function useGetCategoryById(id: string, enabled = true) {
   const trpc = useTRPC();
 
   const query = useQuery({
-    ...trpc.categoriesAdmin.getById.queryOptions({ id }),
+    ...trpc.admin.categoriesRouter.getById.queryOptions({ id }),
     enabled: enabled && !!id,
   });
 
   return {
     category: query.data,
     isLoading: query.isLoading,
-    isError: query.isError,
     error: query.error,
     refetch: query.refetch,
   };
@@ -99,26 +62,24 @@ export function useGetCategoryBySlug(slug: string, enabled = true) {
   const trpc = useTRPC();
 
   const query = useQuery({
-    ...trpc.categoriesAdmin.getBySlug.queryOptions({ slug }),
+    ...trpc.admin.categoriesRouter.getBySlug.queryOptions({ slug }),
     enabled: enabled && !!slug,
   });
 
   return {
     category: query.data,
     isLoading: query.isLoading,
-    isError: query.isError,
     error: query.error,
     refetch: query.refetch,
   };
 }
 
-// ==================== Mutation Hooks ====================
 export function useCreateCategory() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    ...trpc.categoriesAdmin.create.mutationOptions(),
+    ...trpc.admin.categoriesRouter.create.mutationOptions(),
     onSuccess: () => {
       toast.success("Category created successfully");
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
@@ -141,11 +102,10 @@ export function useUpdateCategory() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    ...trpc.categoriesAdmin.update.mutationOptions(),
+    ...trpc.admin.categoriesRouter.update.mutationOptions(),
     onSuccess: (data) => {
       toast.success("Category updated successfully");
 
-      // Invalidate related queries
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
 
@@ -164,10 +124,7 @@ export function useUpdateCategory() {
     updateCategory: mutation.mutate,
     updateCategoryAsync: mutation.mutateAsync,
     isLoading: mutation.isPending,
-    isError: mutation.isError,
     error: mutation.error,
-    isSuccess: mutation.isSuccess,
-    reset: mutation.reset,
   };
 }
 
@@ -176,12 +133,10 @@ export function useDeleteCategory() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    ...trpc.categoriesAdmin.delete.mutationOptions(),
-    onSuccess: (_, variables) => {
-      const message = variables.hard_delete
-        ? "Category permanently deleted"
-        : "Category moved to trash";
-      toast.success(message);
+    ...trpc.admin.categoriesRouter.delete.mutationOptions(),
+    onSuccess: () => {
+      toast.dismiss();
+      toast.success("Category permanently deleted");
 
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries({
@@ -203,16 +158,19 @@ export function useDeleteCategory() {
   };
 }
 
-export function useRestoreCategory() {
+export function useToggleDeleted() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    ...trpc.categoriesAdmin.restore.mutationOptions(),
+    ...trpc.admin.categoriesRouter.toggleDeleted.mutationOptions(),
     onSuccess: (data) => {
-      toast.success("Category restored successfully");
+      toast.dismiss();
+      const message = data.is_deleted
+        ? `Category "${data.name}" moved to trash successfully`
+        : `Category "${data.name}" restored successfully`;
+      toast.success(message);
 
-      // Invalidate related queries
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
 
@@ -223,80 +181,111 @@ export function useRestoreCategory() {
       }
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to restore category");
+      toast.error(error.message || "Failed to toggle category");
     },
   });
 
   return {
-    restoreCategory: mutation.mutate,
-    restoreCategoryAsync: mutation.mutateAsync,
+    toggleCategory: mutation.mutate,
+    toggleCategoryAsync: mutation.mutateAsync,
     isLoading: mutation.isPending,
-    isError: mutation.isError,
     error: mutation.error,
-    isSuccess: mutation.isSuccess,
-    reset: mutation.reset,
   };
 }
 
 export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
-  const trpc = useTRPC();
   const [localPreviews, setLocalPreviews] = useState<LocalImagePreview[]>([]);
 
-  const uploadMutation = useMutation(
-    trpc.upload.uploadImages.mutationOptions({})
-  );
+  // Computed Values
+  const availableSlots = Math.max(0, maxFiles - localPreviews.length);
 
-  const isUploading = uploadMutation.isPending;
-  const canAddMoreFiles = localPreviews.length < maxFiles;
-
+  // Add Files to Preview
   const addFilesToPreview = useCallback(
     async (fileList: FileList | null) => {
-      if (!fileList) return;
-
-      const files = Array.from(fileList);
-      const availableSlots = Math.max(0, maxFiles - localPreviews.length);
-      const filesToProcess = files.slice(0, availableSlots);
+      if (!fileList || fileList.length === 0) {
+        return;
+      }
 
       try {
+        // Convert FileList to Array and limit by available slots
+        const files = Array.from(fileList).slice(0, availableSlots);
+
+        if (files.length === 0) {
+          toast.warning("Maximum file limit reached");
+          return;
+        }
+
+        // Process files concurrently
         const newPreviews = await Promise.all(
-          filesToProcess.map(async (file) => ({
-            id: generateUniqueId(),
-            base64Url: await convertFileToBase64(file),
-          }))
+          files.map(async (file) => {
+            // Validate file type
+            if (!file.type.startsWith("image/")) {
+              throw new Error(`Invalid file type: ${file.name}`);
+            }
+
+            // Validate file size (optional - add your limit)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+              throw new Error(`File too large: ${file.name}`);
+            }
+
+            return {
+              id: generateUniqueId(),
+              base64Url: await convertFileToBase64(file),
+            };
+          })
         );
 
-        setLocalPreviews((current) => [...current, ...newPreviews]);
+        // Update state
+        setLocalPreviews((currentPreviews) => [
+          ...currentPreviews,
+          ...newPreviews,
+        ]);
+
+        // Success feedback
+        const message =
+          files.length === 1
+            ? "Image added successfully"
+            : `${files.length} images added successfully`;
+        toast.success(message);
       } catch (error) {
-        toast.error("Error processing files");
         console.error("File processing error:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Error processing files";
+        toast.error(errorMessage);
       }
     },
-    [localPreviews.length, maxFiles]
+    [availableSlots]
   );
 
   const removePreview = useCallback((previewId: string) => {
-    setLocalPreviews((current) =>
-      current.filter((preview) => preview.id !== previewId)
+    setLocalPreviews((currentPreviews) =>
+      currentPreviews.filter((preview) => preview.id !== previewId)
     );
+    toast.success("Image removed");
   }, []);
 
   const clearAllPreviews = useCallback(() => {
     setLocalPreviews([]);
+    toast.success("All images cleared");
   }, []);
 
-  // Reset hook state
   const resetUploader = useCallback(() => {
     setLocalPreviews([]);
   }, []);
 
   return {
     localPreviews,
-    isUploading,
-    canAddMoreFiles,
+    canAddMoreFiles: localPreviews.length < maxFiles,
+
     addFilesToPreview,
     removePreview,
     clearAllPreviews,
     resetUploader,
+
+    hasImages: localPreviews.length > 0,
+    imageCount: localPreviews.length,
+    remainingSlots: availableSlots,
   };
 };
 

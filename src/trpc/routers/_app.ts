@@ -1,9 +1,11 @@
-import { categoriesAdminRouter } from "@/queries/admin/categories/produces";
+import { categoriesRouter } from "@/queries/admin/categories/produces";
 import { createTRPCRouter } from "../init";
 import { uploadRouter } from "@/queries/admin/uploads/produces";
 
 export const appRouter = createTRPCRouter({
-  categoriesAdmin: categoriesAdminRouter,
+  admin: {
+    categoriesRouter,
+  },
   upload: uploadRouter,
 });
 

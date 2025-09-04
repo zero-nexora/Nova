@@ -22,10 +22,6 @@ export const CustomModal = () => {
           )}
         </DialogHeader>
         <div className="py-2">{data?.children}</div>
-
-        {data?.footer && (
-          <div className="mt-4 flex justify-end gap-2">{data.footer}</div>
-        )}
       </DialogContent>
     </Dialog>
   );

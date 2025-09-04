@@ -3,7 +3,7 @@ import { CategorySeedType } from "./types";
 
 const PREFIX = "/admin";
 export const MAX_FILES = 10;
-export const MAX_FILE_CATEGORY = 10;
+export const MAX_FILE_CATEGORY = 1;
 
 export const sidebarRoutes = [
   {

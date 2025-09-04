@@ -7,15 +7,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Eye } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Eye, RotateCcw } from "lucide-react";
 
 interface ActionMenuProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onView?: () => void;
-};
+  onRestore?: () => void;
+}
 
-export const ActionMenu = ({ onEdit, onDelete, onView }: ActionMenuProps) => {
+export const ActionMenu = ({
+  onEdit,
+  onDelete,
+  onView,
+  onRestore,
+}: ActionMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -32,6 +38,11 @@ export const ActionMenu = ({ onEdit, onDelete, onView }: ActionMenuProps) => {
         {onEdit && (
           <DropdownMenuItem onClick={onEdit}>
             <Edit className="mr-2 h-4 w-4" /> Edit
+          </DropdownMenuItem>
+        )}
+        {onRestore && (
+          <DropdownMenuItem onClick={onRestore}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Restore
           </DropdownMenuItem>
         )}
         {onDelete && (

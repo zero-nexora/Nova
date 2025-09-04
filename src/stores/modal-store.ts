@@ -5,7 +5,6 @@ interface ModalData {
   title: string;
   description?: string;
   children: ReactNode;
-  footer?: ReactNode;
 }
 
 interface ModalStore {

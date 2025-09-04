@@ -12,20 +12,20 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Input } from "../ui/input";
-import { updateCategorySchema } from "@/queries/admin/categories/types";
+import { UpdateCategorySchema } from "@/queries/admin/categories/types";
 
 interface UpdateCategoryFormProps {
   data: any;
 }
 
 export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
-  const form = useForm<z.infer<typeof updateCategorySchema>>({
+  const form = useForm<z.infer<typeof UpdateCategorySchema>>({
     defaultValues: {
       id: data.id,
       name: data.name,
       parent_id: data.parent_id,
     },
-    resolver: zodResolver(updateCategorySchema),
+    resolver: zodResolver(UpdateCategorySchema),
     mode: "onChange",
   });
 
