@@ -74,8 +74,10 @@ export const CategoriesTable = () => {
     async (category: CategoryRow) => {
       try {
         openConfirm({
-          title: "Restore Category",
-          description: `Are you sure you want to restore "${category.name}" from trash?`,
+          title: category.is_deleted ? "Restore Category" : "Move to Trash",
+          description: category.is_deleted
+            ? "Are you sure you want to restore this category?"
+            : "Are you sure you want to move this category to trash?",
           onConfirm: async () => {
             await toggleCategoryAsync({ id: category.id });
           },
