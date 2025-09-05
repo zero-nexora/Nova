@@ -39,18 +39,16 @@ import { Loading } from "../global/loading";
 
 export const CreateCategoryForm = () => {
   // Store & Modal
-  const categories = useCategoriesStore((state) => state.categories);
+  const activeCategories = useCategoriesStore(
+    (state) => state.activeCategories
+  );
   const { close } = useModal();
 
-  // Hooks
   const { createCategoryAsync } = useCreateCategory();
-  const { uploadImagesAsync } = useUploadImages();
+  const { uploadImagesAsync, isLoading: isLoadingUpload } = useUploadImages();
 
-  // Local State
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
 
-  // Form Setup
   const form = useForm<CreateCategoryType>({
     resolver: zodResolver(CreateCategorySchema),
     mode: "onChange",
@@ -58,18 +56,19 @@ export const CreateCategoryForm = () => {
       name: "",
       image_url: null,
       public_id: null,
-      parentId: null,
+      parent_id: null,
     },
   });
 
-  // Handlers
+  const isSubmitting = form.formState.isSubmitting;
+
   const handleImageSelection = (images: LocalImagePreview[]) => {
     setSelectedImages(images);
   };
 
   const handleParentCategoryChange = (value: string) => {
     const parentId = value === "clear" || value === "" ? null : value;
-    form.setValue("parentId", parentId);
+    form.setValue("parent_id", parentId);
   };
 
   const handleFormSubmit = async (values: CreateCategoryType) => {
@@ -79,21 +78,16 @@ export const CreateCategoryForm = () => {
     }
 
     try {
-      setIsSubmitting(true);
-
-      // Upload image first
       const uploadResult = await uploadImagesAsync({
         images: [selectedImages[0].base64Url],
       });
 
-      // Update form values with uploaded image data
       const uploadedImage = uploadResult.data[0];
 
       values.image_url = uploadedImage.imageUrl;
       values.public_id = uploadedImage.publicId;
 
       await createCategoryAsync(values);
-      // Success cleanup
       form.reset();
       setSelectedImages([]);
       close();
@@ -101,14 +95,11 @@ export const CreateCategoryForm = () => {
     } catch (error) {
       console.error("Error creating category:", error);
       toast.error("Failed to create category. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  // Render parent category options
   const renderParentCategoryOptions = () => {
-    if (categories.length === 0) {
+    if (activeCategories.length === 0) {
       return (
         <SelectItem value="empty" disabled>
           No categories available
@@ -119,7 +110,7 @@ export const CreateCategoryForm = () => {
     return (
       <>
         <SelectItem value="clear">No parent category</SelectItem>
-        {categories.map((category) => (
+        {activeCategories.map((category) => (
           <SelectItem key={category.id} value={category.id.toString()}>
             {category.name}
           </SelectItem>
@@ -134,7 +125,6 @@ export const CreateCategoryForm = () => {
         onSubmit={form.handleSubmit(handleFormSubmit)}
         className="flex flex-col gap-y-6"
       >
-        {/* Category Name */}
         <FormField
           control={form.control}
           name="name"
@@ -154,7 +144,6 @@ export const CreateCategoryForm = () => {
           )}
         />
 
-        {/* Image Upload */}
         <FormField
           control={form.control}
           name="image_url"
@@ -164,7 +153,7 @@ export const CreateCategoryForm = () => {
               <FormControl>
                 <ImageUploader
                   multiple={false}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLoadingUpload}
                   onImagesChange={handleImageSelection}
                 />
               </FormControl>
@@ -173,10 +162,9 @@ export const CreateCategoryForm = () => {
           )}
         />
 
-        {/* Parent Category */}
         <FormField
           control={form.control}
-          name="parentId"
+          name="parent_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Parent Category (Optional)</FormLabel>
@@ -200,7 +188,6 @@ export const CreateCategoryForm = () => {
           )}
         />
 
-        {/* Submit Button */}
         <Button
           type="submit"
           disabled={isSubmitting}

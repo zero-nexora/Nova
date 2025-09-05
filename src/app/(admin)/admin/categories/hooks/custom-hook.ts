@@ -19,7 +19,12 @@ const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
 
 export function useGetAllCategories() {
   const trpc = useTRPC();
-  const setCategories = useCategoriesStore((state) => state.setCategories);
+  const setDeletedCategories = useCategoriesStore(
+    (state) => state.setDeletedCategories
+  );
+  const setActiveCategories = useCategoriesStore(
+    (state) => state.setActiveCategories
+  );
   const setLoading = useCategoriesStore((state) => state.setLoading);
 
   const { data, isFetching } = useQuery(
@@ -27,17 +32,22 @@ export function useGetAllCategories() {
   );
 
   useEffect(() => {
-    if (data?.data) {
-      setCategories(data.data);
+    if (data?.activeCategories) {
+      setActiveCategories(data.activeCategories);
     }
-  }, [data?.data]);
+
+    if (data?.deletedCategories) {
+      setDeletedCategories(data.deletedCategories);
+    }
+  }, [data?.activeCategories, data?.deletedCategories]);
 
   useEffect(() => {
     setLoading(isFetching);
   }, [isFetching]);
 
   return {
-    categories: data?.data ?? [],
+    activeCategories: data?.activeCategories || [],
+    deletedCategories: data?.deletedCategories || [],
     isFetching,
   };
 }
@@ -193,13 +203,82 @@ export function useToggleDeleted() {
   };
 }
 
+export function useTogglesDeleted() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    ...trpc.admin.categoriesRouter.togglesDeleted.mutationOptions(),
+    onSuccess: (data) => {
+      toast.dismiss();
+
+      const deletedCount = data.filter((cat) => cat?.is_deleted).length;
+      const restoredCount = data.filter((cat) => !cat?.is_deleted).length;
+
+      let message = "";
+      if (deletedCount > 0 && restoredCount > 0) {
+        message = `${deletedCount} categories moved to trash, ${restoredCount} categories restored`;
+      } else if (deletedCount > 0) {
+        message =
+          deletedCount === 1
+            ? `Category "${data[0]?.name}" moved to trash successfully`
+            : `${deletedCount} categories moved to trash successfully`;
+      } else if (restoredCount > 0) {
+        message =
+          restoredCount === 1
+            ? `Category "${data[0]?.name}" restored successfully`
+            : `${restoredCount} categories restored successfully`;
+      }
+
+      toast.success(message);
+
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to toggle categories");
+    },
+  });
+
+  return {
+    togglesDeleted: mutation.mutate,
+    togglesDeletedAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
+export function usePermanentlyDeleted() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    ...trpc.admin.categoriesRouter.permanentlyDelete.mutationOptions(),
+    onSuccess: (data) => {
+      toast.dismiss();
+      const { deletedCount, message } = data;
+      toast.success(
+        message || `${deletedCount} categories permanently deleted`
+      );
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to permanently delete categories");
+    },
+  });
+
+  return {
+    permanentlyDelete: mutation.mutate,
+    permanentlyDeleteAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
 export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
   const [localPreviews, setLocalPreviews] = useState<LocalImagePreview[]>([]);
 
-  // Computed Values
   const availableSlots = Math.max(0, maxFiles - localPreviews.length);
 
-  // Add Files to Preview
   const addFilesToPreview = useCallback(
     async (fileList: FileList | null) => {
       if (!fileList || fileList.length === 0) {
@@ -207,7 +286,6 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
       }
 
       try {
-        // Convert FileList to Array and limit by available slots
         const files = Array.from(fileList).slice(0, availableSlots);
 
         if (files.length === 0) {
@@ -215,10 +293,8 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
           return;
         }
 
-        // Process files concurrently
         const newPreviews = await Promise.all(
           files.map(async (file) => {
-            // Validate file type
             if (!file.type.startsWith("image/")) {
               throw new Error(`Invalid file type: ${file.name}`);
             }
@@ -236,13 +312,11 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
           })
         );
 
-        // Update state
         setLocalPreviews((currentPreviews) => [
           ...currentPreviews,
           ...newPreviews,
         ]);
 
-        // Success feedback
         const message =
           files.length === 1
             ? "Image added successfully"

@@ -2,7 +2,7 @@ import z from "zod";
 
 export const CreateCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
-  parentId: z.string().uuid().nullable(),
+  parent_id: z.string().uuid().nullable(),
   image_url: z.string().url("Invalid image URL format").optional().nullable(),
   public_id: z.string().min(1).optional().nullable(),
 });

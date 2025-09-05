@@ -2,39 +2,51 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
-  parentName: string | null;
-  parentId: string | null;
   image_url: string | null;
   public_id: string | null;
-  created_at: Date;
-  updated_at: Date;
   is_deleted: boolean;
   deleted_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+
+  parent?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+
+  children?: Category[];
 }
 
 import { create } from "zustand";
 
 interface CategoriesState {
-  categories: Category[];
+  activeCategories: Category[];
+  deletedCategories: Category[];
   loading: boolean;
 
-  setCategories: (data: Category[]) => void;
+  setActiveCategories: (data: Category[]) => void;
+  setDeletedCategories: (data: Category[]) => void;
+  setCategories: (active: Category[], deleted: Category[]) => void;
   setLoading: (loading: boolean) => void;
   reset: () => void;
 }
 
 export const useCategoriesStore = create<CategoriesState>((set) => ({
-  categories: [],
-  pagination: null,
+  activeCategories: [],
+  deletedCategories: [],
   loading: false,
 
-  setCategories: (data) => set({ categories: data, loading: false }),
-
+  setActiveCategories: (data) => set({ activeCategories: data }),
+  setDeletedCategories: (data) => set({ deletedCategories: data }),
+  setCategories: (active, deleted) =>
+    set({ activeCategories: active, deletedCategories: deleted }),
   setLoading: (loading) => set({ loading }),
 
   reset: () =>
     set({
-      categories: [],
+      activeCategories: [],
+      deletedCategories: [],
       loading: false,
     }),
 }));

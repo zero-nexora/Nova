@@ -6,7 +6,7 @@ interface ImagesPreviewProps {
   disabled?: boolean;
   onClearAll?: () => void;
   showClearAllButton?: boolean;
-  onRemove: (id: string) => void;
+  onRemove?: (id: string) => void;
   previewList: PreviewItem[];
 }
 
@@ -33,7 +33,7 @@ export const ImagesPreview = ({
             type="button"
             variant="secondary"
             size="icon"
-            onClick={() => onRemove(preview.id)}
+            onClick={() => onRemove?.(preview.id)}
             className="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <X className="h-4 w-4" />

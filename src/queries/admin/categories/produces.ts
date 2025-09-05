@@ -8,44 +8,57 @@ import {
   GetCategoryBySlugSchema,
 } from "./types";
 import { generateSlug } from "./utils";
+import z from "zod";
 
 export const categoriesRouter = createTRPCRouter({
+  // Lấy categories theo trạng thái is_deleted
   getAll: adminOrManageCategoryProcedure.query(async ({ ctx }) => {
-    try {
-      const categories = await ctx.db.categories.findMany({
-        include: {
-          parent: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+    const baseSelect = {
+      id: true,
+      name: true,
+      slug: true,
+      image_url: true,
+      public_id: true,
+      is_deleted: true,
+      deleted_at: true,
+      created_at: true,
+      updated_at: true,
+      parent: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
         },
-      });
+      },
+      children: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image_url: true,
+          public_id: true,
+          is_deleted: true,
+          deleted_at: true,
+          created_at: true,
+          updated_at: true,
+        },
+      },
+    };
 
-      const transformedData = categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        parentName: category.parent?.name || null,
-        parentId: category.parent_id,
-        image_url: category.image_url,
-        public_id: category.public_id,
-        created_at: category.created_at,
-        updated_at: category.updated_at,
-        is_deleted: category.is_deleted,
-        deleted_at: category.deleted_at,
-      }));
+    const [activeCategories, deletedCategories] = await Promise.all([
+      ctx.db.categories.findMany({
+        where: { parent_id: null, is_deleted: false },
+        select: baseSelect,
+        orderBy: { created_at: "desc" },
+      }),
+      ctx.db.categories.findMany({
+        where: { parent_id: null, is_deleted: true },
+        select: baseSelect,
+        orderBy: { deleted_at: "desc" },
+      }),
+    ]);
 
-      return { data: transformedData };
-    } catch (error) {
-      if (error instanceof TRPCError) throw error;
-
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get all categories",
-      });
-    }
+    return { activeCategories, deletedCategories };
   }),
 
   getById: adminOrManageCategoryProcedure
@@ -59,23 +72,20 @@ export const categoriesRouter = createTRPCRouter({
               id: true,
               name: true,
               slug: true,
+              is_deleted: true,
             },
           },
           children: {
-            where: {
-              is_deleted: false,
-            },
             select: {
               id: true,
               name: true,
               slug: true,
               image_url: true,
+              is_deleted: true,
               _count: {
                 select: {
                   products: true,
-                  children: {
-                    where: { is_deleted: false },
-                  },
+                  children: true,
                 },
               },
             },
@@ -83,19 +93,18 @@ export const categoriesRouter = createTRPCRouter({
           _count: {
             select: {
               products: true,
-              children: {
-                where: { is_deleted: false },
-              },
+              children: true,
             },
           },
         },
       });
 
-      if (!category)
+      if (!category) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Category not found",
         });
+      }
 
       return category;
     }),
@@ -111,21 +120,20 @@ export const categoriesRouter = createTRPCRouter({
               id: true,
               name: true,
               slug: true,
+              is_deleted: true,
             },
           },
           children: {
-            where: { is_deleted: false },
             select: {
               id: true,
               name: true,
               slug: true,
               image_url: true,
+              is_deleted: true,
               _count: {
                 select: {
                   products: true,
-                  children: {
-                    where: { is_deleted: false },
-                  },
+                  children: true,
                 },
               },
             },
@@ -133,19 +141,18 @@ export const categoriesRouter = createTRPCRouter({
           _count: {
             select: {
               products: true,
-              children: {
-                where: { is_deleted: false },
-              },
+              children: true,
             },
           },
         },
       });
 
-      if (!category)
+      if (!category) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Category not found",
         });
+      }
 
       return category;
     }),
@@ -153,82 +160,234 @@ export const categoriesRouter = createTRPCRouter({
   create: adminOrManageCategoryProcedure
     .input(CreateCategorySchema)
     .mutation(async ({ ctx, input }) => {
-      const { name, image_url, public_id, parentId } = input;
-      try {
-        const slug = await generateSlug(ctx.db, name);
+      const { name, image_url, public_id, parent_id } = input;
 
-        if (parentId) {
-          const parentCategory = await ctx.db.categories.findFirst({
-            where: { id: parentId, is_deleted: false },
+      if (parent_id) {
+        const parentExists = await ctx.db.categories.findFirst({
+          where: { id: parent_id, is_deleted: false },
+        });
+
+        if (!parentExists) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Parent category not found or is deleted",
           });
-
-          if (!parentCategory)
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Parent category does not exist",
-            });
         }
-
-        const category = await ctx.db.categories.create({
-          data: {
-            name,
-            parent_id: parentId,
-            public_id,
-            image_url,
-            slug,
-          },
-        });
-
-        return category;
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
-
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create category",
-        });
       }
+
+      const slug = await generateSlug(ctx.db, name);
+
+      const category = await ctx.db.categories.create({
+        data: {
+          name,
+          parent_id: parent_id,
+          public_id,
+          image_url,
+          slug,
+        },
+      });
+
+      return category;
     }),
 
   update: adminOrManageCategoryProcedure
     .input(UpdateCategorySchema)
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;
-      try {
-        const existingCategory = await ctx.db.categories.findFirst({
-          where: { id, is_deleted: false },
+
+      const existingCategory = await ctx.db.categories.findFirst({
+        where: { id },
+      });
+
+      if (!existingCategory) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Category not found",
+        });
+      }
+
+      // Validate parent category if being updated
+      if (
+        updateData.parent_id &&
+        updateData.parent_id !== existingCategory.parent_id
+      ) {
+        const parentExists = await ctx.db.categories.findFirst({
+          where: { id: updateData.parent_id, is_deleted: false },
         });
 
-        if (!existingCategory)
+        if (!parentExists) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Category not found",
+            message: "Parent category not found or is deleted",
           });
-
-        let slug = existingCategory.slug;
-
-        if (updateData.name && updateData.name !== existingCategory.name) {
-          slug = await generateSlug(ctx.db, updateData.name);
         }
 
-        const category = await ctx.db.categories.update({
-          where: { id },
+        if (updateData.parent_id === id) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Cannot set category as its own parent",
+          });
+        }
+      }
+
+      // Generate new slug if name changed
+      let slug = existingCategory.slug;
+      if (updateData.name && updateData.name !== existingCategory.name) {
+        slug = await generateSlug(ctx.db, updateData.name);
+      }
+
+      const category = await ctx.db.categories.update({
+        where: { id },
+        data: {
+          ...updateData,
+          slug,
+        },
+      });
+
+      return category;
+    }),
+
+  // Toggle soft delete với logic cascade cho children
+  toggleDeleted: adminOrManageCategoryProcedure
+    .input(GetCategoryByIdSchema)
+    .mutation(async ({ ctx, input }) => {
+      const category = await ctx.db.categories.findFirst({
+        where: { id: input.id },
+        include: {
+          children: {
+            select: {
+              id: true,
+              name: true,
+              is_deleted: true,
+            },
+          },
+        },
+      });
+
+      if (!category) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Category not found",
+        });
+      }
+
+      const newDeletedStatus = !category.is_deleted;
+
+      // Nếu restore category (false), kiểm tra parent phải active
+      if (!newDeletedStatus && category.parent_id) {
+        const parentCategory = await ctx.db.categories.findFirst({
+          where: { id: category.parent_id, is_deleted: false },
+        });
+
+        if (!parentCategory) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Cannot restore category because parent category is deleted",
+          });
+        }
+      }
+
+      // Sử dụng transaction để update category và children
+      const result = await ctx.db.$transaction(async (tx) => {
+        // Update category chính
+        const updatedCategory = await tx.categories.update({
+          where: { id: input.id },
           data: {
-            ...updateData,
-            slug,
+            is_deleted: newDeletedStatus,
+            deleted_at: newDeletedStatus ? new Date() : null,
           },
         });
 
-        return category;
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
+        // Nếu delete category cha (true), update tất cả children
+        if (newDeletedStatus && category.children.length > 0) {
+          await tx.categories.updateMany({
+            where: { parent_id: input.id },
+            data: {
+              is_deleted: true,
+              deleted_at: new Date(),
+            },
+          });
         }
+
+        return updatedCategory;
+      });
+
+      return result;
+    }),
+
+  togglesDeleted: adminOrManageCategoryProcedure
+    .input(z.array(z.string()))
+    .mutation(async ({ ctx, input }) => {
+      const categories = await ctx.db.categories.findMany({
+        where: { id: { in: input } },
+        include: {
+          children: {
+            select: {
+              id: true,
+              is_deleted: true,
+            },
+          },
+        },
+      });
+
+      if (categories.length !== input.length) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update category",
+          code: "NOT_FOUND",
+          message: "Some categories not found",
         });
       }
+
+      // Validate restore operations
+      for (const category of categories) {
+        const willBeRestored = category.is_deleted;
+
+        if (willBeRestored && category.parent_id) {
+          const parentExists = await ctx.db.categories.findFirst({
+            where: { id: category.parent_id, is_deleted: false },
+          });
+
+          if (!parentExists) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Cannot restore category "${category.name}" because parent is deleted`,
+            });
+          }
+        }
+      }
+
+      const results = await ctx.db.$transaction(async (tx) => {
+        const updatedCategories = [];
+
+        for (const category of categories) {
+          const newDeletedStatus = !category.is_deleted;
+
+          // Update category chính
+          const updatedCategory = await tx.categories.update({
+            where: { id: category.id },
+            data: {
+              is_deleted: newDeletedStatus,
+              deleted_at: newDeletedStatus ? new Date() : null,
+            },
+          });
+
+          if (newDeletedStatus && category.children.length > 0) {
+            await tx.categories.updateMany({
+              where: { parent_id: category.id },
+              data: {
+                is_deleted: true,
+                deleted_at: new Date(),
+              },
+            });
+          }
+
+          updatedCategories.push(updatedCategory);
+        }
+
+        return updatedCategories;
+      });
+
+      return results;
     }),
 
   delete: adminOrManageCategoryProcedure
@@ -236,67 +395,150 @@ export const categoriesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
 
-      try {
-        const category = await ctx.db.categories.findFirst({
-          where: { id },
-        });
+      const category = await ctx.db.categories.findFirst({
+        where: { id },
+        include: {
+          children: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
 
-        if (!category) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Category not found",
-          });
-        }
-        const deletedCategory = await ctx.db.categories.delete({
-          where: { id },
-        });
-
-        return deletedCategory;
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
+      if (!category) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete category",
+          code: "NOT_FOUND",
+          message: "Category not found",
         });
       }
+
+      if (category.children.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Cannot delete category "${category.name}" because it has ${category.children.length} children. Please delete children first.`,
+        });
+      }
+
+      const deletedCategory = await ctx.db.categories.delete({
+        where: { id },
+      });
+
+      return deletedCategory;
     }),
 
-  toggleDeleted: adminOrManageCategoryProcedure
-    .input(GetCategoryByIdSchema)
+  permanentlyDelete: adminOrManageCategoryProcedure
+    .input(z.array(z.string()))
     .mutation(async ({ ctx, input }) => {
-      try {
-        const category = await ctx.db.categories.findFirst({
-          where: {
-            id: input.id,
+      const categories = await ctx.db.categories.findMany({
+        where: { id: { in: input } },
+        include: {
+          children: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
-        });
+        },
+      });
 
-        if (!category) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Deleted category not found",
-          });
-        }
-
-        const toggleDeleted = await ctx.db.categories.update({
-          where: { id: input.id },
-          data: {
-            is_deleted: !category.is_deleted,
-            deleted_at: category.is_deleted ? null : new Date(),
-          },
-        });
-
-        return toggleDeleted;
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
+      if (categories.length !== input.length) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to restore category",
+          code: "NOT_FOUND",
+          message: "Some categories were not found",
         });
       }
+
+      const categoriesWithChildren = categories.filter(
+        (cat) => cat.children.length > 0
+      );
+      if (categoriesWithChildren.length > 0) {
+        const categoryNames = categoriesWithChildren
+          .map((cat) => cat.name)
+          .join(", ");
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Cannot delete categories with children: ${categoryNames}. Please delete children first.`,
+        });
+      }
+
+      const result = await ctx.db.$transaction(async (tx) => {
+        return await tx.categories.deleteMany({
+          where: { id: { in: input } },
+        });
+      });
+
+      return {
+        deletedCount: result.count,
+        message: `Successfully permanently deleted ${result.count} categories`,
+      };
+    }),
+
+  getStats: adminOrManageCategoryProcedure.query(async ({ ctx }) => {
+    const [totalActive, totalDeleted, rootActive, rootDeleted] =
+      await Promise.all([
+        ctx.db.categories.count({ where: { is_deleted: false } }),
+        ctx.db.categories.count({ where: { is_deleted: true } }),
+        ctx.db.categories.count({
+          where: { parent_id: null, is_deleted: false },
+        }),
+        ctx.db.categories.count({
+          where: { parent_id: null, is_deleted: true },
+        }),
+      ]);
+
+    return {
+      total: totalActive + totalDeleted,
+      active: totalActive,
+      deleted: totalDeleted,
+      rootCategories: {
+        active: rootActive,
+        deleted: rootDeleted,
+      },
+    };
+  }),
+
+  getTree: adminOrManageCategoryProcedure
+    .input(z.object({ includeDeleted: z.boolean().default(false) }))
+    .query(async ({ ctx, input }) => {
+      const whereCondition = input.includeDeleted ? {} : { is_deleted: false };
+
+      const categories = await ctx.db.categories.findMany({
+        where: { parent_id: null, ...whereCondition },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image_url: true,
+          is_deleted: true,
+          deleted_at: true,
+          children: {
+            where: whereCondition,
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              image_url: true,
+              is_deleted: true,
+              deleted_at: true,
+              children: {
+                where: whereCondition,
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  image_url: true,
+                  is_deleted: true,
+                  deleted_at: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      });
+
+      return { data: categories };
     }),
 });

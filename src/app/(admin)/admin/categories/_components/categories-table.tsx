@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { createCategoryColumns } from "./columns";
-import { CategoryColumn } from "@/lib/types";
+import { CategoryRow, createCategoryColumns } from "./columns";
 import { DataTable } from "./data-table";
 import { useModal } from "@/stores/modal-store";
 import { UpdateCategoryForm } from "@/components/forms/update-category-form";
@@ -14,18 +13,23 @@ import {
   useToggleDeleted,
 } from "../hooks/custom-hook";
 import { useConfirm } from "@/stores/confirm-store";
+import { flattenCategories } from "@/lib/utils";
+import { Category, useCategoriesStore } from "@/stores/admin/categories-store";
 
 export const CategoriesTable = () => {
   const { open: openModal } = useModal();
   const { open: openConfirm } = useConfirm();
 
-  const { categories, isFetching } = useGetAllCategories();
+  const { isFetching } = useGetAllCategories();
+  const { activeCategories, deletedCategories } = useCategoriesStore(
+    (state) => state
+  );
   const { deleteCategoryAsync } = useDeleteCategory();
   const { toggleCategoryAsync } = useToggleDeleted();
   const { removeImagesAsync } = useRemoveImages();
 
   const handleEditCategory = useCallback(
-    (category: CategoryColumn) => {
+    (category: CategoryRow) => {
       openModal({
         children: <UpdateCategoryForm data={category} />,
         title: "Update Category",
@@ -36,7 +40,7 @@ export const CategoriesTable = () => {
   );
 
   const handleDeleteCategory = useCallback(
-    async (category: CategoryColumn) => {
+    async (category: CategoryRow) => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
@@ -67,7 +71,7 @@ export const CategoriesTable = () => {
   );
 
   const handleToggleCategory = useCallback(
-    async (category: CategoryColumn) => {
+    async (category: CategoryRow) => {
       try {
         openConfirm({
           title: "Restore Category",
@@ -98,7 +102,16 @@ export const CategoriesTable = () => {
 
   return (
     <div className="space-y-4">
-      <DataTable columns={columns} data={categories} isLoading={isLoading} />
+      <DataTable
+        columns={columns}
+        data={flattenCategories(activeCategories as Category[])}
+        isLoading={isLoading}
+      />
+      <DataTable
+        columns={columns}
+        data={flattenCategories(deletedCategories as Category[])}
+        isLoading={isLoading}
+      />
     </div>
   );
 };

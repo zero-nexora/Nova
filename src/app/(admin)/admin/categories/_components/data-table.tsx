@@ -18,8 +18,10 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
+import { useConfirm } from "@/stores/confirm-store";
+import { useTogglesDeleted } from "../hooks/custom-hook";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -52,13 +56,15 @@ export function DataTable<TData, TValue>({
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  const { togglesDeletedAsync } = useTogglesDeleted();
+
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(), 
+    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
@@ -70,6 +76,23 @@ export function DataTable<TData, TValue>({
       rowSelection,
     },
   });
+
+  const selected = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original) as any[];
+
+  const { open } = useConfirm();
+
+  const handleToggleDeleted = () => {
+    open({
+      title: "Change deleted all categories",
+      description: "Are you sure you want to change deleted all categories?",
+      onConfirm: async () => {
+        await togglesDeletedAsync(selected.map((item) => item.id as string));
+        table.resetRowSelection();
+      },
+    });
+  };
 
   return (
     <div className="w-full">
@@ -89,19 +112,12 @@ export function DataTable<TData, TValue>({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+            <DropdownMenuLabel>Features</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Delete all</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleToggleDeleted}>
+              Change deleted all
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
