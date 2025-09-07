@@ -35,6 +35,7 @@ export const ImagesPreview = ({
             size="icon"
             onClick={() => onRemove?.(preview.id)}
             className="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            disabled={disabled}
           >
             <X className="h-4 w-4" />
           </Button>

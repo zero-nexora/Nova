@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/table";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { useConfirm } from "@/stores/confirm-store";
-import { useTogglesDeleted } from "../hooks/custom-hook";
+import { useTogglesDeleted } from "../hooks/custom-hook-category";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -59,10 +59,6 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 3,
-  });
 
   const { togglesDeletedAsync } = useTogglesDeleted();
 
@@ -77,13 +73,11 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination,
     },
   });
 

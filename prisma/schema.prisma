@@ -133,13 +133,11 @@ model Role_Permissions {
 }
 
 model Categories {
-  id        String       @id @default(uuid())
-  name      String
-  slug      String       @unique
-  parent_id String?
-  parent    Categories?  @relation("CategoryToParent", fields: [parent_id], references: [id], onDelete: Cascade)
-  children  Categories[] @relation("CategoryToParent")
-  products  Products[]
+  id            String          @id @default(uuid())
+  name          String
+  slug          String          @unique
+  subcategories Subcategories[] @relation("CategoryToSubcategory")
+  products      Products[]      @relation("CategoryToProduct")
 
   image_url String?
   public_id String?
@@ -150,26 +148,48 @@ model Categories {
   deleted_at DateTime?
 
   @@index([slug])
-  @@index([parent_id])
 }
 
-model Products {
-  id          String             @id @default(uuid())
+model Subcategories {
+  id          String     @id @default(uuid())
   name        String
-  slug        String             @unique
-  description String?
+  slug        String     @unique
   category_id String
-  category    Categories         @relation(fields: [category_id], references: [id], onDelete: Cascade)
-  images      Product_Images[]
-  variants    Product_Variants[]
-  reviews     Reviews[]
-  created_at  DateTime           @default(now())
-  updated_at  DateTime           @updatedAt
-  is_deleted  Boolean            @default(false)
-  deleted_at  DateTime?
+  category    Categories @relation("CategoryToSubcategory", fields: [category_id], references: [id], onDelete: Cascade)
+  products    Products[] @relation("SubcategoryToProduct")
+
+  image_url String?
+  public_id String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  is_deleted Boolean   @default(false)
+  deleted_at DateTime?
 
   @@index([slug])
   @@index([category_id])
+}
+
+model Products {
+  id             String             @id @default(uuid())
+  name           String
+  slug           String             @unique
+  description    String?
+  category_id    String
+  category       Categories         @relation("CategoryToProduct", fields: [category_id], references: [id], onDelete: Cascade)
+  subcategory_id String?
+  subcategory    Subcategories?     @relation("SubcategoryToProduct", fields: [subcategory_id], references: [id], onDelete: SetNull)
+  images         Product_Images[]
+  variants       Product_Variants[]
+  reviews        Reviews[]
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @updatedAt
+  is_deleted     Boolean            @default(false)
+  deleted_at     DateTime?
+
+  @@index([slug])
+  @@index([category_id])
+  @@index([subcategory_id])
 }
 
 model Product_Images {

@@ -1,13 +1,17 @@
 import { getQueryClient, trpc } from "@/trpc/server";
+import { CategoryView } from "./_components/category-view";
 import { PageHeader } from "@/components/global/page-header";
 import { CreateCategory } from "./_components/create-category";
-import { CategoriesTable } from "./_components/categories-table";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { CategorySkeleton } from "@/components/global/category-skeleton";
 
 const CategoriesPage = async () => {
   const queryClient = getQueryClient();
 
-  await queryClient.prefetchQuery(trpc.admin.categoriesRouter.getAll.queryOptions());
+  await queryClient.prefetchQuery(
+    trpc.admin.categoriesRouter.getAll.queryOptions()
+  );
 
   return (
     <div className="space-y-4">
@@ -19,7 +23,9 @@ const CategoriesPage = async () => {
       </PageHeader>
 
       <HydrationBoundary state={dehydrate(queryClient)}>
-          <CategoriesTable />
+        <Suspense fallback={<CategorySkeleton />}>
+          <CategoryView />
+        </Suspense>
       </HydrationBoundary>
     </div>
   );

@@ -5,7 +5,7 @@ import { UploadIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ImagesPreview } from "./images-preview";
-import { useImageUploader } from "@/app/(admin)/admin/categories/hooks/custom-hook";
+import { useImageUploader } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 import { MAX_FILE_CATEGORY, MAX_FILES } from "@/lib/constants";
 import {
   LocalImagePreview,

@@ -80,7 +80,6 @@ CREATE TABLE "public"."Categories" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
-    "parent_id" TEXT,
     "image_url" TEXT,
     "public_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -92,12 +91,29 @@ CREATE TABLE "public"."Categories" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."Subcategories" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "category_id" TEXT NOT NULL,
+    "image_url" TEXT,
+    "public_id" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
+    "deleted_at" TIMESTAMP(3),
+
+    CONSTRAINT "Subcategories_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."Products" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
     "category_id" TEXT NOT NULL,
+    "subcategory_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "is_deleted" BOOLEAN NOT NULL DEFAULT false,
@@ -378,7 +394,13 @@ CREATE UNIQUE INDEX "Categories_slug_key" ON "public"."Categories"("slug");
 CREATE INDEX "Categories_slug_idx" ON "public"."Categories"("slug");
 
 -- CreateIndex
-CREATE INDEX "Categories_parent_id_idx" ON "public"."Categories"("parent_id");
+CREATE UNIQUE INDEX "Subcategories_slug_key" ON "public"."Subcategories"("slug");
+
+-- CreateIndex
+CREATE INDEX "Subcategories_slug_idx" ON "public"."Subcategories"("slug");
+
+-- CreateIndex
+CREATE INDEX "Subcategories_category_id_idx" ON "public"."Subcategories"("category_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Products_slug_key" ON "public"."Products"("slug");
@@ -388,6 +410,9 @@ CREATE INDEX "Products_slug_idx" ON "public"."Products"("slug");
 
 -- CreateIndex
 CREATE INDEX "Products_category_id_idx" ON "public"."Products"("category_id");
+
+-- CreateIndex
+CREATE INDEX "Products_subcategory_id_idx" ON "public"."Products"("subcategory_id");
 
 -- CreateIndex
 CREATE INDEX "Product_Images_product_id_idx" ON "public"."Product_Images"("product_id");
@@ -528,10 +553,13 @@ ALTER TABLE "public"."Role_Permissions" ADD CONSTRAINT "Role_Permissions_role_id
 ALTER TABLE "public"."Role_Permissions" ADD CONSTRAINT "Role_Permissions_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "public"."Permissions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Categories" ADD CONSTRAINT "Categories_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."Categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Subcategories" ADD CONSTRAINT "Subcategories_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."Categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Products" ADD CONSTRAINT "Products_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."Categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Products" ADD CONSTRAINT "Products_subcategory_id_fkey" FOREIGN KEY ("subcategory_id") REFERENCES "public"."Subcategories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Product_Images" ADD CONSTRAINT "Product_Images_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Products"("id") ON DELETE CASCADE ON UPDATE CASCADE;

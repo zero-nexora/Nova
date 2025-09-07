@@ -1,52 +1,48 @@
+export interface Subcategory {
+  name: string;
+  id: string;
+  image_url: string | null;
+  created_at: Date;
+  updated_at: Date;
+  is_deleted: boolean;
+  deleted_at: Date | null;
+  slug: string;
+  public_id: string | null;
+}
+
 export interface Category {
   id: string;
   name: string;
-  slug: string;
   image_url: string | null;
   public_id: string | null;
-  is_deleted: boolean;
-  deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
-
-  parent?: {
-    id: string;
-    name: string;
-    slug: string;
-  } | null;
-
-  children?: Category[];
+  is_deleted: boolean;
+  deleted_at: Date | null;
+  subcategories: Subcategory[];
 }
 
 import { create } from "zustand";
 
 interface CategoriesState {
-  activeCategories: Category[];
-  deletedCategories: Category[];
+  categories: Category[];
   loading: boolean;
 
-  setActiveCategories: (data: Category[]) => void;
-  setDeletedCategories: (data: Category[]) => void;
-  setCategories: (active: Category[], deleted: Category[]) => void;
+  setCategories: (data: Category[]) => void;
   setLoading: (loading: boolean) => void;
   reset: () => void;
 }
 
 export const useCategoriesStore = create<CategoriesState>((set) => ({
-  activeCategories: [],
-  deletedCategories: [],
+  categories: [],
   loading: false,
 
-  setActiveCategories: (data) => set({ activeCategories: data }),
-  setDeletedCategories: (data) => set({ deletedCategories: data }),
-  setCategories: (active, deleted) =>
-    set({ activeCategories: active, deletedCategories: deleted }),
+  setCategories: (data) => set({ categories: data }),
   setLoading: (loading) => set({ loading }),
 
   reset: () =>
     set({
-      activeCategories: [],
-      deletedCategories: [],
+      categories: [],
       loading: false,
     }),
 }));

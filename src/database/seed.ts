@@ -1,5 +1,3 @@
-import { categoriesData } from "@/lib/constants";
-import { CategorySeedType } from "@/lib/types";
 import { PrismaClient, RoleName, PermissionName } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -137,38 +135,6 @@ async function seedRolePermissions(): Promise<void> {
   );
 }
 
-async function seedCategoryRecursive(
-  category: CategorySeedType,
-  parentId?: string
-) {
-  const created = await prisma.categories.create({
-    data: {
-      name: category.name,
-      slug: category.slug,
-      parent_id: parentId,
-      image_url: category.image_url,
-      public_id: category.public_id,
-    },
-  });
-
-  if (category.children?.length) {
-    await Promise.all(
-      category.children.map((child) =>
-        seedCategoryRecursive(child, created.id)
-      )
-    );
-  }
-}
-
-export async function seedCategories() {
-  await prisma.categories.deleteMany();
-  console.log("🌱 Seeding categories...");
-  for (const category of categoriesData) {
-    await seedCategoryRecursive(category);
-  }
-  console.log("Categories seeded successfully");
-}
-
 /**
  * Main seeding function
  */
@@ -179,7 +145,6 @@ async function main(): Promise<void> {
     await seedPermissions();
     await seedRoles();
     await seedRolePermissions();
-    await seedCategories();
 
     console.log("Seed data completed successfully!");
   } catch (error) {

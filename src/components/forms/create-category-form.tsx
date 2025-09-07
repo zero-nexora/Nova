@@ -14,21 +14,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
-import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { useModal } from "@/stores/modal-store";
 import {
   useCreateCategory,
   useUploadImages,
-} from "@/app/(admin)/admin/categories/hooks/custom-hook";
+} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 import {
   CreateCategorySchema,
   CreateCategoryType,
@@ -38,10 +30,6 @@ import ImageUploader from "../global/image-uploader";
 import { Loading } from "../global/loading";
 
 export const CreateCategoryForm = () => {
-  // Store & Modal
-  const activeCategories = useCategoriesStore(
-    (state) => state.activeCategories
-  );
   const { close } = useModal();
 
   const { createCategoryAsync } = useCreateCategory();
@@ -56,20 +44,19 @@ export const CreateCategoryForm = () => {
       name: "",
       image_url: null,
       public_id: null,
-      parent_id: null,
     },
   });
 
-  const isSubmitting = form.formState.isSubmitting;
+  const isSubmitting = form.formState.isSubmitting || isLoadingUpload;
 
   const handleImageSelection = (images: LocalImagePreview[]) => {
     setSelectedImages(images);
   };
 
-  const handleParentCategoryChange = (value: string) => {
-    const parentId = value === "clear" || value === "" ? null : value;
-    form.setValue("parent_id", parentId);
-  };
+  // const handleParentCategoryChange = (value: string) => {
+  //   const parentId = value === "clear" || value === "" ? null : value;
+  //   form.setValue("parent_id", parentId);
+  // };
 
   const handleFormSubmit = async (values: CreateCategoryType) => {
     if (selectedImages.length === 0) {
@@ -98,26 +85,26 @@ export const CreateCategoryForm = () => {
     }
   };
 
-  const renderParentCategoryOptions = () => {
-    if (activeCategories.length === 0) {
-      return (
-        <SelectItem value="empty" disabled>
-          No categories available
-        </SelectItem>
-      );
-    }
+  // const renderParentCategoryOptions = () => {
+  //   if (activeCategories.length === 0) {
+  //     return (
+  //       <SelectItem value="empty" disabled>
+  //         No categories available
+  //       </SelectItem>
+  //     );
+  //   }
 
-    return (
-      <>
-        <SelectItem value="clear">No parent category</SelectItem>
-        {activeCategories.map((category) => (
-          <SelectItem key={category.id} value={category.id.toString()}>
-            {category.name}
-          </SelectItem>
-        ))}
-      </>
-    );
-  };
+  //   return (
+  //     <>
+  //       <SelectItem value="clear">No parent category</SelectItem>
+  //       {activeCategories.map((category) => (
+  //         <SelectItem key={category.id} value={category.id.toString()}>
+  //           {category.name}
+  //         </SelectItem>
+  //       ))}
+  //     </>
+  //   );
+  // };
 
   return (
     <Form {...form}>
@@ -153,35 +140,9 @@ export const CreateCategoryForm = () => {
               <FormControl>
                 <ImageUploader
                   multiple={false}
-                  disabled={isSubmitting || isLoadingUpload}
+                  disabled={isSubmitting}
                   onImagesChange={handleImageSelection}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="parent_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Parent Category (Optional)</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value?.toString() || ""}
-                  onValueChange={handleParentCategoryChange}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select parent category" />
-                  </SelectTrigger>
-
-                  <SelectContent className="w-[var(--radix-select-trigger-width)]">
-                    {renderParentCategoryOptions()}
-                  </SelectContent>
-                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -1,13 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { convertFileToBase64, generateUniqueId } from "@/lib/utils";
-import { useCategoriesStore } from "@/stores/admin/categories-store";
+import { Category, useCategoriesStore } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "./types";
 import { MAX_FILE_CATEGORY } from "@/lib/constants";
+import { useConfirm } from "@/stores/confirm-store";
 
 const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.categoriesRouter.getAll.queryOptions(),
@@ -19,35 +20,26 @@ const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
 
 export function useGetAllCategories() {
   const trpc = useTRPC();
-  const setDeletedCategories = useCategoriesStore(
-    (state) => state.setDeletedCategories
-  );
-  const setActiveCategories = useCategoriesStore(
-    (state) => state.setActiveCategories
-  );
+  const setCategories = useCategoriesStore((state) => state.setCategories);
   const setLoading = useCategoriesStore((state) => state.setLoading);
 
-  const { data, isFetching } = useQuery(
+  const { data, isFetching, error } = useQuery(
     trpc.admin.categoriesRouter.getAll.queryOptions()
   );
 
   useEffect(() => {
-    if (data?.activeCategories) {
-      setActiveCategories(data.activeCategories);
+    if (data) {
+      setCategories(data);
     }
-
-    if (data?.deletedCategories) {
-      setDeletedCategories(data.deletedCategories);
-    }
-  }, [data?.activeCategories, data?.deletedCategories]);
+  }, [data]);
 
   useEffect(() => {
     setLoading(isFetching);
   }, [isFetching]);
 
   return {
-    activeCategories: data?.activeCategories || [],
-    deletedCategories: data?.deletedCategories || [],
+    categories: data,
+    error,
     isFetching,
   };
 }
@@ -168,6 +160,34 @@ export function useDeleteCategory() {
   };
 }
 
+// New hook for bulk permanent deletion
+export function useDeleteCategories() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    ...trpc.admin.categoriesRouter.deletes.mutationOptions(),
+    onSuccess: (data) => {
+      toast.dismiss();
+      const { deletedCount, message } = data;
+      toast.success(
+        message || `${deletedCount} categories permanently deleted`
+      );
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to permanently delete categories");
+    },
+  });
+
+  return {
+    deleteCategories: mutation.mutate,
+    deleteCategoriesAsync: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
 export function useToggleDeleted() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -247,32 +267,8 @@ export function useTogglesDeleted() {
   };
 }
 
-export function usePermanentlyDeleted() {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    ...trpc.admin.categoriesRouter.permanentlyDelete.mutationOptions(),
-    onSuccess: (data) => {
-      toast.dismiss();
-      const { deletedCount, message } = data;
-      toast.success(
-        message || `${deletedCount} categories permanently deleted`
-      );
-      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to permanently delete categories");
-    },
-  });
-
-  return {
-    permanentlyDelete: mutation.mutate,
-    permanentlyDeleteAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
-  };
-}
+// Remove the old usePermanentlyDeleted hook since it doesn't match any procedure
+// The useDeleteCategories hook above replaces it and matches the 'deletes' procedure
 
 export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
   const [localPreviews, setLocalPreviews] = useState<LocalImagePreview[]>([]);
@@ -360,6 +356,212 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
     hasImages: localPreviews.length > 0,
     imageCount: localPreviews.length,
     remainingSlots: availableSlots,
+  };
+};
+
+type BulkAction = "toggle_deleted" | "delete_permanently" | "";
+
+export const useBulkCategoryActions = (categories: Category[]) => {
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    new Set()
+  );
+  const [bulkAction, setBulkAction] = useState<BulkAction>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const openConfirm = useConfirm((state) => state.open);
+  const { removeImagesAsync } = useRemoveImages();
+  const { deleteCategoryAsync } = useDeleteCategory();
+  const { toggleCategoryAsync } = useToggleDeleted();
+
+  // Memoized values
+  const selectedCategoriesData = useMemo(() => {
+    return categories.filter((category) => selectedCategories.has(category.id));
+  }, [categories, selectedCategories]);
+
+  const isAllSelected = useMemo(() => {
+    return (
+      categories.length > 0 && selectedCategories.size === categories.length
+    );
+  }, [categories.length, selectedCategories.size]);
+
+  const isIndeterminate = useMemo(() => {
+    return (
+      selectedCategories.size > 0 && selectedCategories.size < categories.length
+    );
+  }, [selectedCategories.size, categories.length]);
+
+  const selectedCount = selectedCategories.size;
+  const hasSelection = selectedCount > 0;
+
+  // Selection handlers
+  const handleSelectAll = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setSelectedCategories(new Set(categories.map((cat) => cat.id)));
+      } else {
+        setSelectedCategories(new Set());
+      }
+    },
+    [categories]
+  );
+
+  const handleSelectCategory = useCallback(
+    (categoryId: string, checked: boolean) => {
+      setSelectedCategories((prev) => {
+        const newSet = new Set(prev);
+        if (checked) {
+          newSet.add(categoryId);
+        } else {
+          newSet.delete(categoryId);
+        }
+        return newSet;
+      });
+    },
+    []
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedCategories(new Set());
+    setBulkAction("");
+  }, []);
+
+  // Bulk action handlers
+  const handleBulkToggleDeleted = useCallback(async () => {
+    if (selectedCategories.size === 0) return;
+
+    const selectedCats = selectedCategoriesData;
+    const activeCount = selectedCats.filter((cat) => !cat.is_deleted).length;
+    const deletedCount = selectedCats.filter((cat) => cat.is_deleted).length;
+
+    openConfirm({
+      title: "Bulk Toggle Status",
+      description: `Are you sure you want to toggle status for ${selectedCategories.size} categories?
+- ${activeCount} active categories will be moved to trash
+- ${deletedCount} deleted categories will be restored`,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          await Promise.all(
+            selectedCats.map((category) =>
+              toggleCategoryAsync({ id: category.id })
+            )
+          );
+          clearSelection();
+          toast.success(
+            `Successfully toggled ${selectedCategories.size} categories`
+          );
+        } catch (error: any) {
+          toast.error(error?.message || "Failed to toggle categories");
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+    });
+  }, [
+    selectedCategories,
+    selectedCategoriesData,
+    openConfirm,
+    toggleCategoryAsync,
+    clearSelection,
+  ]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedCategories.size === 0) return;
+
+    const selectedCats = selectedCategoriesData;
+    const categoryNames = selectedCats.map((cat) => cat.name).join(", ");
+
+    openConfirm({
+      title: "Permanent Bulk Deletion Warning",
+      description: `Are you absolutely sure you want to permanently delete these ${selectedCategories.size} categories?
+
+Categories: ${categoryNames}
+
+This action CANNOT be undone and will:
+- Remove all categories forever
+- Delete associated images
+- Remove all relationships`,
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          // Remove images first
+          const publicIds = selectedCats
+            .filter((cat) => cat.public_id)
+            .map((cat) => cat.public_id!);
+
+          if (publicIds.length > 0) {
+            await removeImagesAsync({ publicIds });
+          }
+
+          // Delete categories
+          await Promise.all(
+            selectedCats.map((category) =>
+              deleteCategoryAsync({ id: category.id })
+            )
+          );
+
+          clearSelection();
+          toast.success(
+            `Successfully deleted ${selectedCategories.size} categories`
+          );
+        } catch (error: any) {
+          toast.error(error?.message || "Failed to delete categories");
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+    });
+  }, [
+    selectedCategories,
+    selectedCategoriesData,
+    openConfirm,
+    deleteCategoryAsync,
+    removeImagesAsync,
+    clearSelection,
+  ]);
+
+  const handleBulkAction = useCallback(async () => {
+    if (!bulkAction || selectedCategories.size === 0) {
+      toast.error("Please select categories and an action");
+      return;
+    }
+
+    switch (bulkAction) {
+      case "toggle_deleted":
+        await handleBulkToggleDeleted();
+        break;
+      case "delete_permanently":
+        await handleBulkDelete();
+        break;
+    }
+  }, [
+    bulkAction,
+    selectedCategories.size,
+    handleBulkToggleDeleted,
+    handleBulkDelete,
+  ]);
+
+  return {
+    // State
+    selectedCategories,
+    bulkAction,
+    isProcessing,
+
+    // Computed values
+    selectedCategoriesData,
+    isAllSelected,
+    isIndeterminate,
+    selectedCount,
+    hasSelection,
+
+    // Actions
+    setBulkAction,
+    handleSelectAll,
+    handleSelectCategory,
+    clearSelection,
+    handleBulkAction,
+    handleBulkToggleDeleted,
+    handleBulkDelete,
   };
 };
 

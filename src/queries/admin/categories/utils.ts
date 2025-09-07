@@ -1,7 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import slugify from "slugify";
 
-export const generateSlug = async (db: PrismaClient, name: string) => {
+export const generateSlug = async (
+  db: PrismaClient,
+  name: string,
+  model: "categories" | "subcategories"
+) => {
   const baseSlug = slugify(name, {
     lower: true,
     strict: true,
@@ -11,11 +15,19 @@ export const generateSlug = async (db: PrismaClient, name: string) => {
   let counter = 1;
 
   while (true) {
-    const existingCategory = await db.categories.findUnique({
-      where: { slug: baseSlug },
-    });
+    let existingRecord;
 
-    if (!existingCategory || existingCategory.is_deleted) break;
+    if (model === "categories") {
+      existingRecord = await db.categories.findUnique({
+        where: { slug },
+      });
+    } else if (model === "subcategories") {
+      existingRecord = await db.subcategories.findUnique({
+        where: { slug },
+      });
+    }
+
+    if (!existingRecord || existingRecord.is_deleted) break;
 
     slug = `${baseSlug}-${counter}`;
     counter++;
