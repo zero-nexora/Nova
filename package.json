@@ -10,7 +10,7 @@
     "postinstall": "prisma generate",
     "dev:webhook": "ngrok http --domain=lightly-possible-locust.ngrok-free.app 3000",
     "dev:all": "concurrently \"npm run dev:webhook\" \"npm run dev\"",
-    "seed": "npx tsx src/database/seed.ts",
+    "seed:base": "npx tsx src/database/seed-base.ts",
     "seed:category": "npx tsx src/database/seed-category-subcategory.ts"
   },
   "dependencies": {
