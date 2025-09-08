@@ -5,6 +5,7 @@ import { CreateCategory } from "./_components/create-category";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { CategorySkeleton } from "@/components/global/category-skeleton";
 import { Metadata } from "next";
+import { CreateSubcategory } from "./_components/create-subcategory";
 
 export const metadata: Metadata = {
   title: "Category Management | Admin Dashboard",
@@ -57,7 +58,10 @@ const CategoriesPage = async () => {
           title="Categories"
           description="Manage and organize your product categories to improve customer navigation and inventory management"
         >
-          <CreateCategory />
+          <div className="flex flex-col gap-2">
+            <CreateCategory />
+            <CreateSubcategory />
+          </div>
         </PageHeader>
 
         <section aria-label="Categories list" className="space-y-4">

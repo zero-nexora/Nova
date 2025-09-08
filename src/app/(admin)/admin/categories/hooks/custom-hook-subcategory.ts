@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
+import { getCategoryQueryKeys } from "./custom-hook-category";
 
 const getSubcategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.subcategoriesRouter.getAll.queryOptions(),
@@ -66,7 +67,7 @@ export function useCreateSubcategory() {
     ...trpc.admin.subcategoriesRouter.create.mutationOptions(),
     onSuccess: () => {
       toast.success("Subcategory created successfully");
-      queryClient.invalidateQueries(getSubcategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       // Also invalidate categories to update subcategory count
       queryClient.invalidateQueries({
         predicate: (query) =>
@@ -96,7 +97,7 @@ export function useUpdateSubcategory() {
     onSuccess: (data) => {
       toast.success("Subcategory updated successfully");
 
-      queryClient.invalidateQueries(getSubcategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries(
         getSubcategoryQueryKeys(trpc).byId(data.id)
       );
@@ -137,7 +138,7 @@ export function useDeleteSubcategory() {
       toast.dismiss();
       toast.success("Subcategory permanently deleted");
 
-      queryClient.invalidateQueries(getSubcategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries({
         predicate: (query) =>
           query.queryKey[0] === "subcategoriesAdmin.getById" ||
@@ -176,7 +177,7 @@ export function useDeleteSubcategories() {
       toast.success(
         message || `${deletedCount} subcategories permanently deleted`
       );
-      queryClient.invalidateQueries(getSubcategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
 
       // Also invalidate categories to update subcategory count
       queryClient.invalidateQueries({
@@ -213,7 +214,7 @@ export function useToggleSubcategoryDeleted() {
         : `Subcategory "${data.name}" restored successfully`;
       toast.success(message);
 
-      queryClient.invalidateQueries(getSubcategoryQueryKeys(trpc).all());
+      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
       queryClient.invalidateQueries(
         getSubcategoryQueryKeys(trpc).byId(data.id)
       );

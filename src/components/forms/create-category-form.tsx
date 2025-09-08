@@ -53,11 +53,6 @@ export const CreateCategoryForm = () => {
     setSelectedImages(images);
   };
 
-  // const handleParentCategoryChange = (value: string) => {
-  //   const parentId = value === "clear" || value === "" ? null : value;
-  //   form.setValue("parent_id", parentId);
-  // };
-
   const handleFormSubmit = async (values: CreateCategoryType) => {
     if (selectedImages.length === 0) {
       toast.error("Please select an image for the category");
@@ -78,33 +73,11 @@ export const CreateCategoryForm = () => {
       form.reset();
       setSelectedImages([]);
       close();
-      toast.success("Category created successfully!");
     } catch (error) {
       console.error("Error creating category:", error);
       toast.error("Failed to create category. Please try again.");
     }
   };
-
-  // const renderParentCategoryOptions = () => {
-  //   if (activeCategories.length === 0) {
-  //     return (
-  //       <SelectItem value="empty" disabled>
-  //         No categories available
-  //       </SelectItem>
-  //     );
-  //   }
-
-  //   return (
-  //     <>
-  //       <SelectItem value="clear">No parent category</SelectItem>
-  //       {activeCategories.map((category) => (
-  //         <SelectItem key={category.id} value={category.id.toString()}>
-  //           {category.name}
-  //         </SelectItem>
-  //       ))}
-  //     </>
-  //   );
-  // };
 
   return (
     <Form {...form}>

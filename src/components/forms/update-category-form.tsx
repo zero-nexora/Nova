@@ -70,7 +70,6 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
       await removeImagesAsync({ publicIds: [data.public_id] });
       form.setValue("image_url", null);
       form.setValue("public_id", null);
-      toast.success("Image removed successfully");
     } catch (error) {
       console.error("Error removing image:", error);
       toast.error("Failed to remove image");

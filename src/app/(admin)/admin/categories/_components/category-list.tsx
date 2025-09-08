@@ -32,6 +32,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
+import {
+  useDeleteSubcategory,
+  useToggleSubcategoryDeleted,
+} from "../hooks/custom-hook-subcategory";
+import UpdateSubCategoryForm from "@/components/forms/update-subcategory-form";
 
 type BulkAction = "toggle_deleted" | "delete_permanently" | "";
 
@@ -44,14 +49,28 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
   const openConfirm = useConfirm((state) => state.open);
 
   const { removeImagesAsync } = useRemoveImages();
+
   const { deleteCategoryAsync } = useDeleteCategory();
   const { toggleCategoryAsync } = useToggleDeleted();
+
+  const { toggleSubcategoryAsync } = useToggleSubcategoryDeleted();
+  const { deleteSubcategoryAsync } = useDeleteSubcategory();
 
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
     new Set()
   );
   const [bulkAction, setBulkAction] = useState<BulkAction>("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(date));
+  };
 
   // Memoized values
   const selectedCategoriesData = useMemo(() => {
@@ -105,7 +124,68 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     setBulkAction("");
   }, []);
 
-  // Bulk action handlers
+  const handleUpdateCategory = useCallback(
+    (category: Category) => {
+      openModal({
+        children: <UpdateCategoryForm data={category} />,
+        title: "Update Category",
+        description: "Update category information",
+      });
+    },
+    [openModal]
+  );
+
+  const handleDeleteCategory = useCallback(
+    async (category: Category) => {
+      try {
+        openConfirm({
+          title: "Permanent Deletion Warning",
+          description: `Are you absolutely sure you want to permanently delete "${category.name}"? This action CANNOT be undone and will:
+- Remove the category forever
+- Delete associated images
+- Remove all relationships`,
+          onConfirm: async () => {
+            try {
+              if (category.public_id) {
+                await removeImagesAsync({ publicIds: [category.public_id] });
+              }
+              await deleteCategoryAsync({ id: category.id });
+            } catch (error: any) {
+              toast.dismiss();
+              toast.error(
+                error?.message || "Failed to permanently delete category"
+              );
+            }
+          },
+        });
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(error?.message || "Failed to move category to trash");
+      }
+    },
+    [deleteCategoryAsync, removeImagesAsync, openConfirm]
+  );
+
+  const handleToggleCategory = useCallback(
+    async (category: Category) => {
+      try {
+        openConfirm({
+          title: category.is_deleted ? "Restore Category" : "Move to Trash",
+          description: category.is_deleted
+            ? "Are you sure you want to restore this category?"
+            : "Are you sure you want to move this category to trash?",
+          onConfirm: async () => {
+            await toggleCategoryAsync({ id: category.id });
+          },
+        });
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(error?.message || "Failed to toggle category status");
+      }
+    },
+    [toggleCategoryAsync, openConfirm]
+  );
+
   const handleBulkToggleDeleted = useCallback(async () => {
     if (selectedCategories.size === 0) return;
 
@@ -215,32 +295,54 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     handleBulkDelete,
   ]);
 
-  const handleUpdateCategory = useCallback(
-    (category: Category) => {
+  const handleToggleSubCategory = useCallback(
+    async (subcategory: Subcategory) => {
+      try {
+        openConfirm({
+          title: subcategory.is_deleted
+            ? "Restore subcategory"
+            : "Move to Trash",
+          description: subcategory.is_deleted
+            ? "Are you sure you want to restore this subcategory?"
+            : "Are you sure you want to move this subcategory to trash?",
+          onConfirm: async () => {
+            await toggleSubcategoryAsync({ id: subcategory.id });
+          },
+        });
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(error?.message || "Failed to toggle category status");
+      }
+    },
+    [toggleSubcategoryAsync, openConfirm]
+  );
+
+  const handleUpdateSubCategory = useCallback(
+    (subcategory: Subcategory) => {
       openModal({
-        children: <UpdateCategoryForm data={category} />,
-        title: "Update Category",
-        description: "Update category information",
+        title: "Update Subcategory",
+        description: "Update subcategory information",
+        children: <UpdateSubCategoryForm data={subcategory} />,
       });
     },
     [openModal]
   );
 
-  const handleDeleteCategory = useCallback(
-    async (category: Category) => {
+  const handleDeleteSubCategory = useCallback(
+    async (subcategory: Subcategory) => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
-          description: `Are you absolutely sure you want to permanently delete "${category.name}"? This action CANNOT be undone and will:
+          description: `Are you absolutely sure you want to permanently delete "${subcategory.name}"? This action CANNOT be undone and will:
 - Remove the category forever
 - Delete associated images
 - Remove all relationships`,
           onConfirm: async () => {
             try {
-              if (category.public_id) {
-                await removeImagesAsync({ publicIds: [category.public_id] });
+              if (subcategory.public_id) {
+                await removeImagesAsync({ publicIds: [subcategory.public_id] });
               }
-              await deleteCategoryAsync({ id: category.id });
+              await deleteSubcategoryAsync({ id: subcategory.id });
             } catch (error: any) {
               toast.dismiss();
               toast.error(
@@ -254,38 +356,8 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
         toast.error(error?.message || "Failed to move category to trash");
       }
     },
-    [deleteCategoryAsync, removeImagesAsync, openConfirm]
+    [deleteSubcategoryAsync, removeImagesAsync, openConfirm]
   );
-
-  const handleToggleCategory = useCallback(
-    async (category: Category) => {
-      try {
-        openConfirm({
-          title: category.is_deleted ? "Restore Category" : "Move to Trash",
-          description: category.is_deleted
-            ? "Are you sure you want to restore this category?"
-            : "Are you sure you want to move this category to trash?",
-          onConfirm: async () => {
-            await toggleCategoryAsync({ id: category.id });
-          },
-        });
-      } catch (error: any) {
-        toast.dismiss();
-        toast.error(error?.message || "Failed to toggle category status");
-      }
-    },
-    [toggleCategoryAsync, openConfirm]
-  );
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date));
-  };
 
   if (categories.length === 0) {
     return (
@@ -508,14 +580,44 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                                   </div>
 
                                   <div className="flex items-center gap-2">
-                                    {subcategory.is_deleted ? (
-                                      <Badge variant="destructive">
-                                        Deleted
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline">Active</Badge>
-                                    )}
-                                    <ActionMenu />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleSubCategory(subcategory);
+                                      }}
+                                      disabled={isProcessing}
+                                      className="px-0"
+                                    >
+                                      {subcategory.is_deleted ? (
+                                        <Badge
+                                          variant="destructive"
+                                          className="hover:bg-destructive/90"
+                                        >
+                                          Deleted
+                                        </Badge>
+                                      ) : (
+                                        <Badge
+                                          variant="default"
+                                          className="bg-green-500 hover:bg-green-600"
+                                        >
+                                          Active
+                                        </Badge>
+                                      )}
+                                    </Button>
+
+                                    {/* Action Menu */}
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                      <ActionMenu
+                                        onUpdate={() =>
+                                          handleUpdateSubCategory(subcategory)
+                                        }
+                                        onDelete={() =>
+                                          handleDeleteSubCategory(subcategory)
+                                        }
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                               </Card>

@@ -1,4 +1,4 @@
-import { MenuOptions } from "./menu-options"
+import { MenuOptions } from "./menu-options";
 
 export const Sidebar = () => {
   return (

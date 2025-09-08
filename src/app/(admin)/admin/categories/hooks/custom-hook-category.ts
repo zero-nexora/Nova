@@ -10,7 +10,7 @@ import { LocalImagePreview } from "./types";
 import { MAX_FILE_CATEGORY } from "@/lib/constants";
 import { useConfirm } from "@/stores/confirm-store";
 
-const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
+export const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.categoriesRouter.getAll.queryOptions(),
   byId: (id: string) =>
     trpc.admin.categoriesRouter.getById.queryOptions({ id }),
@@ -160,34 +160,6 @@ export function useDeleteCategory() {
   };
 }
 
-// New hook for bulk permanent deletion
-export function useDeleteCategories() {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    ...trpc.admin.categoriesRouter.deletes.mutationOptions(),
-    onSuccess: (data) => {
-      toast.dismiss();
-      const { deletedCount, message } = data;
-      toast.success(
-        message || `${deletedCount} categories permanently deleted`
-      );
-      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to permanently delete categories");
-    },
-  });
-
-  return {
-    deleteCategories: mutation.mutate,
-    deleteCategoriesAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
-  };
-}
-
 export function useToggleDeleted() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -222,53 +194,6 @@ export function useToggleDeleted() {
     error: mutation.error,
   };
 }
-
-export function useTogglesDeleted() {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    ...trpc.admin.categoriesRouter.togglesDeleted.mutationOptions(),
-    onSuccess: (data) => {
-      toast.dismiss();
-
-      const deletedCount = data.filter((cat) => cat?.is_deleted).length;
-      const restoredCount = data.filter((cat) => !cat?.is_deleted).length;
-
-      let message = "";
-      if (deletedCount > 0 && restoredCount > 0) {
-        message = `${deletedCount} categories moved to trash, ${restoredCount} categories restored`;
-      } else if (deletedCount > 0) {
-        message =
-          deletedCount === 1
-            ? `Category "${data[0]?.name}" moved to trash successfully`
-            : `${deletedCount} categories moved to trash successfully`;
-      } else if (restoredCount > 0) {
-        message =
-          restoredCount === 1
-            ? `Category "${data[0]?.name}" restored successfully`
-            : `${restoredCount} categories restored successfully`;
-      }
-
-      toast.success(message);
-
-      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to toggle categories");
-    },
-  });
-
-  return {
-    togglesDeleted: mutation.mutate,
-    togglesDeletedAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
-  };
-}
-
-// Remove the old usePermanentlyDeleted hook since it doesn't match any procedure
-// The useDeleteCategories hook above replaces it and matches the 'deletes' procedure
 
 export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
   const [localPreviews, setLocalPreviews] = useState<LocalImagePreview[]>([]);

@@ -51,7 +51,7 @@ export const CategoryView = () => {
 
   return (
     <>
-      <CategoryStats categories={categories} />
+      {/* <CategoryStats categories={categories} /> */}
       <CategoryList categories={categories} />
     </>
   );
