@@ -1,5 +1,6 @@
 "use client";
 
+import { useModal } from "@/stores/modal-store";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useModal } from "@/stores/modal-store";
 
 export const CustomModal = () => {
   const { isOpen, data, close } = useModal();

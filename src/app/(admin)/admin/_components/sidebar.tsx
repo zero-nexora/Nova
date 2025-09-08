@@ -6,5 +6,5 @@ export const Sidebar = () => {
       <MenuOptions defaultOpen />
       <MenuOptions defaultOpen={false} />
     </>
-  )
-}
+  );
+};

@@ -13,6 +13,9 @@ export interface PreviewItem {
   url: string;
 }
 
+export type BulkAction = "toggle_deleted" | "delete_permanently" | "";
+export type EntityType = "category" | "subcategory";
+
 export function mapPreviewList(
   previewList: (LocalImagePreview | UploadedImage)[]
 ): PreviewItem[] {

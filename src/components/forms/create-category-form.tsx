@@ -1,9 +1,21 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Loading } from "../global/loading";
+import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { ImageUploader } from "../global/image-uploader";
+import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
+import {
+  CreateCategorySchema,
+  CreateCategoryType,
+} from "@/queries/admin/categories/types";
+import {
+  useCreateCategory,
+  useUploadImages,
+} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 
 import {
   Form,
@@ -15,19 +27,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-import { useModal } from "@/stores/modal-store";
-import {
-  useCreateCategory,
-  useUploadImages,
-} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
-import {
-  CreateCategorySchema,
-  CreateCategoryType,
-} from "@/queries/admin/categories/types";
-import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
-import ImageUploader from "../global/image-uploader";
-import { Loading } from "../global/loading";
 
 export const CreateCategoryForm = () => {
   const { close } = useModal();
@@ -133,5 +132,3 @@ export const CreateCategoryForm = () => {
     </Form>
   );
 };
-
-export default CreateCategoryForm;

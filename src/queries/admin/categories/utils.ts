@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import slugify from "slugify";
+import { PrismaClient } from "@prisma/client";
 
 export const generateSlug = async (
   db: PrismaClient,

@@ -1,8 +1,8 @@
-import { categoriesData } from "@/lib/constants";
+import { v4 as uuidv4 } from "uuid";
 import { PrismaClient } from "@prisma/client";
+import { categoriesData } from "@/lib/constants";
 
 const prisma = new PrismaClient();
-import { v4 as uuidv4 } from "uuid";
 
 async function main() {
   for (const cat of categoriesData) {

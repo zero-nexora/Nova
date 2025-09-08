@@ -1,6 +1,21 @@
 "use client";
 
+import clsx from "clsx";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { sidebarRoutes } from "@/lib/constants";
+import { useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Command,
   CommandEmpty,
@@ -9,21 +24,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { sidebarRoutes } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import clsx from "clsx";
-import { Menu } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 
 interface MenuOptionsProps {
   defaultOpen: boolean;
@@ -51,83 +51,86 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen} modal={false} {...openState}>
+      {/* Nút mở menu mobile */}
       <SheetTrigger
         asChild
         className="absolute left-4 top-4 z-[100] md:hidden flex"
       >
-        <Button variant={"outline"} size={"icon"}>
-          <Menu />
+        <Button variant="outline" size="icon" className="rounded-xl shadow-md">
+          <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
+
+      {/* Sidebar content */}
       <SheetContent
         side="left"
         showX={!defaultOpen}
         className={clsx(
-          "bg-background/80 backdrop-blur-xl fixed top-0 border-r-[1px] p-6",
+          "bg-background/90 backdrop-blur-xl fixed top-0 border-r p-6 flex flex-col",
           {
-            "hidden md:inline-block z-0 w-[300px]": defaultOpen,
-            "inline-block md:hidden z-[100] w-full": !defaultOpen,
+            "hidden md:flex md:flex-col z-0 w-[300px]": defaultOpen,
+            "flex md:hidden z-[100] w-full": !defaultOpen,
           }
         )}
       >
-        <SheetHeader className="flex flex-row items-center justify-between p-6 pb-4">
-          <SheetTitle className="text-lg font-semibold">Dashboard</SheetTitle>
+        {/* Header */}
+        <SheetHeader className="pb-4 border-b">
+          <SheetTitle className="text-xl font-bold tracking-tight">
+            Dashboard
+          </SheetTitle>
         </SheetHeader>
 
-        <Separator className="mx-4" />
+        {/* Search & menu */}
+        <div className="flex-1 overflow-y-auto py-4">
+          <Command className="rounded-lg bg-background/60 shadow-sm">
+            <CommandInput placeholder="Search menu..." className="h-10" />
+            <CommandList>
+              <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                No menu items found.
+              </CommandEmpty>
 
-        <div className="flex-1 overflow-hidden p-4">
-          <div className="mb-4">
-            <Command className="rounded-lg  bg-background/50 border-none">
-              <CommandInput placeholder="Search menu..." className="h-10" />
-              <CommandList>
-                <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
-                  No menu items found.
-                </CommandEmpty>
+              <CommandGroup heading="Navigation" className="px-2">
+                {sidebarRoutes.map((route) => {
+                  const isActive = pathname === route.path;
 
-                <CommandGroup heading="Navigation" className="p-2">
-                  {sidebarRoutes.map((route) => {
-                    const isActive = pathname === route.path;
-
-                    return (
-                      <CommandItem
-                        key={route.path}
-                        value={route.label}
-                        className="p-0"
+                  return (
+                    <CommandItem
+                      key={route.path}
+                      value={route.label}
+                      className="p-0"
+                    >
+                      <Link
+                        href={route.path}
+                        className={cn(
+                          "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                          "hover:bg-accent hover:text-accent-foreground",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isActive &&
+                            "bg-primary text-primary-foreground shadow-md"
+                        )}
+                        onClick={() => setIsOpen(false)}
                       >
-                        <Link
-                          href={route.path}
-                          className={cn(
-                            "flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-md transition-all duration-200",
-                            "hover:bg-accent/80 hover:text-accent-foreground",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                            isActive &&
-                              "bg-primary text-primary-foreground shadow-sm"
-                          )}
-                          onClick={() => setIsOpen(false)}
-                        >
-                          {route.icon && (
-                            <route.icon
-                              className={cn(
-                                "h-4 w-4 transition-colors",
-                                isActive
-                                  ? "text-primary-foreground"
-                                  : "text-muted-foreground"
-                              )}
-                            />
-                          )}
-                          <span>{route.label}</span>
-                          {isActive && (
-                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/80" />
-                          )}
-                        </Link>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </div>
+                        {route.icon && (
+                          <route.icon
+                            className={cn(
+                              "h-5 w-5 transition-colors",
+                              isActive
+                                ? "text-primary-foreground"
+                                : "text-muted-foreground"
+                            )}
+                          />
+                        )}
+                        <span>{route.label}</span>
+                        {isActive && (
+                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/80" />
+                        )}
+                      </Link>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </div>
       </SheetContent>
     </Sheet>

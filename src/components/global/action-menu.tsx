@@ -1,22 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { MoreHorizontal, Edit, Trash, Eye, Power } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Eye } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface ActionMenuProps {
   onUpdate?: () => void;
   onDelete?: () => void;
+  onToggle?: () => void;
   onView?: () => void;
 }
 
-export const ActionMenu = ({ onUpdate, onDelete, onView }: ActionMenuProps) => {
+export const ActionMenu = ({
+  onUpdate,
+  onDelete,
+  onView,
+  onToggle,
+}: ActionMenuProps) => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -40,7 +47,12 @@ export const ActionMenu = ({ onUpdate, onDelete, onView }: ActionMenuProps) => {
         )}
         {onUpdate && (
           <DropdownMenuItem onClick={onUpdate}>
-            <Edit className="mr-2 h-4 w-4" /> Edit
+            <Edit className="mr-2 h-4 w-4" /> Update
+          </DropdownMenuItem>
+        )}
+        {onToggle && (
+          <DropdownMenuItem onClick={onToggle}>
+            <Power className="mr-2 h-4 w-4" /> Toggle
           </DropdownMenuItem>
         )}
         {onDelete && (

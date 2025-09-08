@@ -1,8 +1,6 @@
-// components/category-stats.tsx
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useMemo } from "react";
 import { Category } from "@/stores/admin/categories-store";
 import {
   Folder,
@@ -12,7 +10,9 @@ import {
   Calendar,
   BarChart3,
 } from "lucide-react";
-import { useMemo } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface CategoryStatsProps {
   categories: Category[];

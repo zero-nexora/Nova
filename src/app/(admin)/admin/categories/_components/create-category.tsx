@@ -1,10 +1,10 @@
 "use client";
 
-import { CreateCategoryForm } from "@/components/forms/create-category-form";
-import { Button } from "@/components/ui/button";
-import { useModal } from "@/stores/modal-store";
 import { Plus } from "lucide-react";
+import { useModal } from "@/stores/modal-store";
+import { Button } from "@/components/ui/button";
 import { memo, useCallback, useEffect, useState } from "react";
+import { CreateCategoryForm } from "@/components/forms/create-category-form";
 
 export const CreateCategory = memo(() => {
   const { open } = useModal();
@@ -14,7 +14,6 @@ export const CreateCategory = memo(() => {
     setIsMounted(true);
   }, []);
 
-  
   const handleCreateCategory = useCallback(async () => {
     open({
       title: "Create New Category",
@@ -22,7 +21,7 @@ export const CreateCategory = memo(() => {
       children: <CreateCategoryForm />,
     });
   }, [open]);
-  
+
   if (!isMounted) return null;
 
   return (

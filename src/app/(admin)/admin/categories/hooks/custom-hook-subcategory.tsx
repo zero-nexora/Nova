@@ -1,9 +1,14 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useCallback } from "react";
 import { useTRPC } from "@/trpc/client";
-import { getCategoryQueryKeys } from "./custom-hook-category";
+import { useModal } from "@/stores/modal-store";
+import { useConfirm } from "@/stores/confirm-store";
+import { Subcategory } from "@/stores/admin/categories-store";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCategoryQueryKeys, useRemoveImages } from "./custom-hook-category";
+import { UpdateSubcategoryForm } from "@/components/forms/update-subcategory-form";
 
 const getSubcategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.subcategoriesRouter.getAll.queryOptions(),
@@ -295,3 +300,81 @@ export function useToggleSubcategoriesDeleted() {
     error: mutation.error,
   };
 }
+
+export const useSubcategoryActions = () => {
+  const openModal = useModal((state) => state.open);
+  const openConfirm = useConfirm((state) => state.open);
+  const { removeImagesAsync } = useRemoveImages();
+  const { toggleSubcategoryAsync } = useToggleSubcategoryDeleted();
+  const { deleteSubcategoryAsync } = useDeleteSubcategory();
+
+  const handleUpdateSubcategory = useCallback(
+    (subcategory: Subcategory) => {
+      openModal({
+        title: "Update Subcategory",
+        description: "Update subcategory information",
+        children: <UpdateSubcategoryForm data={subcategory} />,
+      });
+    },
+    [openModal]
+  );
+
+  const handleToggleSubcategory = useCallback(
+    async (subcategory: Subcategory) => {
+      try {
+        openConfirm({
+          title: subcategory.is_deleted
+            ? "Restore Subcategory"
+            : "Move to Trash",
+          description: subcategory.is_deleted
+            ? "Are you sure you want to restore this subcategory?"
+            : "Are you sure you want to move this subcategory to trash?",
+          onConfirm: async () => {
+            await toggleSubcategoryAsync({ id: subcategory.id });
+          },
+        });
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(error?.message || "Failed to toggle subcategory status");
+      }
+    },
+    [toggleSubcategoryAsync, openConfirm]
+  );
+
+  const handleDeleteSubcategory = useCallback(
+    async (subcategory: Subcategory) => {
+      try {
+        openConfirm({
+          title: "Permanent Deletion Warning",
+          description: `Are you absolutely sure you want to permanently delete "${subcategory.name}"? This action CANNOT be undone and will:
+- Remove the subcategory forever
+- Delete associated images
+- Remove all relationships`,
+          onConfirm: async () => {
+            try {
+              if (subcategory.public_id) {
+                await removeImagesAsync({ publicIds: [subcategory.public_id] });
+              }
+              await deleteSubcategoryAsync({ id: subcategory.id });
+            } catch (error: any) {
+              toast.dismiss();
+              toast.error(
+                error?.message || "Failed to permanently delete subcategory"
+              );
+            }
+          },
+        });
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(error?.message || "Failed to move subcategory to trash");
+      }
+    },
+    [deleteSubcategoryAsync, removeImagesAsync, openConfirm]
+  );
+
+  return {
+    handleUpdateSubcategory,
+    handleToggleSubcategory,
+    handleDeleteSubcategory,
+  };
+};

@@ -1,9 +1,24 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Loading } from "../global/loading";
+import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { ImageUploader } from "../global/image-uploader";
+import { ImagesPreview } from "../global/images-preview";
+import { Category } from "@/stores/admin/categories-store";
+import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
+import {
+  UpdateCategorySchema,
+  UpdateCategoryType,
+} from "@/queries/admin/categories/types";
+import {
+  useRemoveImages,
+  useUpdateCategory,
+  useUploadImages,
+} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 
 import {
   Form,
@@ -15,21 +30,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useModal } from "@/stores/modal-store";
-import {
-  useRemoveImages,
-  useUpdateCategory,
-  useUploadImages,
-} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
-import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
-import ImageUploader from "../global/image-uploader";
-import { ImagesPreview } from "../global/images-preview";
-import { Loading } from "../global/loading";
-import { Category } from "@/stores/admin/categories-store";
-import {
-  UpdateCategorySchema,
-  UpdateCategoryType,
-} from "@/queries/admin/categories/types";
 
 interface UpdateCategoryFormProps {
   data: Category;
@@ -167,5 +167,3 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
     </Form>
   );
 };
-
-export default UpdateCategoryForm;

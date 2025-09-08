@@ -1,3 +1,6 @@
+import z from "zod";
+import { TRPCError } from "@trpc/server";
+import { generateSlug } from "../categories/utils";
 import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import {
   CreateSubcategorySchema,
@@ -6,9 +9,6 @@ import {
   GetSubcategoryBySlugSchema,
   UpdateSubcategorySchema,
 } from "./types";
-import { TRPCError } from "@trpc/server";
-import { generateSlug } from "../categories/utils";
-import z from "zod";
 
 export const subcategoriesRouter = createTRPCRouter({
   getAll: adminOrManageCategoryProcedure.query(async ({ ctx }) => {

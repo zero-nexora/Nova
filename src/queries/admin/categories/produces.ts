@@ -1,5 +1,6 @@
-import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
+import { generateSlug } from "./utils";
 import { TRPCError } from "@trpc/server";
+import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import {
   CreateCategorySchema,
   UpdateCategorySchema,
@@ -7,7 +8,6 @@ import {
   DeleteCategorySchema,
   GetCategoryBySlugSchema,
 } from "./types";
-import { generateSlug } from "./utils";
 
 export const categoriesRouter = createTRPCRouter({
   getAll: adminOrManageCategoryProcedure.query(async ({ ctx }) => {

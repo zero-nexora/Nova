@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Loading } from "../global/loading";
+import { useConfirm } from "@/stores/confirm-store";
+import { AlertTriangle, Trash2, AlertCircle } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,10 +14,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/stores/confirm-store";
-import { AlertTriangle, Trash2, AlertCircle } from "lucide-react";
-import { Loading } from "../global/loading";
 
 export const CustomConfirm = () => {
   const { isOpen, data, confirm, cancel } = useConfirm();

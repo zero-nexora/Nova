@@ -1,5 +1,5 @@
-import ThemeToggle from "@/components/global/theme-toggle";
 import { UserButton } from "@clerk/nextjs";
+import ThemeToggle from "@/components/global/theme-toggle";
 
 export const InfoBar = () => {
   return (

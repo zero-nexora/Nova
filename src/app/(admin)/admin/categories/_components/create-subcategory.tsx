@@ -1,10 +1,10 @@
 "use client";
 
-import { CreateSubcategoryForm } from "@/components/forms/create-subcategory-form";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/stores/modal-store";
-import { Plus } from "lucide-react";
 import { memo, useCallback, useEffect, useState } from "react";
+import { CreateSubcategoryForm } from "@/components/forms/create-subcategory-form";
 
 export const CreateSubcategory = memo(() => {
   const { open } = useModal();
@@ -14,7 +14,6 @@ export const CreateSubcategory = memo(() => {
     setIsMounted(true);
   }, []);
 
-  
   const handleCreateSubcategory = useCallback(async () => {
     open({
       title: "Create New Subcategory",
@@ -22,7 +21,7 @@ export const CreateSubcategory = memo(() => {
       children: <CreateSubcategoryForm />,
     });
   }, [open]);
-  
+
   if (!isMounted) return null;
 
   return (

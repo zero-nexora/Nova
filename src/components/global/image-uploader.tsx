@@ -2,15 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { UploadIcon } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
 import { ImagesPreview } from "./images-preview";
-import { useImageUploader } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 import { MAX_FILE_CATEGORY, MAX_FILES } from "@/lib/constants";
+import { useImageUploader } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 import {
   LocalImagePreview,
   mapPreviewList,
 } from "@/app/(admin)/admin/categories/hooks/types";
+
+import { Button } from "@/components/ui/button";
 
 export interface ImageUploaderProps {
   disabled?: boolean;
@@ -121,4 +121,3 @@ export const ImageUploader = ({
   );
 };
 
-export default ImageUploader;

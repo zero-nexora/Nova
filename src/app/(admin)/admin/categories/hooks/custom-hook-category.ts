@@ -1,14 +1,22 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
-import { convertFileToBase64, generateUniqueId } from "@/lib/utils";
-import { Category, useCategoriesStore } from "@/stores/admin/categories-store";
-import { LocalImagePreview } from "./types";
 import { MAX_FILE_CATEGORY } from "@/lib/constants";
 import { useConfirm } from "@/stores/confirm-store";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { BulkAction, EntityType, LocalImagePreview } from "./types";
+import { convertFileToBase64, generateUniqueId } from "@/lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useDeleteSubcategory,
+  useToggleSubcategoryDeleted,
+} from "./custom-hook-subcategory";
+import {
+  Category,
+  Subcategory,
+  useCategoriesStore,
+} from "@/stores/admin/categories-store";
 
 export const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.categoriesRouter.getAll.queryOptions(),
@@ -284,42 +292,61 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
   };
 };
 
-type BulkAction = "toggle_deleted" | "delete_permanently" | "";
+export interface SelectionState {
+  categories: Set<string>;
+  subcategories: Set<string>;
+}
 
-export const useBulkCategoryActions = (categories: Category[]) => {
+export const useCategorySelection = (categories: Category[]) => {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
     new Set()
   );
-  const [bulkAction, setBulkAction] = useState<BulkAction>("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedSubcategories, setSelectedSubcategories] = useState<
+    Set<string>
+  >(new Set());
 
-  const openConfirm = useConfirm((state) => state.open);
-  const { removeImagesAsync } = useRemoveImages();
-  const { deleteCategoryAsync } = useDeleteCategory();
-  const { toggleCategoryAsync } = useToggleDeleted();
-
-  // Memoized values
+  // Memoized values for categories
   const selectedCategoriesData = useMemo(() => {
     return categories.filter((category) => selectedCategories.has(category.id));
   }, [categories, selectedCategories]);
 
-  const isAllSelected = useMemo(() => {
+  const isAllCategoriesSelected = useMemo(() => {
     return (
       categories.length > 0 && selectedCategories.size === categories.length
     );
   }, [categories.length, selectedCategories.size]);
 
-  const isIndeterminate = useMemo(() => {
+  const isCategoriesIndeterminate = useMemo(() => {
     return (
       selectedCategories.size > 0 && selectedCategories.size < categories.length
     );
   }, [selectedCategories.size, categories.length]);
 
-  const selectedCount = selectedCategories.size;
-  const hasSelection = selectedCount > 0;
+  // Memoized values for subcategories
+  const allSubcategories = useMemo(() => {
+    return categories.flatMap((cat) => cat.subcategories);
+  }, [categories]);
 
-  // Selection handlers
-  const handleSelectAll = useCallback(
+  const selectedSubcategoriesData = useMemo(() => {
+    return allSubcategories.filter((sub) => selectedSubcategories.has(sub.id));
+  }, [allSubcategories, selectedSubcategories]);
+
+  const isAllSubcategoriesSelected = useMemo(() => {
+    return (
+      allSubcategories.length > 0 &&
+      selectedSubcategories.size === allSubcategories.length
+    );
+  }, [allSubcategories.length, selectedSubcategories.size]);
+
+  const isSubcategoriesIndeterminate = useMemo(() => {
+    return (
+      selectedSubcategories.size > 0 &&
+      selectedSubcategories.size < allSubcategories.length
+    );
+  }, [selectedSubcategories.size, allSubcategories.length]);
+
+  // Category selection handlers
+  const handleSelectAllCategories = useCallback(
     (checked: boolean) => {
       if (checked) {
         setSelectedCategories(new Set(categories.map((cat) => cat.id)));
@@ -345,148 +372,365 @@ export const useBulkCategoryActions = (categories: Category[]) => {
     []
   );
 
+  // Subcategory selection handlers
+  const handleSelectAllSubcategories = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setSelectedSubcategories(
+          new Set(allSubcategories.map((sub) => sub.id))
+        );
+      } else {
+        setSelectedSubcategories(new Set());
+      }
+    },
+    [allSubcategories]
+  );
+
+  const handleSelectSubcategory = useCallback(
+    (subcategoryId: string, checked: boolean) => {
+      setSelectedSubcategories((prev) => {
+        const newSet = new Set(prev);
+        if (checked) {
+          newSet.add(subcategoryId);
+        } else {
+          newSet.delete(subcategoryId);
+        }
+        return newSet;
+      });
+    },
+    []
+  );
+
+  // Category-specific subcategory handlers
+  const handleSelectAllSubcategoriesInCategory = useCallback(
+    (categoryId: string, checked: boolean) => {
+      const category = categories.find((cat) => cat.id === categoryId);
+      if (!category) return;
+
+      setSelectedSubcategories((prev) => {
+        const newSet = new Set(prev);
+        category.subcategories.forEach((sub) => {
+          if (checked) {
+            newSet.add(sub.id);
+          } else {
+            newSet.delete(sub.id);
+          }
+        });
+        return newSet;
+      });
+    },
+    [categories]
+  );
+
+  const getCategorySubcategorySelection = useCallback(
+    (categoryId: string) => {
+      const category = categories.find((cat) => cat.id === categoryId);
+      if (!category) return { isAllSelected: false, isIndeterminate: false };
+
+      const selectedCount = category.subcategories.filter((sub) =>
+        selectedSubcategories.has(sub.id)
+      ).length;
+
+      const isAllSelected =
+        category.subcategories.length > 0 &&
+        selectedCount === category.subcategories.length;
+      const isIndeterminate =
+        selectedCount > 0 && selectedCount < category.subcategories.length;
+
+      return { isAllSelected, isIndeterminate };
+    },
+    [categories, selectedSubcategories]
+  );
+
+  // Clear selection
   const clearSelection = useCallback(() => {
     setSelectedCategories(new Set());
-    setBulkAction("");
+    setSelectedSubcategories(new Set());
   }, []);
 
-  // Bulk action handlers
-  const handleBulkToggleDeleted = useCallback(async () => {
-    if (selectedCategories.size === 0) return;
+  const clearCategorySelection = useCallback(() => {
+    setSelectedCategories(new Set());
+  }, []);
 
-    const selectedCats = selectedCategoriesData;
-    const activeCount = selectedCats.filter((cat) => !cat.is_deleted).length;
-    const deletedCount = selectedCats.filter((cat) => cat.is_deleted).length;
-
-    openConfirm({
-      title: "Bulk Toggle Status",
-      description: `Are you sure you want to toggle status for ${selectedCategories.size} categories?
-- ${activeCount} active categories will be moved to trash
-- ${deletedCount} deleted categories will be restored`,
-      onConfirm: async () => {
-        setIsProcessing(true);
-        try {
-          await Promise.all(
-            selectedCats.map((category) =>
-              toggleCategoryAsync({ id: category.id })
-            )
-          );
-          clearSelection();
-          toast.success(
-            `Successfully toggled ${selectedCategories.size} categories`
-          );
-        } catch (error: any) {
-          toast.error(error?.message || "Failed to toggle categories");
-        } finally {
-          setIsProcessing(false);
-        }
-      },
-    });
-  }, [
-    selectedCategories,
-    selectedCategoriesData,
-    openConfirm,
-    toggleCategoryAsync,
-    clearSelection,
-  ]);
-
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedCategories.size === 0) return;
-
-    const selectedCats = selectedCategoriesData;
-    const categoryNames = selectedCats.map((cat) => cat.name).join(", ");
-
-    openConfirm({
-      title: "Permanent Bulk Deletion Warning",
-      description: `Are you absolutely sure you want to permanently delete these ${selectedCategories.size} categories?
-
-Categories: ${categoryNames}
-
-This action CANNOT be undone and will:
-- Remove all categories forever
-- Delete associated images
-- Remove all relationships`,
-      onConfirm: async () => {
-        setIsProcessing(true);
-        try {
-          // Remove images first
-          const publicIds = selectedCats
-            .filter((cat) => cat.public_id)
-            .map((cat) => cat.public_id!);
-
-          if (publicIds.length > 0) {
-            await removeImagesAsync({ publicIds });
-          }
-
-          // Delete categories
-          await Promise.all(
-            selectedCats.map((category) =>
-              deleteCategoryAsync({ id: category.id })
-            )
-          );
-
-          clearSelection();
-          toast.success(
-            `Successfully deleted ${selectedCategories.size} categories`
-          );
-        } catch (error: any) {
-          toast.error(error?.message || "Failed to delete categories");
-        } finally {
-          setIsProcessing(false);
-        }
-      },
-    });
-  }, [
-    selectedCategories,
-    selectedCategoriesData,
-    openConfirm,
-    deleteCategoryAsync,
-    removeImagesAsync,
-    clearSelection,
-  ]);
-
-  const handleBulkAction = useCallback(async () => {
-    if (!bulkAction || selectedCategories.size === 0) {
-      toast.error("Please select categories and an action");
-      return;
-    }
-
-    switch (bulkAction) {
-      case "toggle_deleted":
-        await handleBulkToggleDeleted();
-        break;
-      case "delete_permanently":
-        await handleBulkDelete();
-        break;
-    }
-  }, [
-    bulkAction,
-    selectedCategories.size,
-    handleBulkToggleDeleted,
-    handleBulkDelete,
-  ]);
+  const clearSubcategorySelection = useCallback(() => {
+    setSelectedSubcategories(new Set());
+  }, []);
 
   return {
-    // State
+    // Selection state
     selectedCategories,
-    bulkAction,
-    isProcessing,
-
-    // Computed values
+    selectedSubcategories,
     selectedCategoriesData,
-    isAllSelected,
-    isIndeterminate,
-    selectedCount,
-    hasSelection,
+    selectedSubcategoriesData,
 
-    // Actions
-    setBulkAction,
-    handleSelectAll,
+    // Category selection state
+    isAllCategoriesSelected,
+    isCategoriesIndeterminate,
+    selectedCategoriesCount: selectedCategories.size,
+    hasCategorySelection: selectedCategories.size > 0,
+
+    // Subcategory selection state
+    isAllSubcategoriesSelected,
+    isSubcategoriesIndeterminate,
+    selectedSubcategoriesCount: selectedSubcategories.size,
+    hasSubcategorySelection: selectedSubcategories.size > 0,
+
+    // Handlers
+    handleSelectAllCategories,
     handleSelectCategory,
+    handleSelectAllSubcategories,
+    handleSelectSubcategory,
+    handleSelectAllSubcategoriesInCategory,
+    getCategorySubcategorySelection,
     clearSelection,
-    handleBulkAction,
-    handleBulkToggleDeleted,
-    handleBulkDelete,
+    clearCategorySelection,
+    clearSubcategorySelection,
+
+    // Utils
+    allSubcategories,
+  };
+};
+
+export const useBulkActions = () => {
+  const openConfirm = useConfirm((state) => state.open);
+
+  const { removeImagesAsync } = useRemoveImages();
+  const { deleteCategoryAsync } = useDeleteCategory();
+  const { toggleCategoryAsync } = useToggleDeleted();
+  const { toggleSubcategoryAsync } = useToggleSubcategoryDeleted();
+  const { deleteSubcategoryAsync } = useDeleteSubcategory();
+
+  const [bulkAction, setBulkAction] = useState<BulkAction>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Category bulk actions
+  const handleBulkToggleCategories = useCallback(
+    async (selectedCategories: Category[], onComplete: () => void) => {
+      if (selectedCategories.length === 0) return;
+
+      const activeCount = selectedCategories.filter(
+        (cat) => !cat.is_deleted
+      ).length;
+      const deletedCount = selectedCategories.filter(
+        (cat) => cat.is_deleted
+      ).length;
+
+      openConfirm({
+        title: "Bulk Toggle Status",
+        description: `Are you sure you want to toggle status for ${selectedCategories.length} categories?
+    - ${activeCount} active categories will be moved to trash
+    - ${deletedCount} deleted categories will be restored`,
+        onConfirm: async () => {
+          setIsProcessing(true);
+          try {
+            await Promise.all(
+              selectedCategories.map((category) =>
+                toggleCategoryAsync({ id: category.id })
+              )
+            );
+            onComplete();
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to toggle categories");
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+      });
+    },
+    [openConfirm, toggleCategoryAsync]
+  );
+
+  const handleBulkDeleteCategories = useCallback(
+    async (selectedCategories: Category[], onComplete: () => void) => {
+      if (selectedCategories.length === 0) return;
+
+      const categoryNames = selectedCategories
+        .map((cat) => cat.name)
+        .join(", ");
+
+      openConfirm({
+        title: "Permanent Bulk Deletion Warning",
+        description: `Are you absolutely sure you want to permanently delete these ${selectedCategories.length} categories?
+      
+    Categories: ${categoryNames}
+    
+    This action CANNOT be undone and will:
+    - Remove all categories forever
+    - Delete associated images
+    - Remove all relationships`,
+        onConfirm: async () => {
+          setIsProcessing(true);
+          try {
+            // Remove images first
+            const publicIds = selectedCategories
+              .filter((cat) => cat.public_id)
+              .map((cat) => cat.public_id!);
+
+            if (publicIds.length > 0) {
+              await removeImagesAsync({ publicIds });
+            }
+
+            // Delete categories
+            await Promise.all(
+              selectedCategories.map((category) =>
+                deleteCategoryAsync({ id: category.id })
+              )
+            );
+
+            onComplete();
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to delete categories");
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+      });
+    },
+    [openConfirm, deleteCategoryAsync, removeImagesAsync]
+  );
+
+  // Subcategory bulk actions
+  const handleBulkToggleSubcategories = useCallback(
+    async (selectedSubcategories: Subcategory[], onComplete: () => void) => {
+      if (selectedSubcategories.length === 0) return;
+
+      const activeCount = selectedSubcategories.filter(
+        (sub) => !sub.is_deleted
+      ).length;
+      const deletedCount = selectedSubcategories.filter(
+        (sub) => sub.is_deleted
+      ).length;
+
+      openConfirm({
+        title: "Bulk Toggle Subcategory Status",
+        description: `Are you sure you want to toggle status for ${selectedSubcategories.length} subcategories?
+    - ${activeCount} active subcategories will be moved to trash
+    - ${deletedCount} deleted subcategories will be restored`,
+        onConfirm: async () => {
+          setIsProcessing(true);
+          try {
+            await Promise.all(
+              selectedSubcategories.map((subcategory) =>
+                toggleSubcategoryAsync({ id: subcategory.id })
+              )
+            );
+            onComplete();
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to toggle subcategories");
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+      });
+    },
+    [openConfirm, toggleSubcategoryAsync]
+  );
+
+  const handleBulkDeleteSubcategories = useCallback(
+    async (selectedSubcategories: Subcategory[], onComplete: () => void) => {
+      if (selectedSubcategories.length === 0) return;
+
+      const subcategoryNames = selectedSubcategories
+        .map((sub) => sub.name)
+        .join(", ");
+
+      openConfirm({
+        title: "Permanent Bulk Deletion Warning",
+        description: `Are you absolutely sure you want to permanently delete these ${selectedSubcategories.length} subcategories?
+      
+    Subcategories: ${subcategoryNames}
+    
+    This action CANNOT be undone and will:
+    - Remove all subcategories forever
+    - Delete associated images
+    - Remove all relationships`,
+        onConfirm: async () => {
+          setIsProcessing(true);
+          try {
+            // Remove images first
+            const publicIds = selectedSubcategories
+              .filter((sub) => sub.public_id)
+              .map((sub) => sub.public_id!);
+
+            if (publicIds.length > 0) {
+              await removeImagesAsync({ publicIds });
+            }
+
+            // Delete subcategories
+            await Promise.all(
+              selectedSubcategories.map((subcategory) =>
+                deleteSubcategoryAsync({ id: subcategory.id })
+              )
+            );
+
+            onComplete();
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to delete subcategories");
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+      });
+    },
+    [openConfirm, deleteSubcategoryAsync, removeImagesAsync]
+  );
+
+  // Generic bulk action handler
+  const executeBulkAction = useCallback(
+    async (
+      action: BulkAction,
+      entityType: EntityType,
+      selectedData: Category[] | Subcategory[],
+      onComplete: () => void
+    ) => {
+      if (!action || selectedData.length === 0) {
+        toast.error(
+          `Please select ${
+            entityType === "category" ? "categories" : "subcategories"
+          } and an action`
+        );
+        return;
+      }
+
+      if (entityType === "category") {
+        const categories = selectedData as Category[];
+        switch (action) {
+          case "toggle_deleted":
+            await handleBulkToggleCategories(categories, onComplete);
+            break;
+          case "delete_permanently":
+            await handleBulkDeleteCategories(categories, onComplete);
+            break;
+        }
+      } else {
+        const subcategories = selectedData as Subcategory[];
+        switch (action) {
+          case "toggle_deleted":
+            await handleBulkToggleSubcategories(subcategories, onComplete);
+            break;
+          case "delete_permanently":
+            await handleBulkDeleteSubcategories(subcategories, onComplete);
+            break;
+        }
+      }
+    },
+    [
+      handleBulkToggleCategories,
+      handleBulkDeleteCategories,
+      handleBulkToggleSubcategories,
+      handleBulkDeleteSubcategories,
+    ]
+  );
+
+  return {
+    bulkAction,
+    setBulkAction,
+    isProcessing,
+    executeBulkAction,
+    handleBulkToggleCategories,
+    handleBulkDeleteCategories,
+    handleBulkToggleSubcategories,
+    handleBulkDeleteSubcategories,
   };
 };
 

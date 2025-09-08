@@ -2,9 +2,11 @@
 
 import { CategorySkeleton } from "@/components/global/category-skeleton";
 import { useGetAllCategories } from "../hooks/custom-hook-category";
-import CategoryList from "./category-list";
+import { CategoryList } from "./category-list";
 import { useEffect, useState } from "react";
 import { CategoryStats } from "@/components/global/category-stats";
+import { CreateCategory } from "./create-category";
+import { CreateSubcategory } from "./create-subcategory";
 
 export const CategoryView = () => {
   const { isFetching, categories, error } = useGetAllCategories();
@@ -14,7 +16,7 @@ export const CategoryView = () => {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) return null
+  if (!isMounted) return null;
 
   if (isFetching) {
     return <CategorySkeleton />;
@@ -50,9 +52,13 @@ export const CategoryView = () => {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      <div className="flex gap-4">
+        <CreateCategory />
+        <CreateSubcategory />
+      </div>
       {/* <CategoryStats categories={categories} /> */}
       <CategoryList categories={categories} />
-    </>
+    </div>
   );
 };
