@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MoreHorizontal, Edit, Trash, Eye, Power } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Eye, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +52,7 @@ export const ActionMenu = ({
         )}
         {onToggle && (
           <DropdownMenuItem onClick={onToggle}>
-            <Power className="mr-2 h-4 w-4" /> Toggle
+            <RotateCcw className="mr-2 h-4 w-4" /> Toggle
           </DropdownMenuItem>
         )}
         {onDelete && (

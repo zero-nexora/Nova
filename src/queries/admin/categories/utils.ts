@@ -1,10 +1,11 @@
 import slugify from "slugify";
 import { PrismaClient } from "@prisma/client";
 
-export const generateSlug = async (
+export const generateCategorySlug = async (
   db: PrismaClient,
   name: string,
-  model: "categories" | "subcategories"
+  model: "categories" | "subcategories",
+  excludeId?: string
 ) => {
   const baseSlug = slugify(name, {
     lower: true,
@@ -18,12 +19,15 @@ export const generateSlug = async (
     let existingRecord;
 
     if (model === "categories") {
-      existingRecord = await db.categories.findUnique({
-        where: { slug },
+      existingRecord = await db.categories.findFirst({
+        where: {
+          slug,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
       });
     } else if (model === "subcategories") {
-      existingRecord = await db.subcategories.findUnique({
-        where: { slug },
+      existingRecord = await db.subcategories.findFirst({
+        where: { slug, ...(excludeId && { id: { not: excludeId } }) },
       });
     }
 

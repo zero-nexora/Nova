@@ -9,7 +9,7 @@ import { CreateCategory } from "./create-category";
 import { CreateSubcategory } from "./create-subcategory";
 
 export const CategoryView = () => {
-  const { isFetching, categories, error } = useGetAllCategories();
+  const { isPending, categories, error } = useGetAllCategories();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export const CategoryView = () => {
 
   if (!isMounted) return null;
 
-  if (isFetching) {
+  if (isPending) {
     return <CategorySkeleton />;
   }
 

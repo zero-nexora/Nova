@@ -1,4 +1,4 @@
-import { generateSlug } from "./utils";
+import { generateCategorySlug } from "./utils";
 import { TRPCError } from "@trpc/server";
 import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import {
@@ -6,7 +6,6 @@ import {
   UpdateCategorySchema,
   GetCategoryByIdSchema,
   DeleteCategorySchema,
-  GetCategoryBySlugSchema,
 } from "./types";
 
 export const categoriesRouter = createTRPCRouter({
@@ -44,90 +43,12 @@ export const categoriesRouter = createTRPCRouter({
     return categories ?? [];
   }),
 
-  getById: adminOrManageCategoryProcedure
-    .input(GetCategoryByIdSchema)
-    .query(async ({ ctx, input }) => {
-      const category = await ctx.db.categories.findFirst({
-        where: { id: input.id },
-        include: {
-          subcategories: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              image_url: true,
-              is_deleted: true,
-              _count: {
-                select: {
-                  products: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              products: true,
-              subcategories: true,
-            },
-          },
-        },
-      });
-
-      if (!category) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Category not found",
-        });
-      }
-
-      return category;
-    }),
-
-  getBySlug: adminOrManageCategoryProcedure
-    .input(GetCategoryBySlugSchema)
-    .query(async ({ ctx, input }) => {
-      const category = await ctx.db.categories.findFirst({
-        where: { slug: input.slug },
-        include: {
-          subcategories: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              image_url: true,
-              is_deleted: true,
-              _count: {
-                select: {
-                  products: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              products: true,
-              subcategories: true,
-            },
-          },
-        },
-      });
-
-      if (!category) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Category not found",
-        });
-      }
-
-      return category;
-    }),
-
   create: adminOrManageCategoryProcedure
     .input(CreateCategorySchema)
     .mutation(async ({ ctx, input }) => {
       const { name, image_url, public_id } = input;
 
-      const slug = await generateSlug(ctx.db, name, "categories");
+      const slug = await generateCategorySlug(ctx.db, name, "categories");
 
       const category = await ctx.db.categories.create({
         data: {
@@ -159,7 +80,11 @@ export const categoriesRouter = createTRPCRouter({
 
       let slug = existingCategory.slug;
       if (updateData.name && updateData.name !== existingCategory.name) {
-        slug = await generateSlug(ctx.db, updateData.name, "categories");
+        slug = await generateCategorySlug(
+          ctx.db,
+          updateData.name,
+          "categories"
+        );
       }
 
       const category = await ctx.db.categories.update({

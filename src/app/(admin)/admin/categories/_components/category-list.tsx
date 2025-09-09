@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { useCallback } from "react";
 import { useModal } from "@/stores/modal-store";
 import { useConfirm } from "@/stores/confirm-store";
@@ -10,9 +10,15 @@ import { SubcategoryList } from "./subcategory-list";
 import { Category } from "@/stores/admin/categories-store";
 import { CategoryDetailCard } from "./category-detail-card";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
-import { Folder, Image as ImageIcon, Calendar, Hash } from "lucide-react";
 import {
-  useBulkActions,
+  Folder,
+  Image as ImageIcon,
+  Calendar,
+  Hash,
+  Search,
+  Filter,
+} from "lucide-react";
+import {
   useCategorySelection,
   useDeleteCategory,
   useRemoveImages,
@@ -31,6 +37,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
 
 interface CategoryListProps {
   categories: Category[];
@@ -44,36 +51,34 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
   const { deleteCategoryAsync } = useDeleteCategory();
   const { toggleCategoryAsync } = useToggleDeleted();
 
-  // Use custom hooks for selection and bulk actions
+  // Use new separated category selection hook
   const {
+    // Selection state
     selectedCategories,
-    selectedSubcategories,
     selectedCategoriesData,
+    filteredCategories, // Use filtered data instead of raw categories
+
+    // Category selection state
     isAllCategoriesSelected,
     isCategoriesIndeterminate,
     selectedCategoriesCount,
     hasCategorySelection,
+
+    // Search and filter state
+    searchTerm,
+    filterDeleted,
+    sortBy,
+    sortOrder,
+
+    // Handlers
     handleSelectAllCategories,
     handleSelectCategory,
-    handleSelectSubcategory,
-    handleSelectAllSubcategoriesInCategory,
-    getCategorySubcategorySelection,
-    clearSelection,
     clearCategorySelection,
+    handleSearch,
+    handleFilterChange,
+    handleSortChange,
+    handleSortOrderChange,
   } = useCategorySelection(categories);
-
-  const { bulkAction, setBulkAction, isProcessing, executeBulkAction } =
-    useBulkActions();
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date));
-  };
 
   // Category actions
   const handleUpdateCategory = useCallback(
@@ -138,74 +143,119 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     [toggleCategoryAsync, openConfirm]
   );
 
-  // Bulk action handler
-  const handleBulkAction = useCallback(async () => {
-    if (!bulkAction) {
-      toast.error("Please select an action");
-      return;
-    }
+  // Bulk action handler - executes immediately when action is selected
+  const handleCategoryBulkAction = useCallback(
+    async (action: BulkAction) => {
+      if (!hasCategorySelection) {
+        toast.error("No categories selected");
+        return;
+      }
 
-    if (hasCategorySelection) {
-      await executeBulkAction(
-        bulkAction,
-        "category",
-        selectedCategoriesData,
-        clearCategorySelection
-      );
-    }
-  }, [
-    bulkAction,
-    hasCategorySelection,
-    executeBulkAction,
-    selectedCategoriesData,
-    clearCategorySelection,
-  ]);
+      try {
+        // Add your bulk action logic here based on action type
+        switch (action) {
+          case "toggle_deleted":
+            // Execute toggle for all selected categories
+            for (const category of selectedCategoriesData) {
+              await toggleCategoryAsync({ id: category.id });
+            }
+            toast.success(
+              `Status toggled for ${selectedCategoriesData.length} categories`
+            );
+            break;
+          case "delete_permanently":
+            // Execute permanent delete for all selected categories
+            for (const category of selectedCategoriesData) {
+              if (category.public_id) {
+                await removeImagesAsync({ publicIds: [category.public_id] });
+              }
+              await deleteCategoryAsync({ id: category.id });
+            }
+            toast.success(
+              `${selectedCategoriesData.length} categories deleted permanently`
+            );
+            break;
+          default:
+            toast.error("Unknown action");
+            return;
+        }
 
-  const handleViewCategory = useCallback((category: Category) => {
-    openModal({
-      title: "Category Details",
-      children: <CategoryDetailCard category={category} />,
-    });
-  }, []);
+        clearCategorySelection();
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to execute bulk action");
+      }
+    },
+    [
+      hasCategorySelection,
+      selectedCategoriesData,
+      toggleCategoryAsync,
+      removeImagesAsync,
+      deleteCategoryAsync,
+      clearCategorySelection,
+    ]
+  );
+
+  const handleViewCategory = useCallback(
+    (category: Category) => {
+      openModal({
+        title: "Category Details",
+        children: <CategoryDetailCard category={category} />,
+      });
+    },
+    [openModal]
+  );
 
   if (categories.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Folder className="w-12 h-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No categories found</h3>
-        <p className="text-muted-foreground text-center">
-          Get started by creating your first category.
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="relative">
+          <Folder className="w-16 h-16 text-muted-foreground/30 mb-6" />
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center">
+            <Search className="w-3 h-3 text-primary/60" />
+          </div>
+        </div>
+        <h3 className="text-xl font-semibold mb-3 text-foreground">
+          No categories found
+        </h3>
+        <p className="text-muted-foreground text-center max-w-md leading-relaxed">
+          Get started by creating your first category to organize your content
+          effectively.
         </p>
+        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground/70">
+          <Filter className="w-4 h-4" />
+          <span>Try adjusting your search or filter settings</span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Category Bulk Actions Toolbar */}
+      {/* Enhanced Category Bulk Actions Toolbar */}
       <BulkActionsToolbar
-        totalCount={categories.length}
+        totalCount={filteredCategories.length}
         selectedCount={selectedCategoriesCount}
         isAllSelected={isAllCategoriesSelected}
         isIndeterminate={isCategoriesIndeterminate}
-        bulkAction={bulkAction}
-        isProcessing={isProcessing}
+        isProcessing={false}
         onSelectAll={handleSelectAllCategories}
-        onBulkActionChange={setBulkAction}
-        onExecuteBulkAction={handleBulkAction}
-        onClearSelection={clearSelection}
+        onClearSelection={clearCategorySelection}
+        onExecuteBulkAction={handleCategoryBulkAction}
         entityType="category"
+        searchTerm={searchTerm}
+        onSearch={handleSearch}
+        filterDeleted={filterDeleted}
+        onFilterChange={handleFilterChange}
+        sortBy={sortBy}
+        onSortChange={handleSortChange}
+        sortOrder={sortOrder}
+        onSortOrderChange={handleSortOrderChange}
       />
 
-      {/* Categories List */}
-      <div className="space-y-4">
-        <Accordion type="multiple" className="w-full space-y-4">
-          {categories.map((category) => {
-            const {
-              isAllSelected: isAllSubsSelected,
-              isIndeterminate: isSubsIndeterminate,
-            } = getCategorySubcategorySelection(category.id);
-
+      {/* Enhanced Categories List */}
+      <div className="space-y-3">
+        <Accordion type="multiple" className="w-full space-y-3">
+          {filteredCategories.map((category) => {
             return (
               <AccordionItem
                 key={category.id}
@@ -214,18 +264,23 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
               >
                 <Card
                   className={cn(
-                    "transition-all duration-200 hover:shadow-md",
-                    category.is_deleted && "opacity-60 border-destructive/20",
+                    "transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+                    "border-l-4 border-l-transparent",
+                    category.is_deleted &&
+                      "opacity-70 border-destructive/30 bg-destructive/5",
+                    !category.is_deleted && "hover:border-l-primary/50",
                     selectedCategories.has(category.id) &&
-                      "ring-2 ring-primary/50 bg-primary/5",
-                    isProcessing && "pointer-events-none opacity-75"
+                      "ring-2 ring-primary/30 bg-primary/8 border-l-primary shadow-lg transform -translate-y-0.5"
                   )}
                 >
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <AccordionTrigger className="px-6 py-5 hover:no-underline group">
                     <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-4">
-                        {/* Category Checkbox */}
-                        <div onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-5">
+                        {/* Enhanced Category Checkbox */}
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="transition-transform group-hover:scale-110"
+                        >
                           <Checkbox
                             id={`category-${category.id}`}
                             checked={selectedCategories.has(category.id)}
@@ -235,102 +290,105 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                                 checked as boolean
                               )
                             }
-                            disabled={isProcessing}
-                            className="transition-all"
+                            className="transition-all duration-200 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                         </div>
 
-                        {/* Category Image */}
-                        <div className="relative">
+                        {/* Enhanced Category Image */}
+                        <div className="relative group/image">
                           {category.image_url ? (
-                            <div className="relative">
+                            <div className="relative overflow-hidden">
                               <Image
                                 src={category.image_url}
                                 alt={category.name}
-                                width={48}
-                                height={48}
-                                className="object-cover rounded-lg border-2 border-background shadow-sm"
+                                width={56}
+                                height={56}
+                                className="object-cover rounded-xl border-2 border-background shadow-md transition-all duration-300 group-hover/image:scale-105 group-hover/image:shadow-lg"
                               />
                               {category.is_deleted && (
-                                <div className="absolute inset-0 bg-destructive/20 rounded-lg" />
+                                <div className="absolute inset-0 bg-destructive/30 rounded-xl backdrop-blur-[1px]" />
                               )}
                               {selectedCategories.has(category.id) && (
-                                <div className="absolute inset-0 bg-primary/10 rounded-lg" />
+                                <div className="absolute inset-0 bg-primary/20 rounded-xl" />
                               )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-xl opacity-0 group-hover/image:opacity-100 transition-opacity duration-200" />
                             </div>
                           ) : (
                             <div
                               className={cn(
-                                "w-12 h-12 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors",
+                                "w-14 h-14 rounded-xl border-2 border-dashed flex items-center justify-center transition-all duration-300",
+                                "group-hover/image:border-solid group-hover/image:shadow-md group-hover/image:scale-105",
                                 selectedCategories.has(category.id)
-                                  ? "border-primary/50 bg-primary/10"
-                                  : "border-muted-foreground/25"
+                                  ? "border-primary/60 bg-primary/15"
+                                  : "border-muted-foreground/30 hover:border-muted-foreground/50"
                               )}
                             >
                               <ImageIcon
                                 className={cn(
-                                  "w-5 h-5 transition-colors",
+                                  "w-6 h-6 transition-all duration-300",
                                   selectedCategories.has(category.id)
-                                    ? "text-primary/70"
-                                    : "text-muted-foreground/50"
+                                    ? "text-primary/80"
+                                    : "text-muted-foreground/60 group-hover/image:text-muted-foreground"
                                 )}
                               />
                             </div>
                           )}
                         </div>
 
-                        {/* Category Info */}
-                        <div className="flex flex-col items-start space-y-1">
+                        {/* Enhanced Category Info */}
+                        <div className="flex flex-col items-start space-y-2">
                           <h3
                             className={cn(
-                              "font-semibold text-lg transition-colors",
+                              "font-semibold text-xl transition-all duration-200",
                               selectedCategories.has(category.id)
                                 ? "text-primary"
-                                : "text-foreground"
+                                : "text-foreground group-hover:text-primary/80"
                             )}
                           >
                             {category.name}
                           </h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {formatDate(category.created_at)}
+                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span className="font-medium">
+                                {formatDate(category.created_at)}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Hash className="w-3 h-3" />
-                              {category.subcategories.length} subcategories
+                            <div className="flex items-center gap-2 px-2 py-1 bg-primary/10 text-primary rounded-md">
+                              <Hash className="w-3.5 h-3.5" />
+                              <span className="font-medium">
+                                {category.subcategories.length} subcategories
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        {/* Status Badge */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={isProcessing}
-                          className="px-0"
-                        >
+                      <div className="flex items-center gap-4">
+                        {/* Enhanced Status Badge */}
+                        <div className="transition-transform group-hover:scale-105">
                           {category.is_deleted ? (
                             <Badge
                               variant="destructive"
-                              className="hover:bg-destructive/90"
+                              className="px-3 py-1 font-medium shadow-sm hover:shadow-md transition-all"
                             >
                               Deleted
                             </Badge>
                           ) : (
                             <Badge
                               variant="default"
-                              className="bg-green-500 hover:bg-green-600"
+                              className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1 font-medium shadow-sm hover:shadow-md transition-all"
                             >
                               Active
                             </Badge>
                           )}
-                        </Button>
+                        </div>
 
-                        {/* Action Menu */}
-                        <div onClick={(e) => e.stopPropagation()}>
+                        {/* Enhanced Action Menu */}
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="transition-transform group-hover:scale-105"
+                        >
                           <ActionMenu
                             onUpdate={() => handleUpdateCategory(category)}
                             onDelete={() => handleDeleteCategory(category)}
@@ -342,22 +400,12 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                     </div>
                   </AccordionTrigger>
 
-                  <AccordionContent className="px-6 pb-4">
-                    <div className="pl-4 border-l-2 border-muted">
-                      {/* Subcategories with full functionality */}
+                  <AccordionContent className="px-6 pb-6">
+                    <div className="pl-6 border-l-2 border-primary/20 ml-2">
+                      {/* Enhanced Subcategories with full functionality */}
                       <SubcategoryList
                         categoryId={category.id}
                         subcategories={category.subcategories}
-                        selectedSubcategories={selectedSubcategories}
-                        isProcessing={isProcessing}
-                        onSelectSubcategory={handleSelectSubcategory}
-                        onSelectAllSubcategories={
-                          handleSelectAllSubcategoriesInCategory
-                        }
-                        onClearSelection={clearSelection}
-                        isAllSelected={isAllSubsSelected}
-                        isIndeterminate={isSubsIndeterminate}
-                        formatDate={formatDate}
                       />
                     </div>
                   </AccordionContent>
@@ -370,4 +418,3 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     </div>
   );
 };
-

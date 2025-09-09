@@ -1,12 +1,10 @@
-import z from "zod";
 import { TRPCError } from "@trpc/server";
-import { generateSlug } from "../categories/utils";
+import { generateCategorySlug } from "../categories/utils";
 import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import {
   CreateSubcategorySchema,
   DeleteSubcategorySchema,
   GetSubcategoryByIdSchema,
-  GetSubcategoryBySlugSchema,
   UpdateSubcategorySchema,
 } from "./types";
 
@@ -47,70 +45,6 @@ export const subcategoriesRouter = createTRPCRouter({
     return { activeSubcategories, deletedSubcategories };
   }),
 
-  getById: adminOrManageCategoryProcedure
-    .input(GetSubcategoryByIdSchema)
-    .query(async ({ ctx, input }) => {
-      const subcategory = await ctx.db.subcategories.findFirst({
-        where: { id: input.id },
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              is_deleted: true,
-            },
-          },
-          _count: {
-            select: {
-              products: true,
-            },
-          },
-        },
-      });
-
-      if (!subcategory) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Subcategory not found",
-        });
-      }
-
-      return subcategory;
-    }),
-
-  getBySlug: adminOrManageCategoryProcedure
-    .input(GetSubcategoryBySlugSchema)
-    .query(async ({ ctx, input }) => {
-      const subcategory = await ctx.db.subcategories.findFirst({
-        where: { slug: input.slug },
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              is_deleted: true,
-            },
-          },
-          _count: {
-            select: {
-              products: true,
-            },
-          },
-        },
-      });
-
-      if (!subcategory) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Subcategory not found",
-        });
-      }
-
-      return subcategory;
-    }),
-
   create: adminOrManageCategoryProcedure
     .input(CreateSubcategorySchema)
     .mutation(async ({ ctx, input }) => {
@@ -127,7 +61,7 @@ export const subcategoriesRouter = createTRPCRouter({
         });
       }
 
-      const slug = await generateSlug(ctx.db, name, "subcategories");
+      const slug = await generateCategorySlug(ctx.db, name, "subcategories");
 
       const subcategory = await ctx.db.subcategories.create({
         data: {
@@ -177,7 +111,12 @@ export const subcategoriesRouter = createTRPCRouter({
       // Generate new slug if name changed
       let slug = existingSubcategory.slug;
       if (updateData.name && updateData.name !== existingSubcategory.name) {
-        slug = await generateSlug(ctx.db, updateData.name, "subcategories");
+        slug = await generateCategorySlug(
+          ctx.db,
+          updateData.name,
+          "subcategories",
+          existingSubcategory.id
+        );
       }
 
       const subcategory = await ctx.db.subcategories.update({
@@ -252,74 +191,6 @@ export const subcategoriesRouter = createTRPCRouter({
       return result;
     }),
 
-  togglesDeleted: adminOrManageCategoryProcedure
-    .input(z.array(z.string()))
-    .mutation(async ({ ctx, input }) => {
-      const subcategories = await ctx.db.subcategories.findMany({
-        where: { id: { in: input } },
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              is_deleted: true,
-            },
-          },
-        },
-      });
-
-      if (subcategories.length !== input.length) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Some subcategories not found",
-        });
-      }
-
-      for (const subcategory of subcategories) {
-        const willBeRestored = subcategory.is_deleted;
-
-        if (willBeRestored && subcategory.category.is_deleted) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Cannot restore subcategory "${subcategory.name}" because parent category is deleted`,
-          });
-        }
-      }
-
-      const results = await ctx.db.$transaction(async (tx) => {
-        const updatedSubcategories = [];
-
-        for (const subcategory of subcategories) {
-          const newDeletedStatus = !subcategory.is_deleted;
-
-          const updatedSubcategory = await tx.subcategories.update({
-            where: { id: subcategory.id },
-            data: {
-              is_deleted: newDeletedStatus,
-              deleted_at: newDeletedStatus ? new Date() : null,
-            },
-          });
-
-          // If deleting subcategory (true), update all products in this subcategory
-          if (newDeletedStatus) {
-            await tx.products.updateMany({
-              where: { subcategory_id: subcategory.id },
-              data: {
-                is_deleted: true,
-                deleted_at: new Date(),
-              },
-            });
-          }
-
-          updatedSubcategories.push(updatedSubcategory);
-        }
-
-        return updatedSubcategories;
-      });
-
-      return results;
-    }),
-
   delete: adminOrManageCategoryProcedure
     .input(DeleteSubcategorySchema)
     .mutation(async ({ ctx, input }) => {
@@ -357,53 +228,5 @@ export const subcategoriesRouter = createTRPCRouter({
       });
 
       return deletedSubcategory;
-    }),
-
-  deletes: adminOrManageCategoryProcedure
-    .input(z.array(z.string()))
-    .mutation(async ({ ctx, input }) => {
-      const subcategories = await ctx.db.subcategories.findMany({
-        where: { id: { in: input } },
-        include: {
-          products: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      if (subcategories.length !== input.length) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Some subcategories were not found",
-        });
-      }
-
-      // Check if any subcategories have products
-      const subcategoriesWithProducts = subcategories.filter(
-        (subcat) => subcat.products.length > 0
-      );
-      if (subcategoriesWithProducts.length > 0) {
-        const subcategoryNames = subcategoriesWithProducts
-          .map((subcat) => subcat.name)
-          .join(", ");
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Cannot delete subcategories with products: ${subcategoryNames}. Please delete products first.`,
-        });
-      }
-
-      const result = await ctx.db.$transaction(async (tx) => {
-        return await tx.subcategories.deleteMany({
-          where: { id: { in: input } },
-        });
-      });
-
-      return {
-        deletedCount: result.count,
-        message: `Successfully permanently deleted ${result.count} subcategories`,
-      };
     }),
 });

@@ -20,10 +20,6 @@ import {
 
 export const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.categoriesRouter.getAll.queryOptions(),
-  byId: (id: string) =>
-    trpc.admin.categoriesRouter.getById.queryOptions({ id }),
-  bySlug: (slug: string) =>
-    trpc.admin.categoriesRouter.getBySlug.queryOptions({ slug }),
 });
 
 export function useGetAllCategories() {
@@ -31,7 +27,7 @@ export function useGetAllCategories() {
   const setCategories = useCategoriesStore((state) => state.setCategories);
   const setLoading = useCategoriesStore((state) => state.setLoading);
 
-  const { data, isFetching, error } = useQuery(
+  const { data, error, isPending } = useQuery(
     trpc.admin.categoriesRouter.getAll.queryOptions()
   );
 
@@ -42,45 +38,13 @@ export function useGetAllCategories() {
   }, [data]);
 
   useEffect(() => {
-    setLoading(isFetching);
-  }, [isFetching]);
+    setLoading(isPending);
+  }, [isPending]);
 
   return {
-    categories: data,
     error,
-    isFetching,
-  };
-}
-
-export function useGetCategoryById(id: string, enabled = true) {
-  const trpc = useTRPC();
-
-  const query = useQuery({
-    ...trpc.admin.categoriesRouter.getById.queryOptions({ id }),
-    enabled: enabled && !!id,
-  });
-
-  return {
-    category: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
-  };
-}
-
-export function useGetCategoryBySlug(slug: string, enabled = true) {
-  const trpc = useTRPC();
-
-  const query = useQuery({
-    ...trpc.admin.categoriesRouter.getBySlug.queryOptions({ slug }),
-    enabled: enabled && !!slug,
-  });
-
-  return {
-    category: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
+    categories: data,
+    isPending: isPending,
   };
 }
 
@@ -88,7 +52,7 @@ export function useCreateCategory() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const { mutateAsync, mutate, isPending, error } = useMutation({
     ...trpc.admin.categoriesRouter.create.mutationOptions(),
     onSuccess: () => {
       toast.success("Category created successfully");
@@ -100,10 +64,10 @@ export function useCreateCategory() {
   });
 
   return {
-    createCategory: mutation.mutate,
-    createCategoryAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    createCategory: mutate,
+    createCategoryAsync: mutateAsync,
+    isPending,
+    error,
   };
 }
 
@@ -111,19 +75,11 @@ export function useUpdateCategory() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const { mutateAsync, mutate, error, isPending } = useMutation({
     ...trpc.admin.categoriesRouter.update.mutationOptions(),
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Category updated successfully");
-
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
-      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
-
-      if (data.slug) {
-        queryClient.invalidateQueries(
-          getCategoryQueryKeys(trpc).bySlug(data.slug)
-        );
-      }
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to update category");
@@ -131,10 +87,10 @@ export function useUpdateCategory() {
   });
 
   return {
-    updateCategory: mutation.mutate,
-    updateCategoryAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    updateCategory: mutate,
+    updateCategoryAsync: mutateAsync,
+    isPending,
+    error,
   };
 }
 
@@ -142,18 +98,11 @@ export function useDeleteCategory() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const { mutateAsync, mutate, isPending, error } = useMutation({
     ...trpc.admin.categoriesRouter.delete.mutationOptions(),
     onSuccess: () => {
-      toast.dismiss();
       toast.success("Category permanently deleted");
-
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          query.queryKey[0] === "categoriesAdmin.getById" ||
-          query.queryKey[0] === "categoriesAdmin.getBySlug",
-      });
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to delete category");
@@ -161,10 +110,10 @@ export function useDeleteCategory() {
   });
 
   return {
-    deleteCategory: mutation.mutate,
-    deleteCategoryAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    deleteCategory: mutate,
+    deleteCategoryAsync: mutateAsync,
+    isPending,
+    error,
   };
 }
 
@@ -172,23 +121,14 @@ export function useToggleDeleted() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const { mutateAsync, mutate, isPending, error } = useMutation({
     ...trpc.admin.categoriesRouter.toggleDeleted.mutationOptions(),
     onSuccess: (data) => {
-      toast.dismiss();
       const message = data.is_deleted
         ? `Category "${data.name}" moved to trash successfully`
         : `Category "${data.name}" restored successfully`;
       toast.success(message);
-
       queryClient.invalidateQueries(getCategoryQueryKeys(trpc).all());
-      queryClient.invalidateQueries(getCategoryQueryKeys(trpc).byId(data.id));
-
-      if (data.slug) {
-        queryClient.invalidateQueries(
-          getCategoryQueryKeys(trpc).bySlug(data.slug)
-        );
-      }
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to toggle category");
@@ -196,10 +136,10 @@ export function useToggleDeleted() {
   });
 
   return {
-    toggleCategory: mutation.mutate,
-    toggleCategoryAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    toggleCategory: mutate,
+    toggleCategoryAsync: mutateAsync,
+    isPending,
+    error,
   };
 }
 
@@ -292,18 +232,62 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
   };
 };
 
-export interface SelectionState {
-  categories: Set<string>;
-  subcategories: Set<string>;
-}
-
 export const useCategorySelection = (categories: Category[]) => {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
     new Set()
   );
-  const [selectedSubcategories, setSelectedSubcategories] = useState<
-    Set<string>
-  >(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterDeleted, setFilterDeleted] = useState<
+    "all" | "active" | "deleted"
+  >("all");
+  const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at">(
+    "name"
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Filter and search categories
+  const filteredCategories = useMemo(() => {
+    const filtered = categories.filter((category) => {
+      const matchesSearch = category.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesFilter =
+        filterDeleted === "all" ||
+        (filterDeleted === "active" && !category.is_deleted) ||
+        (filterDeleted === "deleted" && category.is_deleted);
+
+      return matchesSearch && matchesFilter;
+    });
+
+    // Sort categories
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortBy) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "created_at":
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case "updated_at":
+          aValue = new Date(a.updated_at).getTime();
+          bValue = new Date(b.updated_at).getTime();
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [categories, searchTerm, filterDeleted, sortBy, sortOrder]);
 
   // Memoized values for categories
   const selectedCategoriesData = useMemo(() => {
@@ -312,49 +296,28 @@ export const useCategorySelection = (categories: Category[]) => {
 
   const isAllCategoriesSelected = useMemo(() => {
     return (
-      categories.length > 0 && selectedCategories.size === categories.length
+      filteredCategories.length > 0 &&
+      filteredCategories.every((cat) => selectedCategories.has(cat.id))
     );
-  }, [categories.length, selectedCategories.size]);
+  }, [filteredCategories, selectedCategories]);
 
   const isCategoriesIndeterminate = useMemo(() => {
-    return (
-      selectedCategories.size > 0 && selectedCategories.size < categories.length
-    );
-  }, [selectedCategories.size, categories.length]);
-
-  // Memoized values for subcategories
-  const allSubcategories = useMemo(() => {
-    return categories.flatMap((cat) => cat.subcategories);
-  }, [categories]);
-
-  const selectedSubcategoriesData = useMemo(() => {
-    return allSubcategories.filter((sub) => selectedSubcategories.has(sub.id));
-  }, [allSubcategories, selectedSubcategories]);
-
-  const isAllSubcategoriesSelected = useMemo(() => {
-    return (
-      allSubcategories.length > 0 &&
-      selectedSubcategories.size === allSubcategories.length
-    );
-  }, [allSubcategories.length, selectedSubcategories.size]);
-
-  const isSubcategoriesIndeterminate = useMemo(() => {
-    return (
-      selectedSubcategories.size > 0 &&
-      selectedSubcategories.size < allSubcategories.length
-    );
-  }, [selectedSubcategories.size, allSubcategories.length]);
+    const selectedCount = filteredCategories.filter((cat) =>
+      selectedCategories.has(cat.id)
+    ).length;
+    return selectedCount > 0 && selectedCount < filteredCategories.length;
+  }, [filteredCategories, selectedCategories]);
 
   // Category selection handlers
   const handleSelectAllCategories = useCallback(
     (checked: boolean) => {
       if (checked) {
-        setSelectedCategories(new Set(categories.map((cat) => cat.id)));
+        setSelectedCategories(new Set(filteredCategories.map((cat) => cat.id)));
       } else {
         setSelectedCategories(new Set());
       }
     },
-    [categories]
+    [filteredCategories]
   );
 
   const handleSelectCategory = useCallback(
@@ -372,96 +335,39 @@ export const useCategorySelection = (categories: Category[]) => {
     []
   );
 
-  // Subcategory selection handlers
-  const handleSelectAllSubcategories = useCallback(
-    (checked: boolean) => {
-      if (checked) {
-        setSelectedSubcategories(
-          new Set(allSubcategories.map((sub) => sub.id))
-        );
-      } else {
-        setSelectedSubcategories(new Set());
-      }
-    },
-    [allSubcategories]
-  );
-
-  const handleSelectSubcategory = useCallback(
-    (subcategoryId: string, checked: boolean) => {
-      setSelectedSubcategories((prev) => {
-        const newSet = new Set(prev);
-        if (checked) {
-          newSet.add(subcategoryId);
-        } else {
-          newSet.delete(subcategoryId);
-        }
-        return newSet;
-      });
-    },
-    []
-  );
-
-  // Category-specific subcategory handlers
-  const handleSelectAllSubcategoriesInCategory = useCallback(
-    (categoryId: string, checked: boolean) => {
-      const category = categories.find((cat) => cat.id === categoryId);
-      if (!category) return;
-
-      setSelectedSubcategories((prev) => {
-        const newSet = new Set(prev);
-        category.subcategories.forEach((sub) => {
-          if (checked) {
-            newSet.add(sub.id);
-          } else {
-            newSet.delete(sub.id);
-          }
-        });
-        return newSet;
-      });
-    },
-    [categories]
-  );
-
-  const getCategorySubcategorySelection = useCallback(
-    (categoryId: string) => {
-      const category = categories.find((cat) => cat.id === categoryId);
-      if (!category) return { isAllSelected: false, isIndeterminate: false };
-
-      const selectedCount = category.subcategories.filter((sub) =>
-        selectedSubcategories.has(sub.id)
-      ).length;
-
-      const isAllSelected =
-        category.subcategories.length > 0 &&
-        selectedCount === category.subcategories.length;
-      const isIndeterminate =
-        selectedCount > 0 && selectedCount < category.subcategories.length;
-
-      return { isAllSelected, isIndeterminate };
-    },
-    [categories, selectedSubcategories]
-  );
-
   // Clear selection
-  const clearSelection = useCallback(() => {
-    setSelectedCategories(new Set());
-    setSelectedSubcategories(new Set());
-  }, []);
-
   const clearCategorySelection = useCallback(() => {
     setSelectedCategories(new Set());
   }, []);
 
-  const clearSubcategorySelection = useCallback(() => {
-    setSelectedSubcategories(new Set());
+  // Search and filter handlers
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  const handleFilterChange = useCallback(
+    (filter: "all" | "active" | "deleted") => {
+      setFilterDeleted(filter);
+    },
+    []
+  );
+
+  const handleSortChange = useCallback(
+    (sort: "name" | "created_at" | "updated_at") => {
+      setSortBy(sort);
+    },
+    []
+  );
+
+  const handleSortOrderChange = useCallback((order: "asc" | "desc") => {
+    setSortOrder(order);
   }, []);
 
   return {
     // Selection state
     selectedCategories,
-    selectedSubcategories,
     selectedCategoriesData,
-    selectedSubcategoriesData,
+    filteredCategories,
 
     // Category selection state
     isAllCategoriesSelected,
@@ -469,25 +375,20 @@ export const useCategorySelection = (categories: Category[]) => {
     selectedCategoriesCount: selectedCategories.size,
     hasCategorySelection: selectedCategories.size > 0,
 
-    // Subcategory selection state
-    isAllSubcategoriesSelected,
-    isSubcategoriesIndeterminate,
-    selectedSubcategoriesCount: selectedSubcategories.size,
-    hasSubcategorySelection: selectedSubcategories.size > 0,
+    // Search and filter state
+    searchTerm,
+    filterDeleted,
+    sortBy,
+    sortOrder,
 
     // Handlers
     handleSelectAllCategories,
     handleSelectCategory,
-    handleSelectAllSubcategories,
-    handleSelectSubcategory,
-    handleSelectAllSubcategoriesInCategory,
-    getCategorySubcategorySelection,
-    clearSelection,
     clearCategorySelection,
-    clearSubcategorySelection,
-
-    // Utils
-    allSubcategories,
+    handleSearch,
+    handleFilterChange,
+    handleSortChange,
+    handleSortOrderChange,
   };
 };
 
@@ -737,7 +638,7 @@ export const useBulkActions = () => {
 export function useUploadImages() {
   const trpc = useTRPC();
 
-  const mutation = useMutation({
+  const { mutateAsync, mutate, isPending, error } = useMutation({
     ...trpc.upload.uploadImages.mutationOptions(),
     onSuccess: () => {
       toast.success("Images uploaded successfully");
@@ -748,17 +649,17 @@ export function useUploadImages() {
   });
 
   return {
-    uploadImages: mutation.mutate,
-    uploadImagesAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    uploadImages: mutate,
+    uploadImagesAsync: mutateAsync,
+    isPending,
+    error,
   };
 }
 
 export function useRemoveImages() {
   const trpc = useTRPC();
 
-  const mutation = useMutation({
+  const { mutateAsync, mutate, isPending, error } = useMutation({
     ...trpc.upload.removeImages.mutationOptions(),
     onSuccess: () => {
       toast.success("Images removed successfully");
@@ -769,9 +670,9 @@ export function useRemoveImages() {
   });
 
   return {
-    removeImages: mutation.mutate,
-    removeImagesAsync: mutation.mutateAsync,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    removeImagesAsync: mutateAsync,
+    removeImages: mutate,
+    isPending,
+    error,
   };
 }
