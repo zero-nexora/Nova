@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useConfirm } from "@/stores/confirm-store";
 
 interface BulkActionsToolbarProps {
   totalCount: number;
@@ -64,15 +65,25 @@ export const BulkActionsToolbar = ({
   sortOrder,
   onSortOrderChange,
 }: BulkActionsToolbarProps) => {
+  const openConfirm = useConfirm((state) => state.open);
   const hasSelection = selectedCount > 0;
   const entityLabel =
     entityType === "category" ? "categories" : "subcategories";
-  const entityLabelSingular =
-    entityType === "category" ? "category" : "subcategory";
 
   // Handle immediate bulk action execution
   const handleBulkActionSelect = (action: BulkAction) => {
-    onExecuteBulkAction(action);
+    openConfirm({
+      title:
+        action === "delete_permanently"
+          ? "Are you sure you want to permanently delete this item?"
+          : "Do you want to toggle the status of this item?",
+      description:
+        action === "delete_permanently"
+          ? "This action cannot be undone. The item will be permanently removed from the system."
+          : "Toggling will change the visibility or state of the item, but it can be reverted anytime.",
+
+      onConfirm: () => onExecuteBulkAction(action),
+    });
   };
 
   if (!hasSelection) {

@@ -40,7 +40,7 @@ export const CreateSubcategoryForm = () => {
   const categories = useCategoriesStore((state) => state.categories);
 
   const { createSubcategoryAsync } = useCreateSubcategory();
-  const { uploadImagesAsync, isLoading: isLoadingUpload } = useUploadImages();
+  const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
 
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
 

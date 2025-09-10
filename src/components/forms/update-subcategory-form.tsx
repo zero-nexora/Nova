@@ -52,10 +52,10 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
 
   // API hooks
-  const { uploadImagesAsync, isLoading: isUploadingImages } = useUploadImages();
-  const { updateSubcategoryAsync, isLoading: isUpdatingSubcategory } =
+  const { uploadImagesAsync, isPending: isUploadingImages } = useUploadImages();
+  const { updateSubcategoryAsync, isPending: isUpdatingSubcategory } =
     useUpdateSubcategory();
-  const { removeImagesAsync, isLoading: isRemovingImages } = useRemoveImages();
+  const { removeImagesAsync, isPending: isRemovingImages } = useRemoveImages();
 
   // Form setup
   const form = useForm<UpdateSubcategoryType>({

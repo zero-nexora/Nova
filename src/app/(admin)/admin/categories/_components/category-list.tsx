@@ -27,7 +27,6 @@ import {
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
 import { UpdateCategoryForm } from "@/components/forms/update-category-form";
@@ -264,7 +263,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
               >
                 <Card
                   className={cn(
-                    "transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+                    "transition-all duration-300 hover:shadow-lg bg-muted/10",
                     "border-l-4 border-l-transparent",
                     category.is_deleted &&
                       "opacity-70 border-destructive/30 bg-destructive/5",
@@ -404,7 +403,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                     <div className="pl-6 border-l-2 border-primary/20 ml-2">
                       {/* Enhanced Subcategories with full functionality */}
                       <SubcategoryList
-                        categoryId={category.id}
                         subcategories={category.subcategories}
                       />
                     </div>

@@ -38,9 +38,9 @@ interface UpdateCategoryFormProps {
 export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
   const { close } = useModal();
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
-  const { uploadImagesAsync, isLoading: isLoadingUpload } = useUploadImages();
+  const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { updateCategoryAsync } = useUpdateCategory();
-  const { removeImagesAsync, isLoading: isLoadingRemoveImages } =
+  const { removeImagesAsync, isPending: isLoadingRemoveImages } =
     useRemoveImages();
 
   const form = useForm<UpdateCategoryType>({

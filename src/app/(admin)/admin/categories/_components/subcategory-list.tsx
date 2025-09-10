@@ -22,16 +22,13 @@ import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface SubcategoryListProps {
-  categoryId: string;
   subcategories: Subcategory[];
 }
 
 export const SubcategoryList = ({
-  categoryId,
   subcategories,
 }: SubcategoryListProps) => {
   const openModal = useModal((state) => state.open);
@@ -195,7 +192,7 @@ export const SubcategoryList = ({
             key={subcategory.id}
             className={cn(
               "p-5 bg-gradient-to-br from-muted/30 to-muted/10 border-muted transition-all duration-300",
-              "hover:shadow-lg hover:-translate-y-0.5 hover:from-muted/40 hover:to-muted/20",
+              "hover:shadow-lg hover:from-muted/40 hover:to-muted/20",
               "border-l-4 border-l-transparent",
               subcategory.is_deleted &&
                 "opacity-70 border-destructive/30 bg-gradient-to-br from-destructive/5 to-destructive/5",

@@ -32,7 +32,7 @@ export const CreateCategoryForm = () => {
   const { close } = useModal();
 
   const { createCategoryAsync } = useCreateCategory();
-  const { uploadImagesAsync, isLoading: isLoadingUpload } = useUploadImages();
+  const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
 
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
 

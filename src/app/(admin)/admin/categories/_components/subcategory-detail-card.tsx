@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Subcategory } from "@/stores/admin/categories-store";
 import { Calendar, Image as ImageIcon, Tag } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 interface SubcategoryDetailCardProps {
   subcategory: Subcategory;
@@ -12,16 +13,6 @@ interface SubcategoryDetailCardProps {
 export const SubcategoryDetailCard = ({
   subcategory,
 }: SubcategoryDetailCardProps) => {
-  const formatDate = (date: Date | string) => {
-    return new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }).format(new Date(date));
-  };
 
   return (
     <div className="overflow-hidden rounded-2xl shadow-lg border border-border bg-background hover:shadow-xl transition-shadow duration-300">
