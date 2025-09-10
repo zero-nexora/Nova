@@ -20,7 +20,6 @@ import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
 import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
 import { toast } from "sonner";
 
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -28,9 +27,7 @@ interface SubcategoryListProps {
   subcategories: Subcategory[];
 }
 
-export const SubcategoryList = ({
-  subcategories,
-}: SubcategoryListProps) => {
+export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
   const openModal = useModal((state) => state.open);
 
   const {
@@ -188,15 +185,12 @@ export const SubcategoryList = ({
       {/* Enhanced Subcategories Grid */}
       <div className="grid gap-4">
         {filteredSubcategories.map((subcategory: Subcategory) => (
-          <Card
+          <div
             key={subcategory.id}
             className={cn(
-              "p-5 bg-gradient-to-br from-muted/30 to-muted/10 border-muted transition-all duration-300",
-              "hover:shadow-lg hover:from-muted/40 hover:to-muted/20",
-              "border-l-4 border-l-transparent",
+              "p-5 bg-muted/10 border transition-all duration-300 border-l-4 border-l-primary/50 rounded-md",
               subcategory.is_deleted &&
                 "opacity-70 border-destructive/30 bg-gradient-to-br from-destructive/5 to-destructive/5",
-              !subcategory.is_deleted && "hover:border-l-primary/50",
               selectedSubcategories.has(subcategory.id) &&
                 "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 ring-2 ring-primary/20 shadow-md transform -translate-y-0.5 border-l-primary"
             )}
@@ -315,7 +309,7 @@ export const SubcategoryList = ({
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>

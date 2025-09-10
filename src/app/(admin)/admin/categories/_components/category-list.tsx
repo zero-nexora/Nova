@@ -25,7 +25,6 @@ import {
   useToggleDeleted,
 } from "../hooks/custom-hook-category";
 
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
@@ -261,13 +260,11 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                 value={category.id}
                 className="border-0 shadow-none"
               >
-                <Card
+                <div
                   className={cn(
-                    "transition-all duration-300 hover:shadow-lg bg-muted/10",
-                    "border-l-4 border-l-transparent",
+                    "transition-all duration-300 bg-muted/10 border border-l-4 border-l-primary/50 rounded-md hover:bg-muted/15",
                     category.is_deleted &&
-                      "opacity-70 border-destructive/30 bg-destructive/5",
-                    !category.is_deleted && "hover:border-l-primary/50",
+                      "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
                     selectedCategories.has(category.id) &&
                       "ring-2 ring-primary/30 bg-primary/8 border-l-primary shadow-lg transform -translate-y-0.5"
                   )}
@@ -341,7 +338,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                               "font-semibold text-xl transition-all duration-200",
                               selectedCategories.has(category.id)
                                 ? "text-primary"
-                                : "text-foreground group-hover:text-primary/80"
+                                : "text-foreground"
                             )}
                           >
                             {category.name}
@@ -407,7 +404,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                       />
                     </div>
                   </AccordionContent>
-                </Card>
+                </div>
               </AccordionItem>
             );
           })}
