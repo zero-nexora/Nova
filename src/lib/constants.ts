@@ -64,3 +64,18 @@ export const categoriesData = [
     ],
   },
 ];
+
+export const attributesData = [
+  {
+    name: "Color",
+    values: [{ value: "Red" }, { value: "Blue" }, { value: "Green" }],
+  },
+  {
+    name: "Size",
+    values: [{ value: "Small" }, { value: "Medium" }, { value: "Large" }],
+  },
+  {
+    name: "Material",
+    values: [{ value: "Cotton" }, { value: "Wool" }, { value: "Silk" }],
+  },
+];
