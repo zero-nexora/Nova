@@ -148,8 +148,8 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
       {/* Enhanced Header */}
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-foreground flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <FolderOpen className="w-5 h-5 text-primary" />
+          <div className="p-2 bg-muted/50 rounded-lg">
+            <FolderOpen className="w-5 h-5" />
           </div>
           <span>Subcategories</span>
           <Badge
@@ -188,11 +188,14 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
           <div
             key={subcategory.id}
             className={cn(
-              "p-5 bg-muted/10 border transition-all duration-300 border-l-4 border-l-primary/50 rounded-md",
+              "p-5 bg-muted/10 border transition-all duration-300 border-l-4 border-l-primary/50 rounded-md transform",
               subcategory.is_deleted &&
-                "opacity-70 border-destructive/30 bg-gradient-to-br from-destructive/5 to-destructive/5",
+                "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
               selectedSubcategories.has(subcategory.id) &&
-                "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 ring-2 ring-primary/20 shadow-md transform -translate-y-0.5 border-l-primary"
+                "ring-2 ring-primary/30 bg-primary/5 border-l-primary shadow-lg",
+              subcategory.is_deleted &&
+                selectedSubcategories.has(subcategory.id) &&
+                "ring-2 ring-destructive/30 bg-destructive/5 border-l-destructive"
             )}
           >
             <div className="flex items-center justify-between">
@@ -236,17 +239,23 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                       className={cn(
                         "w-12 h-12 rounded-lg border-2 border-dashed flex items-center justify-center transition-all duration-300",
                         "group-hover/image:border-solid group-hover/image:shadow-sm group-hover/image:scale-105",
-                        selectedSubcategories.has(subcategory.id)
-                          ? "border-primary/60 bg-primary/15"
-                          : "border-muted-foreground/30 hover:border-muted-foreground/50"
+                        subcategory.is_deleted && "border-destructive/30",
+                        selectedSubcategories.has(subcategory.id) &&
+                          "border-primary/60 bg-primary/15",
+                        selectedSubcategories.has(subcategory.id) &&
+                          subcategory.is_deleted &&
+                          "border-destructive/60 bg-destructive/15"
                       )}
                     >
                       <Folder
                         className={cn(
                           "w-5 h-5 transition-all duration-300",
-                          selectedSubcategories.has(subcategory.id)
-                            ? "text-primary/80"
-                            : "text-muted-foreground/60 group-hover/image:text-muted-foreground"
+                          subcategory.is_deleted && "text-destructive",
+                          selectedSubcategories.has(subcategory.id) &&
+                            "text-primary/80",
+                          selectedSubcategories.has(subcategory.id) &&
+                            subcategory.is_deleted &&
+                            "text-destructive/80"
                         )}
                       />
                     </div>
@@ -258,9 +267,11 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                   <h5
                     className={cn(
                       "font-semibold text-lg transition-colors duration-200",
-                      selectedSubcategories.has(subcategory.id)
-                        ? "text-primary"
-                        : "text-foreground group-hover:text-primary/80"
+                      selectedSubcategories.has(subcategory.id) &&
+                        "text-primary",
+                      selectedSubcategories.has(subcategory.id) &&
+                        subcategory.is_deleted &&
+                        "text-destructive"
                     )}
                   >
                     {subcategory.name}
@@ -270,7 +281,7 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                       <Hash className="w-3 h-3" />
                       <span>{subcategory.slug}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 rounded text-xs font-medium">
                       <Calendar className="w-3 h-3" />
                       <span>{formatDate(subcategory.created_at)}</span>
                     </div>

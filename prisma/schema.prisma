@@ -199,8 +199,6 @@ model Product_Images {
   image_url  String
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
-  is_deleted Boolean   @default(false)
-  deleted_at DateTime?
 
   @@index([product_id])
 }
@@ -260,8 +258,6 @@ model Product_Variant_Attributes {
   attributeValue     Product_Attribute_Values @relation(fields: [attribute_value_id], references: [id], onDelete: Cascade)
   created_at         DateTime                 @default(now())
   updated_at         DateTime                 @updatedAt
-  is_deleted         Boolean                  @default(false)
-  deleted_at         DateTime?
 
   @@index([product_variant_id])
   @@index([attribute_value_id])
@@ -275,8 +271,6 @@ model Carts {
   items      Cart_Items[]
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt
-  is_deleted Boolean      @default(false)
-  deleted_at DateTime?
 
   @@index([user_id])
 }
@@ -290,8 +284,6 @@ model Cart_Items {
   quantity           Int
   created_at         DateTime         @default(now())
   updated_at         DateTime         @updatedAt
-  is_deleted         Boolean          @default(false)
-  deleted_at         DateTime?
 
   @@index([cart_id])
   @@index([product_variant_id])
@@ -314,8 +306,6 @@ model Orders {
   coupon         Coupons?       @relation(fields: [coupon_id], references: [id], onDelete: SetNull)
   created_at     DateTime       @default(now())
   updated_at     DateTime       @updatedAt
-  is_deleted     Boolean        @default(false)
-  deleted_at     DateTime?
 
   @@index([user_id])
   @@index([address_id])
@@ -335,8 +325,6 @@ model Order_Items {
   price              Float
   created_at         DateTime         @default(now())
   updated_at         DateTime         @updatedAt
-  is_deleted         Boolean          @default(false)
-  deleted_at         DateTime?
 
   @@index([order_id])
   @@index([product_variant_id])
@@ -353,8 +341,6 @@ model Payments {
   transaction_id String        @unique
   created_at     DateTime      @default(now())
   updated_at     DateTime      @updatedAt
-  is_deleted     Boolean       @default(false)
-  deleted_at     DateTime?
 
   @@index([order_id])
   @@index([method])
@@ -376,8 +362,6 @@ model Reviews {
   images           Review_Images[]
   created_at       DateTime        @default(now())
   updated_at       DateTime        @updatedAt
-  is_deleted       Boolean         @default(false)
-  deleted_at       DateTime?
 
   @@index([product_id])
   @@index([user_id])
@@ -391,8 +375,6 @@ model Review_Images {
   image_url  String
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
-  is_deleted Boolean   @default(false)
-  deleted_at DateTime?
 
   @@index([review_id])
 }
@@ -405,8 +387,6 @@ model Wishlists {
   productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
   created_at         DateTime         @default(now())
   updated_at         DateTime         @updatedAt
-  is_deleted         Boolean          @default(false)
-  deleted_at         DateTime?
 
   @@index([user_id])
   @@index([product_variant_id])
@@ -429,8 +409,6 @@ model User_Addresses {
   orders      Orders[]
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
-  is_deleted  Boolean   @default(false)
-  deleted_at  DateTime?
 
   @@index([user_id])
 }
@@ -446,8 +424,6 @@ model Notifications {
   link       String?
   created_at DateTime         @default(now())
   updated_at DateTime         @updatedAt
-  is_deleted Boolean          @default(false)
-  deleted_at DateTime?
 
   @@index([user_id])
   @@index([type])
@@ -463,14 +439,14 @@ model Coupons {
   used_count       Int        @default(0)
   start_date       DateTime
   end_date         DateTime
+  is_active        Boolean    @default(true) 
   orders           Orders[]
   created_at       DateTime   @default(now())
   updated_at       DateTime   @updatedAt
-  is_deleted       Boolean    @default(false)
-  deleted_at       DateTime?
 
   @@index([code])
   @@index([discount_type])
   @@index([start_date])
   @@index([end_date])
 }
+

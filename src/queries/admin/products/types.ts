@@ -3,121 +3,83 @@ import z from "zod";
 export const CreateProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
-  category_id: z.string().uuid("Category ID must be a valid UUID"),
-  subcategory_id: z.string().uuid().optional(),
+  categoryId: z.string().uuid("Invalid category id"),
+  subcategoryId: z.string().uuid("Invalid subcategory id").optional(),
+  images: z
+    .array(
+      z.object({
+        image_url: z
+          .string()
+          .url("Invalid image URL format")
+          .optional()
+          .nullable(),
+        public_id: z.string().min(1).optional().nullable(),
+      })
+    )
+    .min(1, "At least one image is required"),
+  variants: z
+    .array(
+      z.object({
+        sku: z.string().min(1, "SKU is required"),
+        price: z.number().positive("Price must be positive"),
+        stock_quantity: z.number().int().nonnegative("Stock must be >= 0"),
+        attributeValueIds: z
+          .array(z.string().uuid("Invalid attribute value id"))
+          .min(1, "Each variant must have at least one attribute"),
+      })
+    )
+    .min(1, "At least one variant is required"),
 });
-
-export type CreateProductType = z.infer<typeof CreateProductSchema>;
 
 export const UpdateProductSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-  name: z.string().min(1).optional(),
+  id: z.string().uuid("Invalid product id"),
+  name: z.string().min(1, "Product name is required").optional(),
   description: z.string().optional(),
-  category_id: z.string().uuid().optional(),
-  subcategory_id: z.string().uuid().optional(),
+  categoryId: z.string().uuid("Invalid category id").optional(),
+  subcategoryId: z.string().uuid("Invalid subcategory id").optional(),
+  images: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(),
+        image_url: z
+          .string()
+          .url("Invalid image URL format")
+          .optional()
+          .nullable(),
+        public_id: z.string().min(1).optional().nullable(),
+      })
+    )
+    .optional(),
+  variants: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(), // for existing variants
+        sku: z.string().min(1, "SKU is required"),
+        price: z.number().positive("Price must be positive"),
+        stock_quantity: z.number().int().nonnegative("Stock must be >= 0"),
+        attributeValueIds: z
+          .array(z.string().uuid("Invalid attribute value id"))
+          .min(1, "Each variant must have at least one attribute"),
+      })
+    )
+    .optional(),
 });
 
-export type UpdateProductType = z.infer<typeof UpdateProductSchema>;
-
-export const DeleteProductSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
+export const GetAllProductsSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().max(100).default(10),
+  search: z.string().optional(),
+  categoryId: z.string().uuid().optional(),
+  subcategoryId: z.string().uuid().optional(),
+  isDeleted: z.boolean().optional(),
+  sortBy: z
+    .enum(["name", "created_at", "updated_at", "price"])
+    .default("created_at"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  priceMin: z.number().nonnegative().optional(),
+  priceMax: z.number().nonnegative().optional(),
 });
 
-export type DeleteProductType = z.infer<typeof DeleteProductSchema>;
-
-export const CreateProductImageSchema = z.object({
-  image_url: z.string().url("Invalid image URL format").optional().nullable(),
-  public_id: z.string().min(1).optional().nullable(),
-});
-
-export type CreateProductImageType = z.infer<typeof CreateProductImageSchema>;
-
-export const DeleteProductImageSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-});
-
-export type DeleteProductImageType = z.infer<typeof DeleteProductImageSchema>;
-
-export const CreateProductVariantSchema = z.object({
-  product_id: z.string().uuid("Product ID must be a valid UUID"),
-  sku: z.string().min(1, "SKU is required"),
-  price: z.number().min(0, "Price must be greater than or equal to 0"),
-  stock_quantity: z
-    .number()
-    .int()
-    .min(0, "Stock quantity must be a non-negative integer"),
-});
-
-export type CreateProductVariantType = z.infer<
-  typeof CreateProductVariantSchema
->;
-
-export const UpdateProductVariantSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-  sku: z.string().min(1).optional(),
-  price: z.number().min(0).optional(),
-  stock_quantity: z.number().int().min(0).optional(),
-});
-
-export type UpdateProductVariantType = z.infer<
-  typeof UpdateProductVariantSchema
->;
-
-export const DeleteProductVariantSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-});
-
-export type DeleteProductVariantType = z.infer<
-  typeof DeleteProductVariantSchema
->;
-
-export const CreateProductAttributeSchema = z.object({
-  name: z.string().min(1, "Attribute name is required"),
-});
-
-export type CreateProductAttributeType = z.infer<
-  typeof CreateProductAttributeSchema
->;
-
-export const UpdateProductAttributeSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-  name: z.string().min(1, "Attribute name is required"),
-});
-
-export type UpdateProductAttributeType = z.infer<
-  typeof UpdateProductAttributeSchema
->;
-
-export const DeleteProductAttributeSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-});
-
-export type DeleteProductAttributeType = z.infer<
-  typeof DeleteProductAttributeSchema
->;
-
-export const CreateProductAttributeValueSchema = z.object({
-  attribute_id: z.string().uuid("Attribute ID must be a valid UUID"),
-  value: z.string().min(1, "Value is required"),
-});
-
-export type CreateProductAttributeValueType = z.infer<
-  typeof CreateProductAttributeValueSchema
->;
-
-export const UpdateProductAttributeValueSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-  value: z.string().min(1, "Value is required"),
-});
-
-export type UpdateProductAttributeValueType = z.infer<
-  typeof UpdateProductAttributeValueSchema
->;
-
-export const DeleteProductAttributeValueSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
-});
-
-export type DeleteProductAttributeValueType = z.infer<
-  typeof DeleteProductAttributeValueSchema
->;
+export type CreateProductInput = z.infer<typeof CreateProductSchema>;
+export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
+export type GetAllProductsInput = z.infer<typeof GetAllProductsSchema>;

@@ -266,7 +266,10 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                     category.is_deleted &&
                       "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
                     selectedCategories.has(category.id) &&
-                      "ring-2 ring-primary/30 bg-primary/8 border-l-primary shadow-lg transform -translate-y-0.5"
+                      "ring-2 ring-primary/30 bg-primary/5 border-l-primary shadow-lg",
+                    category.is_deleted &&
+                      selectedCategories.has(category.id) &&
+                      "ring-2 ring-destructive/30 bg-destructive/5 border-l-destructive"
                   )}
                 >
                   <AccordionTrigger className="px-6 py-5 hover:no-underline group">
@@ -286,7 +289,9 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                                 checked as boolean
                               )
                             }
-                            className="transition-all duration-200 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            className={cn(
+                              "transition-all duration-200 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            )}
                           />
                         </div>
 
@@ -313,18 +318,24 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                             <div
                               className={cn(
                                 "w-14 h-14 rounded-xl border-2 border-dashed flex items-center justify-center transition-all duration-300",
-                                "group-hover/image:border-solid group-hover/image:shadow-md group-hover/image:scale-105",
-                                selectedCategories.has(category.id)
-                                  ? "border-primary/60 bg-primary/15"
-                                  : "border-muted-foreground/30 hover:border-muted-foreground/50"
+                                "group-hover/image:border-solid group-hover/image:shadow-md group-hover/image:scale-105 border-muted-foreground/30 hover:border-muted-foreground/50",
+                                category.is_deleted && "border-destructive/30",
+                                selectedCategories.has(category.id) &&
+                                  "border-primary/60 bg-primary/15",
+                                selectedCategories.has(category.id) &&
+                                  category.is_deleted &&
+                                  "border-destructive/60 bg-destructive/15"
                               )}
                             >
                               <ImageIcon
                                 className={cn(
-                                  "w-6 h-6 transition-all duration-300",
-                                  selectedCategories.has(category.id)
-                                    ? "text-primary/80"
-                                    : "text-muted-foreground/60 group-hover/image:text-muted-foreground"
+                                  "w-6 h-6 transition-all duration-300 text-muted-foreground/60 group-hover/image:text-muted-foreground",
+                                  category.is_deleted && "text-destructive/60",
+                                  selectedCategories.has(category.id) &&
+                                    "text-primary/80",
+                                  selectedCategories.has(category.id) &&
+                                    category.is_deleted &&
+                                    "text-destructive/80"
                                 )}
                               />
                             </div>
@@ -335,10 +346,12 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                         <div className="flex flex-col items-start space-y-2">
                           <h3
                             className={cn(
-                              "font-semibold text-xl transition-all duration-200",
-                              selectedCategories.has(category.id)
-                                ? "text-primary"
-                                : "text-foreground"
+                              "font-semibold text-xl transition-all duration-200 text-foreground",
+                              selectedCategories.has(category.id) &&
+                                "text-primary",
+                              selectedCategories.has(category.id) &&
+                                category.is_deleted &&
+                                "text-destructive"
                             )}
                           >
                             {category.name}
@@ -350,7 +363,11 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                                 {formatDate(category.created_at)}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 px-2 py-1 bg-primary/10 text-primary rounded-md">
+                            <div
+                              className={cn(
+                                "flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md",
+                              )}
+                            >
                               <Hash className="w-3.5 h-3.5" />
                               <span className="font-medium">
                                 {category.subcategories.length} subcategories
@@ -399,9 +416,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                   <AccordionContent className="px-6 pb-6">
                     <div className="pl-6 border-l-2 border-primary/20 ml-2">
                       {/* Enhanced Subcategories with full functionality */}
-                      <SubcategoryList
-                        subcategories={category.subcategories}
-                      />
+                      <SubcategoryList subcategories={category.subcategories} />
                     </div>
                   </AccordionContent>
                 </div>

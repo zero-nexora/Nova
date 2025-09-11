@@ -4,7 +4,6 @@ import { adminOrManageCategoryProcedure, createTRPCRouter } from "@/trpc/init";
 import {
   CreateSubcategorySchema,
   DeleteSubcategorySchema,
-  GetSubcategoryByIdSchema,
   UpdateSubcategorySchema,
 } from "./types";
 
@@ -131,7 +130,7 @@ export const subcategoriesRouter = createTRPCRouter({
     }),
 
   toggleDeleted: adminOrManageCategoryProcedure
-    .input(GetSubcategoryByIdSchema)
+    .input(DeleteSubcategorySchema)
     .mutation(async ({ ctx, input }) => {
       const subcategory = await ctx.db.subcategories.findFirst({
         where: { id: input.id },
