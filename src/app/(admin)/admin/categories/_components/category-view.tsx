@@ -1,15 +1,15 @@
 "use client";
 
 import { CategorySkeleton } from "@/components/global/category-skeleton";
-import { useGetAllCategories } from "../hooks/custom-hook-category";
 import { CategoryList } from "./category-list";
 import { useEffect, useState } from "react";
 import { CategoryStats } from "@/components/global/category-stats";
 import { CreateCategory } from "./create-category";
 import { CreateSubcategory } from "./create-subcategory";
+import { useCategoriesStore } from "@/stores/admin/categories-store";
 
 export const CategoryView = () => {
-  const { isPending, categories, error } = useGetAllCategories();
+  const { categories, error, loading } = useCategoriesStore();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export const CategoryView = () => {
 
   if (!isMounted) return null;
 
-  if (isPending) {
+  if (loading) {
     return <CategorySkeleton />;
   }
 

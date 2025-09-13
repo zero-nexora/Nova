@@ -127,10 +127,9 @@ CREATE TABLE "public"."Product_Images" (
     "id" TEXT NOT NULL,
     "product_id" TEXT NOT NULL,
     "image_url" TEXT NOT NULL,
+    "public_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Product_Images_pkey" PRIMARY KEY ("id")
 );
@@ -145,8 +144,6 @@ CREATE TABLE "public"."Product_Variants" (
     "stock_quantity" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Product_Variants_pkey" PRIMARY KEY ("id")
 );
@@ -183,8 +180,6 @@ CREATE TABLE "public"."Product_Variant_Attributes" (
     "attribute_value_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Product_Variant_Attributes_pkey" PRIMARY KEY ("id")
 );
@@ -195,8 +190,6 @@ CREATE TABLE "public"."Carts" (
     "user_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Carts_pkey" PRIMARY KEY ("id")
 );
@@ -209,8 +202,6 @@ CREATE TABLE "public"."Cart_Items" (
     "quantity" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Cart_Items_pkey" PRIMARY KEY ("id")
 );
@@ -227,8 +218,6 @@ CREATE TABLE "public"."Orders" (
     "coupon_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Orders_pkey" PRIMARY KEY ("id")
 );
@@ -242,8 +231,6 @@ CREATE TABLE "public"."Order_Items" (
     "price" DOUBLE PRECISION NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Order_Items_pkey" PRIMARY KEY ("id")
 );
@@ -258,8 +245,6 @@ CREATE TABLE "public"."Payments" (
     "transaction_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Payments_pkey" PRIMARY KEY ("id")
 );
@@ -274,8 +259,6 @@ CREATE TABLE "public"."Reviews" (
     "parent_review_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Reviews_pkey" PRIMARY KEY ("id")
 );
@@ -285,10 +268,9 @@ CREATE TABLE "public"."Review_Images" (
     "id" TEXT NOT NULL,
     "review_id" TEXT NOT NULL,
     "image_url" TEXT NOT NULL,
+    "public_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Review_Images_pkey" PRIMARY KEY ("id")
 );
@@ -300,8 +282,6 @@ CREATE TABLE "public"."Wishlists" (
     "product_variant_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Wishlists_pkey" PRIMARY KEY ("id")
 );
@@ -321,8 +301,6 @@ CREATE TABLE "public"."User_Addresses" (
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "User_Addresses_pkey" PRIMARY KEY ("id")
 );
@@ -338,8 +316,6 @@ CREATE TABLE "public"."Notifications" (
     "link" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Notifications_pkey" PRIMARY KEY ("id")
 );
@@ -355,10 +331,9 @@ CREATE TABLE "public"."Coupons" (
     "used_count" INTEGER NOT NULL DEFAULT 0,
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3) NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "Coupons_pkey" PRIMARY KEY ("id")
 );

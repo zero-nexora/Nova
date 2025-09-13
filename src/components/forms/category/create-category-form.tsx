@@ -3,10 +3,10 @@
 import { toast } from "sonner";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Loading } from "../global/loading";
+import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageUploader } from "../global/image-uploader";
+import { ImageUploader } from "../../global/image-uploader";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import {
   CreateCategorySchema,

@@ -75,7 +75,7 @@ export function buildProductWhereClause({
 
     where.variants = {
       some: {
-        AND: [{ is_deleted: false }, ...priceFilters],
+        AND: [...priceFilters],
       },
     };
   }
@@ -102,7 +102,7 @@ export function buildProductOrderBy(
   return { [sortBy]: sortOrder };
 }
 
-export function getProductIncludeOptions(): Prisma.ProductsInclude {
+export function getProductIncludeOptions() {
   return {
     category: {
       select: {
@@ -122,10 +122,10 @@ export function getProductIncludeOptions(): Prisma.ProductsInclude {
       select: {
         id: true,
         image_url: true,
+        public_id: true,
       },
     },
     variants: {
-      where: { is_deleted: false },
       select: {
         id: true,
         sku: true,
@@ -156,7 +156,7 @@ export function getProductIncludeOptions(): Prisma.ProductsInclude {
   };
 }
 
-export function getDetailedProductIncludeOptions(): Prisma.ProductsInclude {
+export function getDetailedProductIncludeOptions() {
   return {
     category: {
       select: {
@@ -176,11 +176,10 @@ export function getDetailedProductIncludeOptions(): Prisma.ProductsInclude {
       select: {
         id: true,
         image_url: true,
-        created_at: true,
+        public_id: true,
       },
     },
     variants: {
-      where: { is_deleted: false },
       include: {
         attributes: {
           include: {

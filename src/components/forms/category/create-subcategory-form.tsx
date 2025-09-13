@@ -2,11 +2,11 @@
 
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import { Loading } from "../global/loading";
+import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useMemo, useState } from "react";
-import { ImageUploader } from "../global/image-uploader";
+import { ImageUploader } from "../../global/image-uploader";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import { useUploadImages } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
@@ -24,7 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "../../ui/select";
 import {
   Form,
   FormControl,

@@ -3,11 +3,11 @@
 import { toast } from "sonner";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Loading } from "../global/loading";
+import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageUploader } from "../global/image-uploader";
-import { ImagesPreview } from "../global/images-preview";
+import { ImageUploader } from "../../global/image-uploader";
+import { ImagesPreview } from "../../global/images-preview";
 import { Category } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import {

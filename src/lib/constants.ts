@@ -3,6 +3,8 @@ import { Home, Box, Tag, ShoppingCart, Settings } from "lucide-react";
 const PREFIX = "/admin";
 export const MAX_FILES = 10;
 export const MAX_FILE_CATEGORY = 1;
+export const DEFAULT_LIMIT = 10;
+export const DEFAULT_PAGE = 1;
 
 export const sidebarRoutes = [
   {

@@ -95,7 +95,6 @@ export const categoriesRouter = createTRPCRouter({
       return category;
     }),
 
-  // Toggle soft delete with cascade logic for subcategories
   toggleDeleted: adminOrManageCategoryProcedure
     .input(DeleteCategorySchema)
     .mutation(async ({ ctx, input }) => {
@@ -107,6 +106,14 @@ export const categoriesRouter = createTRPCRouter({
               id: true,
               name: true,
               is_deleted: true,
+            },
+          },
+          products: {
+            select: {
+              id: true,
+              name: true,
+              is_deleted: true,
+              subcategory_id: true,
             },
           },
         },
@@ -121,9 +128,7 @@ export const categoriesRouter = createTRPCRouter({
 
       const newDeletedStatus = !category.is_deleted;
 
-      // Use transaction to update category and subcategories
       const result = await ctx.db.$transaction(async (tx) => {
-        // Update main category
         const updatedCategory = await tx.categories.update({
           where: { id: input.id },
           data: {
@@ -132,7 +137,6 @@ export const categoriesRouter = createTRPCRouter({
           },
         });
 
-        // If deleting category (true), update all subcategories
         if (newDeletedStatus && category.subcategories.length > 0) {
           await tx.subcategories.updateMany({
             where: { category_id: input.id },
@@ -141,6 +145,55 @@ export const categoriesRouter = createTRPCRouter({
               deleted_at: new Date(),
             },
           });
+        }
+
+        if (newDeletedStatus && category.products.length > 0) {
+          const productsToDelete = category.products.filter((product) => {
+            if (!product.subcategory_id) {
+              return true;
+            }
+
+            const subcategory = category.subcategories.find(
+              (sub) => sub.id === product.subcategory_id
+            );
+            return subcategory && subcategory.is_deleted;
+          });
+
+          if (productsToDelete.length > 0) {
+            const productIdsToDelete = productsToDelete.map((p) => p.id);
+
+            await tx.products.updateMany({
+              where: {
+                id: { in: productIdsToDelete },
+              },
+              data: {
+                is_deleted: true,
+                deleted_at: new Date(),
+              },
+            });
+          }
+        }
+
+        if (!newDeletedStatus) {
+          if (category.subcategories.length > 0) {
+            await tx.subcategories.updateMany({
+              where: { category_id: input.id },
+              data: {
+                is_deleted: false,
+                deleted_at: null,
+              },
+            });
+          }
+
+          if (category.products.length > 0) {
+            await tx.products.updateMany({
+              where: { category_id: input.id },
+              data: {
+                is_deleted: false,
+                deleted_at: null,
+              },
+            });
+          }
         }
 
         return updatedCategory;
@@ -163,6 +216,12 @@ export const categoriesRouter = createTRPCRouter({
               name: true,
             },
           },
+          products: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       });
 
@@ -177,6 +236,13 @@ export const categoriesRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: `Cannot delete category "${category.name}" because it has ${category.subcategories.length} subcategories. Please delete subcategories first.`,
+        });
+      }
+
+      if (category.products.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Cannot delete category "${category.name}" because it has ${category.products.length} products. Please delete products first.`,
         });
       }
 

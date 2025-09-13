@@ -2,12 +2,12 @@
 
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import { Loading } from "../global/loading";
+import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useCallback, useMemo } from "react";
-import { ImageUploader } from "../global/image-uploader";
-import { ImagesPreview } from "../global/images-preview";
+import { ImageUploader } from "../../global/image-uploader";
+import { ImagesPreview } from "../../global/images-preview";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import { useUpdateSubcategory } from "@/app/(admin)/admin/categories/hooks/custom-hook-subcategory";
 import {

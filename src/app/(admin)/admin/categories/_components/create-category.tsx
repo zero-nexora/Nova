@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { useModal } from "@/stores/modal-store";
 import { Button } from "@/components/ui/button";
 import { memo, useCallback, useEffect, useState } from "react";
-import { CreateCategoryForm } from "@/components/forms/create-category-form";
+import { CreateCategoryForm } from "@/components/forms/category/create-category-form";
 
 export const CreateCategory = memo(() => {
   const { open } = useModal();

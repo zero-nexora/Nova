@@ -1,3 +1,5 @@
+import { create } from "zustand";
+
 export interface Subcategory {
   name: string;
   id: string;
@@ -24,27 +26,30 @@ export interface Category {
   subcategories: Subcategory[];
 }
 
-import { create } from "zustand";
-
 interface CategoriesState {
   categories: Category[];
   loading: boolean;
+  error: any;
 
   setCategories: (data: Category[]) => void;
   setLoading: (loading: boolean) => void;
+  setError: (error: any) => void;
   reset: () => void;
 }
 
 export const useCategoriesStore = create<CategoriesState>((set) => ({
   categories: [],
   loading: false,
+  error: "",
 
-  setCategories: (data) => set({ categories: data }),
-  setLoading: (loading) => set({ loading }),
+  setCategories: (data: Category[]) => set({ categories: data }),
+  setLoading: (loading: boolean) => set({ loading }),
+  setError: (error: any) => set({ error }),
 
   reset: () =>
     set({
       categories: [],
       loading: false,
+      error: null,
     }),
 }));

@@ -8,7 +8,7 @@ import { useConfirm } from "@/stores/confirm-store";
 import { Subcategory } from "@/stores/admin/categories-store";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCategoryQueryKeys, useRemoveImages } from "./custom-hook-category";
-import { UpdateSubcategoryForm } from "@/components/forms/update-subcategory-form";
+import { UpdateSubcategoryForm } from "@/components/forms/category/update-subcategory-form";
 
 export function useGetAllSubcategories() {
   const trpc = useTRPC();

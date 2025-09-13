@@ -16,7 +16,7 @@ export const CreateProductSchema = z.object({
         public_id: z.string().min(1).optional().nullable(),
       })
     )
-    .min(1, "At least one image is required"),
+    .optional(),
   variants: z
     .array(
       z.object({
@@ -27,8 +27,7 @@ export const CreateProductSchema = z.object({
           .array(z.string().uuid("Invalid attribute value id"))
           .min(1, "Each variant must have at least one attribute"),
       })
-    )
-    .min(1, "At least one variant is required"),
+    ).optional()
 });
 
 export const UpdateProductSchema = z.object({
@@ -73,7 +72,7 @@ export const GetAllProductsSchema = z.object({
   subcategoryId: z.string().uuid().optional(),
   isDeleted: z.boolean().optional(),
   sortBy: z
-    .enum(["name", "created_at", "updated_at", "price"])
+    .enum(["price", "name", "created_at", "updated_at"])
     .default("created_at"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   priceMin: z.number().nonnegative().optional(),

@@ -3,20 +3,11 @@
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { MAX_FILE_CATEGORY } from "@/lib/constants";
-import { useConfirm } from "@/stores/confirm-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BulkAction, EntityType, LocalImagePreview } from "./types";
+import { LocalImagePreview } from "./types";
 import { convertFileToBase64, generateUniqueId } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  useDeleteSubcategory,
-  useToggleSubcategoryDeleted,
-} from "./custom-hook-subcategory";
-import {
-  Category,
-  Subcategory,
-  useCategoriesStore,
-} from "@/stores/admin/categories-store";
+import { Category, useCategoriesStore } from "@/stores/admin/categories-store";
 
 export const getCategoryQueryKeys = (trpc: ReturnType<typeof useTRPC>) => ({
   all: () => trpc.admin.categoriesRouter.getAll.queryOptions(),
@@ -26,6 +17,7 @@ export function useGetAllCategories() {
   const trpc = useTRPC();
   const setCategories = useCategoriesStore((state) => state.setCategories);
   const setLoading = useCategoriesStore((state) => state.setLoading);
+  const setError = useCategoriesStore((state) => state.setError);
 
   const { data, error, isPending } = useQuery(
     trpc.admin.categoriesRouter.getAll.queryOptions()
@@ -40,6 +32,10 @@ export function useGetAllCategories() {
   useEffect(() => {
     setLoading(isPending);
   }, [isPending]);
+
+  useEffect(() => {
+    if (error) setError(error);
+  }, [error]);
 
   return {
     error,

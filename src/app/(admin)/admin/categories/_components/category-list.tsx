@@ -28,7 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
-import { UpdateCategoryForm } from "@/components/forms/update-category-form";
+import { UpdateCategoryForm } from "@/components/forms/category/update-category-form";
 import {
   Accordion,
   AccordionItem,
