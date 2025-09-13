@@ -27,7 +27,8 @@ export const CreateProductSchema = z.object({
           .array(z.string().uuid("Invalid attribute value id"))
           .min(1, "Each variant must have at least one attribute"),
       })
-    ).optional()
+    )
+    .optional(),
 });
 
 export const UpdateProductSchema = z.object({
@@ -58,7 +59,8 @@ export const UpdateProductSchema = z.object({
         stock_quantity: z.number().int().nonnegative("Stock must be >= 0"),
         attributeValueIds: z
           .array(z.string().uuid("Invalid attribute value id"))
-          .min(1, "Each variant must have at least one attribute"),
+          .min(1, "Each variant must have at least one attribute")
+          .optional(),
       })
     )
     .optional(),

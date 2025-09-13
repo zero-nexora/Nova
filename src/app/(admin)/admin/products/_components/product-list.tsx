@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   ColumnFiltersState,
   RowSelectionState,
@@ -10,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  useDeleteProduct,
   useGetAllProducts,
   useProductFilters,
   useToggleProductDeleted,
@@ -21,11 +21,18 @@ import { createProductColumns } from "./product-columns";
 import { ProductFiltersComponent } from "./product-filters";
 import { ProductTableComponent } from "./product-table";
 import { useConfirm } from "@/stores/confirm-store";
+import { useRemoveImages } from "../../categories/hooks/custom-hook-category";
+import { useModal } from "@/stores/modal-store";
+import { ProductDetailCard } from "./product-details-card";
+import { UpdateProductForm } from "@/components/forms/product/update-product-form";
 
 export const ProductList = () => {
   const categories = useCategoriesStore((state) => state.categories);
   const openConfirm = useConfirm((state) => state.open);
+  const openModal = useModal((state) => state.open);
   const { toggleProductDeletedAsync } = useToggleProductDeleted();
+  const { removeImagesAsync } = useRemoveImages();
+  const { deleteProductAsync } = useDeleteProduct();
 
   // Custom hook for filters and pagination
   const {
@@ -67,7 +74,16 @@ export const ProductList = () => {
   });
 
   // Event handlers
-  const onUpdate = (product: ProductTable) => {};
+  const onUpdate = useCallback(
+    (product: ProductTable) => {
+      openModal({
+        children: <UpdateProductForm data={product} />,
+        title: "Update Category",
+        description: "Update category information",
+      });
+    },
+    [openModal]
+  );
 
   const onToggle = useCallback(
     async (product: ProductTable) => {
@@ -89,12 +105,52 @@ export const ProductList = () => {
     [toggleProductDeletedAsync, openConfirm]
   );
 
-  const onDelete = (product: ProductTable) => {
-    toast.error("Delete functionality not implemented yet");
-  };
+  const onDelete = useCallback(
+    async (product: ProductTable) => {
+      try {
+        openConfirm({
+          title: "Permanent Deletion Warning",
+          description: `Are you absolutely sure you want to permanently delete "${product.name}"? This action CANNOT be undone and will:
+  - Delete associated images
+  - Remove all relationships`,
+          onConfirm: async () => {
+            try {
+              if (product.images.length > 0) {
+                await removeImagesAsync({
+                  publicIds: product.images.map((image) => image.public_id),
+                });
+              }
+              await deleteProductAsync({ id: product.id });
+            } catch (error: any) {
+              toast.dismiss();
+              toast.error(
+                error?.message || "Failed to permanently delete product"
+              );
+            }
+          },
+        });
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(error?.message || "Failed to move category to trash");
+      }
+    },
+    [deleteProductAsync, removeImagesAsync, openConfirm]
+  );
+
+  const onView = useCallback(async (product: ProductTable) => {
+    openModal({
+      title: "Category Details",
+      children: <ProductDetailCard product={product} />,
+    });
+  }, []);
 
   // Create columns with handlers
-  const columns = createProductColumns({ onUpdate, onDelete, onToggle });
+  const columns = createProductColumns({
+    onUpdate,
+    onDelete,
+    onToggle,
+    onView,
+  });
 
   if (error) {
     return (

@@ -43,7 +43,7 @@ export const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
   const handleCategoryChange = (value: string) => {
     onFiltersChange({
       categoryId: value,
-      subcategoryId: "", // Reset subcategory when category changes
+      subcategoryId: "",
     });
   };
 

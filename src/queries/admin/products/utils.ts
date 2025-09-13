@@ -109,6 +109,8 @@ export function getProductIncludeOptions() {
         id: true,
         name: true,
         slug: true,
+        image_url: true,
+        public_id: true,
       },
     },
     subcategory: {
@@ -116,6 +118,9 @@ export function getProductIncludeOptions() {
         id: true,
         name: true,
         slug: true,
+        category_id: true,
+        image_url: true,
+        public_id: true,
       },
     },
     images: {
@@ -123,6 +128,11 @@ export function getProductIncludeOptions() {
         id: true,
         image_url: true,
         public_id: true,
+        created_at: true,
+        updated_at: true,
+      },
+      orderBy: {
+        created_at: "asc" as const,
       },
     },
     variants: {
@@ -132,37 +142,81 @@ export function getProductIncludeOptions() {
         slug: true,
         price: true,
         stock_quantity: true,
+        created_at: true,
+        updated_at: true,
         attributes: {
-          include: {
+          select: {
+            id: true,
+            product_variant_id: true,
+            attribute_value_id: true,
+            created_at: true,
+            updated_at: true,
             attributeValue: {
-              include: {
+              select: {
+                id: true,
+                value: true,
+                attribute_id: true,
+                is_deleted: true,
+                created_at: true,
+                updated_at: true,
                 attribute: {
                   select: {
                     id: true,
                     name: true,
+                    is_deleted: true,
                   },
                 },
               },
             },
           },
+          orderBy: {
+            created_at: "asc" as const,
+          },
         },
+      },
+      orderBy: {
+        created_at: "asc" as const,
+      },
+    },
+    reviews: {
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        created_at: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            image_url: true,
+            first_name: true,
+            last_name: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: "desc" as const,
       },
     },
     _count: {
       select: {
         reviews: true,
+        variants: true,
       },
     },
   };
 }
 
-export function getDetailedProductIncludeOptions() {
+// Enhanced include options for detailed operations (create/update)
+export function getProductDetailIncludeOptions() {
   return {
     category: {
       select: {
         id: true,
         name: true,
         slug: true,
+        image_url: true,
+        public_id: true,
       },
     },
     subcategory: {
@@ -170,6 +224,9 @@ export function getDetailedProductIncludeOptions() {
         id: true,
         name: true,
         slug: true,
+        image_url: true,
+        public_id: true,
+        category_id: true,
       },
     },
     images: {
@@ -177,6 +234,11 @@ export function getDetailedProductIncludeOptions() {
         id: true,
         image_url: true,
         public_id: true,
+        created_at: true,
+        updated_at: true,
+      },
+      orderBy: {
+        created_at: "asc" as const,
       },
     },
     variants: {
@@ -189,12 +251,29 @@ export function getDetailedProductIncludeOptions() {
                   select: {
                     id: true,
                     name: true,
+                    is_deleted: true,
                   },
                 },
               },
+              where: {
+                is_deleted: false,
+              },
             },
           },
+          orderBy: {
+            created_at: "asc" as const,
+          },
         },
+        _count: {
+          select: {
+            cartItems: true,
+            orderItems: true,
+            wishlists: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: "asc" as const,
       },
     },
     reviews: {
@@ -202,9 +281,21 @@ export function getDetailedProductIncludeOptions() {
         user: {
           select: {
             id: true,
+            name: true,
             email: true,
+            avatar: true,
           },
         },
+      },
+      orderBy: {
+        created_at: "desc" as const,
+      },
+      take: 5, // Latest 5 reviews for preview
+    },
+    _count: {
+      select: {
+        reviews: true,
+        variants: true,
       },
     },
   };

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { memo, useCallback } from "react";
 import { CreateProductForm } from "@/components/forms/product/create-product-form";
 
-export const CreateProduct = memo(() => {
+export const CreateProduct = memo(function CreateProduct() {
   const { open } = useModal();
 
-  const handleCreateProduct = useCallback(async () => {
+  const handleCreateProduct = useCallback(() => {
     open({
       title: "Create New Product",
       description: "Add a new product to organize your products",
@@ -27,5 +27,3 @@ export const CreateProduct = memo(() => {
     </Button>
   );
 });
-
-CreateProduct.displayName = "CreateProduct";

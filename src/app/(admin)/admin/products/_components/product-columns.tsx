@@ -9,15 +9,17 @@ import { formatDate } from "@/lib/utils";
 import { ProductTable } from "../hooks/types";
 
 interface ProductTableColumnsProps {
-  onUpdate: (product: ProductTable) => void;
-  onDelete: (product: ProductTable) => void;
-  onToggle: (product: ProductTable) => void;
+  onUpdate?: (product: ProductTable) => void;
+  onDelete?: (product: ProductTable) => void;
+  onToggle?: (product: ProductTable) => void;
+  onView?: (product: ProductTable) => void;
 }
 
 export const createProductColumns = ({
   onUpdate,
   onDelete,
-  onToggle
+  onToggle,
+  onView,
 }: ProductTableColumnsProps): ColumnDef<ProductTable>[] => [
   {
     accessorKey: "images",
@@ -138,9 +140,10 @@ export const createProductColumns = ({
     header: "Actions",
     cell: ({ row }) => (
       <ActionMenu
-        onUpdate={() => onUpdate(row.original)}
-        onDelete={() => onDelete(row.original)}
-        onToggle={() => onToggle(row.original)}
+        onUpdate={() => onUpdate?.(row.original)}
+        onDelete={() => onDelete?.(row.original)}
+        onToggle={() => onToggle?.(row.original)}
+        onView={() => onView?.(row.original)}
       />
     ),
     enableSorting: false,

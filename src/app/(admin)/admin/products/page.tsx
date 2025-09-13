@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import { PageHeader } from "@/components/global/page-header";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
+import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
+import { PageHeader } from "@/components/global/page-header";
 import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
 import { ProductView } from "./_components/product-view";
 
@@ -31,12 +31,15 @@ export const metadata: Metadata = {
 const ProductPage = async () => {
   const queryClient = getQueryClient();
 
-  await queryClient.prefetchQuery(
-    trpc.admin.productsRouter.getAll.queryOptions({
-      page: DEFAULT_PAGE,
-      limit: DEFAULT_LIMIT,
-    })
-  );
+  // Prefetch data on server
+  await Promise.all([
+    queryClient.prefetchQuery(
+      trpc.admin.productsRouter.getAll.queryOptions({
+        page: DEFAULT_PAGE,
+        limit: DEFAULT_LIMIT,
+      })
+    ),
+  ]);
 
   return (
     <main>
@@ -46,7 +49,7 @@ const ProductPage = async () => {
           description="Manage your product catalog."
         />
 
-        <section aria-label="product list">
+        <section aria-label="Product management">
           <HydrationBoundary state={dehydrate(queryClient)}>
             <ProductView />
           </HydrationBoundary>

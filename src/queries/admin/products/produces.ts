@@ -11,7 +11,7 @@ import {
   buildProductWhereClause,
   createProductVariant,
   generateProductSlug,
-  getDetailedProductIncludeOptions,
+  getProductDetailIncludeOptions,
   getProductIncludeOptions,
   updateProductImages,
   updateProductVariants,
@@ -20,6 +20,7 @@ import {
 } from "./utils";
 import { PrismaClient } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
+import { ProductTable } from "@/app/(admin)/admin/products/hooks/types";
 
 export const productsRouter = createTRPCRouter({
   getAll: adminOrManageProductProcedure
@@ -50,6 +51,7 @@ export const productsRouter = createTRPCRouter({
         });
 
         const orderBy = buildProductOrderBy(sortBy, sortOrder);
+        const includeOptions = getProductIncludeOptions();
 
         const [products, totalCount] = await Promise.all([
           ctx.db.products.findMany({
@@ -57,15 +59,39 @@ export const productsRouter = createTRPCRouter({
             skip,
             take: limit,
             orderBy,
-            include: getProductIncludeOptions(),
+            include: includeOptions,
           }),
           ctx.db.products.count({ where }),
         ]);
 
         const totalPages = Math.ceil(totalCount / limit);
 
+        // UPDATED: Transform data để khớp với interface
+        const transformedProducts: ProductTable[] = products.map((product) => ({
+          ...product,
+          variants: product.variants.map((variant) => ({
+            ...variant,
+            product_id: product.id,
+            variant_attributes: variant.attributes.map((attr) => ({
+              id: attr.id,
+              product_variant_id: attr.product_variant_id,
+              attribute_value_id: attr.attribute_value_id,
+              created_at: attr.created_at,
+              updated_at: attr.updated_at,
+              attribute: attr.attributeValue.attribute,
+              attribute_value: attr.attributeValue,
+            })),
+          })),
+          reviews: product.reviews.map((review) => ({
+            id: review.id,
+            created_at: review.created_at,
+            rating: review.rating ?? 0, // Set a default value if rating is null
+            comment: review.comment ?? ""
+          })),
+        }));
+
         return {
-          products,
+          products: transformedProducts,
           pagination: {
             page,
             limit,
@@ -93,7 +119,7 @@ export const productsRouter = createTRPCRouter({
           where: {
             id: input.id,
           },
-          include: getDetailedProductIncludeOptions(),
+          include: getProductIncludeOptions(),
         });
 
         if (!product) {
@@ -125,7 +151,7 @@ export const productsRouter = createTRPCRouter({
           where: {
             slug: input.slug,
           },
-          include: getDetailedProductIncludeOptions(),
+          include: getProductDetailIncludeOptions(),
         });
 
         if (!product) {
