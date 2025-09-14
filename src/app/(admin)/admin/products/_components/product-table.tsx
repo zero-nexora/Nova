@@ -39,7 +39,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
-import { ChevronDown, Download, EyeOff } from "lucide-react";
+import { ChevronDown, Download, EyeOff, Trash2 } from "lucide-react";
 import { ProductTable as ProductTableType } from "../hooks/types";
 
 interface Pagination {
@@ -67,6 +67,8 @@ interface ProductTableProps {
   setPage: (page: number) => void;
   limit: number;
   setLimit: (limit: number) => void;
+  onBulkDelete?: (selectedIds: string[]) => Promise<void>;
+  onBulkToggle?: (selectedIds: string[]) => Promise<void>;
 }
 
 export const ProductTableComponent: React.FC<ProductTableProps> = ({
@@ -86,6 +88,8 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
   setPage,
   limit,
   setLimit,
+  onBulkDelete,
+  onBulkToggle,
 }) => {
   const table = useReactTable<ProductTableType>({
     data: products,
@@ -107,14 +111,63 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
     manualPagination: true,
     manualSorting: true,
     pageCount: pagination?.totalPages || 0,
+    enableRowSelection: true,
+    getRowId: (row) => row.id,
   });
+
+  // Get selected rows
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedCount = selectedRows.length;
+  const selectedIds = selectedRows.map((row) => row.original.id);
+
+  const handleBulkDelete = async () => {
+    if (onBulkDelete && selectedIds.length > 0) {
+      await onBulkDelete(selectedIds);
+    }
+  };
+
+  const handleBulkToggle = async () => {
+    if (onBulkToggle && selectedIds.length > 0) {
+      await onBulkToggle(selectedIds);
+    }
+  };
 
   return (
     <Card className="bg-muted/10 border">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Products ({pagination?.totalCount || 0})</CardTitle>
+          <CardTitle>
+            Products ({pagination?.totalCount || 0})
+            {selectedCount > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({selectedCount} selected)
+              </span>
+            )}
+          </CardTitle>
           <div className="flex items-center gap-2">
+            {/* Bulk Actions */}
+            {selectedCount > 0 && (
+              <div className="flex items-center gap-2 mr-2 border-r pr-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkToggle}
+                  className="gap-2"
+                >
+                  Toggle Selected ({selectedCount})
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  className="gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Selected ({selectedCount})
+                </Button>
+              </div>
+            )}
+
             {/* Column visibility */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -138,7 +191,7 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                           column.toggleVisibility(!!value)
                         }
                       >
-                        {column.id}
+                        {column.id === "select" ? "Selection" : column.id}
                       </DropdownMenuCheckboxItem>
                     );
                   })}
@@ -160,7 +213,10 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className={header.id === "select" ? "w-12" : ""}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -180,9 +236,13 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className={row.getIsSelected() ? "bg-muted/50" : ""}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell
+                        key={cell.id}
+                        className={cell.column.id === "select" ? "w-12" : ""}
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -205,6 +265,23 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
           </Table>
         </div>
 
+        {/* Selection Info */}
+        {selectedCount > 0 && (
+          <div className="flex items-center justify-between py-2 text-sm text-muted-foreground">
+            <span>
+              {selectedCount} of {table.getFilteredRowModel().rows.length}{" "}
+              row(s) selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRowSelection({})}
+            >
+              Clear selection
+            </Button>
+          </div>
+        )}
+
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <>
@@ -217,6 +294,7 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                   onValueChange={(value) => {
                     setLimit(Number(value));
                     setPage(1);
+                    setRowSelection({}); // Clear selection on page size change
                   }}
                 >
                   <SelectTrigger className="h-8 w-[70px]">
@@ -240,7 +318,10 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => setPage(1)}
+                    onClick={() => {
+                      setPage(1);
+                      setRowSelection({}); // Clear selection on page change
+                    }}
                     disabled={!pagination.hasPreviousPage}
                   >
                     <span className="sr-only">Go to first page</span>⟪
@@ -248,7 +329,10 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => setPage(page - 1)}
+                    onClick={() => {
+                      setPage(page - 1);
+                      setRowSelection({});
+                    }}
                     disabled={!pagination.hasPreviousPage}
                   >
                     <span className="sr-only">Go to previous page</span>⟨
@@ -256,7 +340,10 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => setPage(page + 1)}
+                    onClick={() => {
+                      setPage(page + 1);
+                      setRowSelection({});
+                    }}
                     disabled={!pagination.hasNextPage}
                   >
                     <span className="sr-only">Go to next page</span>⟩
@@ -264,7 +351,10 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => setPage(pagination.totalPages)}
+                    onClick={() => {
+                      setPage(pagination.totalPages);
+                      setRowSelection({});
+                    }}
                     disabled={!pagination.hasNextPage}
                   >
                     <span className="sr-only">Go to last page</span>⟫

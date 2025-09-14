@@ -51,7 +51,7 @@ export const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
     onFiltersChange({ subcategoryId: value });
   };
 
-  const handleDeletedFilterChange = (value: string) => {
+  const handleDeletedFilterChange = (value: "true" | "false" | "all") => {
     onFiltersChange({ deletedFilter: value });
   };
 

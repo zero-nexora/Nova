@@ -53,14 +53,13 @@ export const UpdateProductSchema = z.object({
   variants: z
     .array(
       z.object({
-        id: z.string().uuid().optional(), // for existing variants
+        id: z.string().uuid("Invalid variant id").optional(), // Only for existing variants
         sku: z.string().min(1, "SKU is required"),
         price: z.number().positive("Price must be positive"),
         stock_quantity: z.number().int().nonnegative("Stock must be >= 0"),
         attributeValueIds: z
           .array(z.string().uuid("Invalid attribute value id"))
-          .min(1, "Each variant must have at least one attribute")
-          .optional(),
+          .optional(), // Make this optional, not required
       })
     )
     .optional(),

@@ -127,7 +127,7 @@ export const CreateProductForm = () => {
           );
 
           // Add the new value if it's not empty
-          if (valueId) {
+          if (valueId && valueId !== "none") {
             filteredIds.push(valueId);
           }
 
@@ -169,7 +169,6 @@ export const CreateProductForm = () => {
   };
 
   const onSubmit = async (values: z.infer<typeof CreateProductSchema>) => {
-    console.log(values);
     if (selectedImages.length === 0) {
       toast.error("Please select at least one image for the product");
       return;

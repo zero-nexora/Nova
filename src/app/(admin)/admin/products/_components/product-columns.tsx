@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
 import { ArrowUpDown, Package } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -21,6 +22,31 @@ export const createProductColumns = ({
   onToggle,
   onView,
 }: ProductTableColumnsProps): ColumnDef<ProductTable>[] => [
+  // Checkbox column
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all rows"
+        className="translate-y-[2px]"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label={`Select row ${row.index + 1}`}
+        className="translate-y-[2px]"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "images",
     header: "Image",
@@ -51,6 +77,7 @@ export const createProductColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-8 px-2 lg:px-3"
       >
         Name
         <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -72,14 +99,16 @@ export const createProductColumns = ({
       const category = row.getValue("category") as ProductTable["category"];
       const subcategory = row.original.subcategory;
       return (
-        <div>
-          <Badge variant="secondary" className="mb-1">
+        <div className="space-y-1">
+          <Badge variant="secondary" className="text-xs">
             {category.name}
           </Badge>
           {subcategory && (
-            <Badge variant="outline" className="text-xs">
-              {subcategory.name}
-            </Badge>
+            <div>
+              <Badge variant="outline" className="text-xs">
+                {subcategory.name}
+              </Badge>
+            </div>
           )}
         </div>
       );
@@ -95,7 +124,7 @@ export const createProductColumns = ({
       const totalStock = variants.reduce((sum, v) => sum + v.stock_quantity, 0);
 
       return (
-        <div className="text-sm">
+        <div className="text-sm space-y-1">
           <div className="font-medium">{variants.length} variant(s)</div>
           <div className="text-muted-foreground">
             $
@@ -114,13 +143,18 @@ export const createProductColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-8 px-2 lg:px-3"
       >
         Created
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
-      return formatDate(row.getValue("created_at"));
+      return (
+        <span className="text-sm">
+          {formatDate(row.getValue("created_at"))}
+        </span>
+      );
     },
   },
   {
@@ -129,7 +163,10 @@ export const createProductColumns = ({
     cell: ({ row }) => {
       const isDeleted = row.getValue("is_deleted") as boolean;
       return (
-        <Badge variant={isDeleted ? "destructive" : "default"}>
+        <Badge
+          variant={isDeleted ? "destructive" : "default"}
+          className="text-xs"
+        >
           {isDeleted ? "Deleted" : "Active"}
         </Badge>
       );
@@ -147,5 +184,6 @@ export const createProductColumns = ({
       />
     ),
     enableSorting: false,
+    enableHiding: false,
   },
 ];

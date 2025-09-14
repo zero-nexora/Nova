@@ -7,7 +7,6 @@ export const ProductView = () => {
       <div className="flex gap-4">
         <CreateProduct />
       </div>
-      {/* <CategoryStats categories={categories} /> */}
       <ProductList />
     </div>
   );

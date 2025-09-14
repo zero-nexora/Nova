@@ -104,3 +104,19 @@ export interface ProductTable {
     reviews: number;
   };
 }
+
+export interface ProductFilters {
+  search: string;
+  categoryId: string;
+  subcategoryId: string;
+  deletedFilter: "true" | "false" | "all";
+  priceRange: {
+    min: string;
+    max: string;
+  };
+}
+
+export interface PaginationState {
+  page: number;
+  limit: number;
+}

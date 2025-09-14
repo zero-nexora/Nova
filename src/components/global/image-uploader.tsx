@@ -13,19 +13,19 @@ import {
 import { Button } from "@/components/ui/button";
 
 export interface ImageUploaderProps {
+  maxFiles?: number;
   disabled?: boolean;
   multiple?: boolean;
   onImagesChange: (images: LocalImagePreview[]) => void;
 }
 
 export const ImageUploader = ({
+  maxFiles = MAX_FILES,
   disabled = false,
   multiple = false,
   onImagesChange,
 }: ImageUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const maxFiles = multiple ? MAX_FILES : MAX_FILE_CATEGORY;
 
   const {
     localPreviews,
@@ -33,7 +33,7 @@ export const ImageUploader = ({
     removePreview,
     clearAllPreviews,
     canAddMoreFiles,
-  } = useImageUploader(maxFiles);
+  } = useImageUploader(multiple ? maxFiles : MAX_FILE_CATEGORY);
 
   const hasImages = localPreviews.length > 0;
   const showClearAllButton = localPreviews.length > 1;

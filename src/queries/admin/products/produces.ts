@@ -86,7 +86,7 @@ export const productsRouter = createTRPCRouter({
             id: review.id,
             created_at: review.created_at,
             rating: review.rating ?? 0, // Set a default value if rating is null
-            comment: review.comment ?? ""
+            comment: review.comment ?? "",
           })),
         }));
 
@@ -656,4 +656,41 @@ export const productsRouter = createTRPCRouter({
       return productAttributes || [];
     }
   ),
+
+  deleteProductImages: adminOrManageProductProcedure
+    .input(
+      z.object({
+        ids: z.array(z.string().uuid("Invalid image id")), // validate mảng UUID
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const { ids } = input;
+
+        const result = await ctx.db.product_Images.deleteMany({
+          where: {
+            id: { in: ids },
+          },
+        });
+
+        if (result.count === 0) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "No product images found to delete",
+          });
+        }
+
+        return {
+          success: true,
+          deletedCount: result.count,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        console.error("Error deleting product images:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete product images",
+        });
+      }
+    }),
 });

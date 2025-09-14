@@ -11,7 +11,9 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { PaginationState, ProductFilters } from "./types";
+import { PaginationState, ProductFilters, ProductTable } from "./types";
+import { useConfirm } from "@/stores/confirm-store";
+import { useRemoveImages } from "../../categories/hooks/custom-hook-category";
 
 export function useGetAllProducts(
   params: z.infer<typeof GetAllProductsSchema> = {
@@ -297,5 +299,138 @@ export const useProductFilters = () => {
     clearFilters,
     setPage,
     setLimit,
+  };
+};
+
+export const useDeleteProductImages = () => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const { mutateAsync, mutate, error, isPending } = useMutation(
+    trpc.admin.productsRouter.deleteProductImages.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.success || "Product image deleted successfully");
+
+        queryClient.invalidateQueries(
+          trpc.admin.productsRouter.getAll.queryOptions({
+            limit: DEFAULT_LIMIT,
+            page: DEFAULT_PAGE,
+          })
+        );
+      },
+
+      onError: (error: any) => {
+        const message = error?.message || "Failed to image delete product";
+        toast.error(message);
+      },
+    })
+  );
+
+  return {
+    deleteProductImagesAsync: mutateAsync,
+    deleteProductImages: mutate,
+    error,
+    isPending,
+  };
+};
+
+export const useBulkProductActions = () => {
+  const openConfirm = useConfirm((state) => state.open);
+  const { toggleProductDeletedAsync } = useToggleProductDeleted();
+  const { deleteProductAsync } = useDeleteProduct();
+  const { removeImagesAsync } = useRemoveImages();
+
+  const handleBulkToggle = useCallback(
+    async (selectedIds: string[], onComplete?: () => void) => {
+      if (selectedIds.length === 0) return;
+
+      openConfirm({
+        title: `Toggle ${selectedIds.length} Products`,
+        description: `Are you sure you want to toggle the status of ${selectedIds.length} selected products? This will move active products to trash and restore deleted products.`,
+        onConfirm: async () => {
+          try {
+            const promises = selectedIds.map((id) => {
+              toggleProductDeletedAsync({ id });
+            });
+
+            await Promise.all(promises);
+            toast.success(
+              `Successfully toggled ${selectedIds.length} products`
+            );
+
+            // Clear selection after successful operation
+            onComplete?.();
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to toggle products");
+            console.error("Bulk toggle error:", error);
+          }
+        },
+      });
+    },
+    [toggleProductDeletedAsync, openConfirm]
+  );
+
+  const handleBulkDelete = useCallback(
+    async (
+      selectedIds: string[],
+      products?: ProductTable[],
+      onComplete?: () => void
+    ) => {
+      if (selectedIds.length === 0) return;
+
+      openConfirm({
+        title: `Permanently Delete ${selectedIds.length} Products`,
+        description: `Are you absolutely sure you want to permanently delete ${selectedIds.length} selected products? This action CANNOT be undone and will: • Delete all associated images • Remove all relationships • Permanently remove the products from the database`,
+        onConfirm: async () => {
+          try {
+            // Step 1: Collect all image public_ids from products
+            const allImagePublicIds: string[] = [];
+
+            if (products) {
+              products.forEach((product) => {
+                // Giả sử product có field images là array chứa objects với public_id
+                if (product.images && Array.isArray(product.images)) {
+                  product.images.forEach((image) => {
+                    if (image.public_id) {
+                      allImagePublicIds.push(image.public_id);
+                    }
+                  });
+                }
+              });
+            }
+
+            // Step 2: Remove images from cloud storage first
+            if (allImagePublicIds.length > 0) {
+              await removeImagesAsync({ publicIds: allImagePublicIds });
+              console.log(
+                `Removed ${allImagePublicIds.length} images from cloud storage`
+              );
+            }
+
+            // Step 3: Delete products from database
+            const deletePromises = selectedIds.map((id) =>
+              deleteProductAsync({ id })
+            );
+
+            await Promise.all(deletePromises);
+            toast.success(
+              `Successfully deleted ${selectedIds.length} products and ${allImagePublicIds.length} associated images`
+            );
+
+            // Clear selection after successful operation
+            onComplete?.();
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to delete products");
+            console.error("Bulk delete error:", error);
+          }
+        },
+      });
+    },
+    [deleteProductAsync, removeImagesAsync, openConfirm]
+  );
+
+  return {
+    handleBulkToggle,
+    handleBulkDelete,
   };
 };

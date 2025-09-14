@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  useBulkProductActions,
   useDeleteProduct,
   useGetAllProducts,
   useProductFilters,
@@ -72,6 +73,27 @@ export const ProductList = () => {
       "created_at",
     sortOrder: sorting[0]?.desc ? "desc" : "asc",
   });
+
+  const { handleBulkDelete, handleBulkToggle } = useBulkProductActions();
+
+  const selectedIds = Object.keys(rowSelection).filter(
+    (id) => rowSelection[id]
+  );
+
+  const onBulkDelete = async () => {
+    await handleBulkDelete(
+      selectedIds,
+      products.filter((product) => selectedIds.includes(product.id)) || [],
+      () => setRowSelection({})
+    );
+  };
+
+  const onBulkToggle = async () => {
+    await handleBulkToggle(
+      selectedIds,
+      () => setRowSelection({})
+    );
+  };
 
   // Event handlers
   const onUpdate = useCallback(
@@ -194,6 +216,8 @@ export const ProductList = () => {
         setPage={setPage}
         limit={paginationState.limit}
         setLimit={setLimit}
+        onBulkDelete={onBulkDelete}
+        onBulkToggle={onBulkToggle}
       />
     </div>
   );

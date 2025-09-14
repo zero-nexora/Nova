@@ -42,8 +42,12 @@ import {
   useRemoveImages,
   useUploadImages,
 } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
-import { useUpdateProduct } from "@/app/(admin)/admin/products/hooks/custom-hook-product";
+import {
+  useDeleteProductImages,
+  useUpdateProduct,
+} from "@/app/(admin)/admin/products/hooks/custom-hook-product";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
+import { MAX_FILES } from "@/lib/constants";
 
 // Types
 interface ProductVariant {
@@ -69,10 +73,14 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
   const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { updateProductAsync, isPending: isUpdating } = useUpdateProduct();
   const { removeImagesAsync } = useRemoveImages();
+  const { deleteProductImagesAsync } = useDeleteProductImages();
 
   // State
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
-  const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
+  const [imageIdsToRemove, setImagesIdToRemove] = useState<string[]>([]);
+  const [imagePublicIdsToRemove, setImagesPublicIdsToRemove] = useState<
+    string[]
+  >([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -86,6 +94,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       variants: [],
       images:
         data.images?.map((img) => ({
+          id: img.id,
           image_url: img.image_url,
           public_id: img.public_id,
         })) || [],
@@ -116,6 +125,18 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       });
 
       setVariants(initializedVariants);
+      setIsInitialized(true);
+    } else if (!isInitialized) {
+      // Create at least one variant if none exist
+      const defaultVariant: ProductVariant = {
+        id: `new_${Date.now()}`,
+        sku: "",
+        price: 0,
+        stock_quantity: 0,
+        attributeValueIds: [],
+        isExisting: false,
+      };
+      setVariants([defaultVariant]);
       setIsInitialized(true);
     }
   }, [data.variants, isInitialized]);
@@ -256,12 +277,14 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
   }, []);
 
   const handleRemoveExistingImage = useCallback(
-    (publicId: string) => {
-      setImagesToRemove((prev) => [...prev, publicId]);
+    (id: string) => {
+      setImagesIdToRemove((prev) => [...prev, id]);
       const currentImages = form.getValues("images") || [];
-      const updatedImages = currentImages.filter(
-        (img) => img.public_id !== publicId
-      );
+      setImagesPublicIdsToRemove((prev) => [
+        ...prev,
+        currentImages.find((img) => img.id === id)?.public_id || "",
+      ]);
+      const updatedImages = currentImages.filter((img) => img.id !== id);
       form.setValue("images", updatedImages);
     },
     [form]
@@ -278,9 +301,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
 
   const validateForm = useCallback(() => {
     const totalImages =
-      (form.getValues("images")?.length || 0) +
-      selectedImages.length -
-      imagesToRemove.length;
+      (form.getValues("images")?.length || 0) + selectedImages.length;
 
     if (totalImages === 0) {
       toast.error("Please select at least one image for the product");
@@ -308,7 +329,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     }
 
     return true;
-  }, [form, selectedImages, imagesToRemove, variants]);
+  }, [form, selectedImages, variants]);
 
   // Form submission
   const onSubmit = useCallback(
@@ -317,12 +338,14 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
 
       try {
         // Remove images marked for deletion
-        if (imagesToRemove.length > 0) {
-          await removeImagesAsync({ publicIds: imagesToRemove });
+        if (imageIdsToRemove.length > 0) {
+          await removeImagesAsync({ publicIds: imagePublicIdsToRemove });
+          await deleteProductImagesAsync({ ids: imageIdsToRemove });
         }
 
         // Upload new images
-        let newImages: { image_url: string; public_id: string }[] = [];
+        let newImages: { id?: string; image_url: string; public_id: string }[] =
+          [];
         if (selectedImages.length > 0) {
           const uploadResult = await uploadImagesAsync({
             images: selectedImages.map((image) => image.base64Url),
@@ -338,27 +361,34 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         const existingImages = form.getValues("images") || [];
         values.images = [...existingImages, ...newImages];
 
-        // Prepare variants
-        values.variants = variants.map(
-          ({ attributeValueIds, isExisting, ...variant }) => ({
-            ...variant,
-            attributes: attributeValueIds
-              .map((valueId) => {
-                const attribute = productAttributes.find((attr) =>
-                  attr.values.some((v) => v.id === valueId)
-                );
-                return {
-                  attribute_id: attribute?.id,
-                  attribute_value_id: valueId,
-                };
-              })
-              .filter((attr) => attr.attribute_id),
-          })
-        );
+        // Prepare variants - FIXED: Match schema structure
+        values.variants = variants.map((variant) => {
+          const variantData: any = {
+            sku: variant.sku,
+            price: variant.price,
+            stock_quantity: variant.stock_quantity,
+          };
+
+          // Only add id for existing variants (UUID format)
+          if (
+            variant.isExisting &&
+            variant.id.match(
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            )
+          ) {
+            variantData.id = variant.id;
+          }
+
+          // Only add attributeValueIds if there are attributes and it's not empty
+          if (variant.attributeValueIds.length > 0) {
+            variantData.attributeValueIds = variant.attributeValueIds;
+          }
+
+          return variantData;
+        });
 
         await updateProductAsync(values);
         closeModal();
-        toast.success("Product updated successfully");
       } catch (error) {
         console.error("Error updating product:", error);
         toast.error("Failed to update product. Please try again.");
@@ -366,10 +396,9 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     },
     [
       validateForm,
-      imagesToRemove,
+      imageIdsToRemove,
       selectedImages,
       variants,
-      productAttributes,
       form,
       removeImagesAsync,
       uploadImagesAsync,
@@ -382,7 +411,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
   const renderImageSection = useCallback(() => {
     const existingImages = form.getValues("images") || [];
     const filteredExistingImages = existingImages.filter(
-      (img) => img.public_id && !imagesToRemove.includes(img.public_id)
+      (img) => img.id && !imageIdsToRemove.includes(img.id)
     );
 
     return (
@@ -394,7 +423,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
             </label>
             <ImagesPreview
               previewList={filteredExistingImages.map((image) => ({
-                id: image.public_id || "",
+                id: image.id || "",
                 url: image.image_url || "",
               }))}
               disabled={isSubmitting}
@@ -411,6 +440,11 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           </label>
           <FormControl>
             <ImageUploader
+              maxFiles={
+                filteredExistingImages.length > 0
+                  ? MAX_FILES - filteredExistingImages.length
+                  : MAX_FILES
+              }
               multiple={true}
               disabled={isSubmitting}
               onImagesChange={handleImageSelection}
@@ -421,7 +455,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     );
   }, [
     form,
-    imagesToRemove,
+    imageIdsToRemove,
     isSubmitting,
     handleRemoveExistingImage,
     handleImageSelection,
