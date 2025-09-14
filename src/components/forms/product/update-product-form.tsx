@@ -30,7 +30,7 @@ import { Loading } from "@/components/global/loading";
 import { ImageUploader } from "@/components/global/image-uploader";
 import { ImagesPreview } from "@/components/global/images-preview";
 
-import { Plus, DollarSign, Hash, Warehouse, X, Info } from "lucide-react";
+import { Plus, DollarSign, Hash, Warehouse, X } from "lucide-react";
 
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { useProductAttributesStore } from "@/stores/admin/product-attribute-store";
@@ -192,13 +192,11 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           );
           if (!attribute) return variant;
 
-          // Remove existing values for this attribute
           const existingValueIds = attribute.values.map((v) => v.id);
           const filteredIds = variant.attributeValueIds.filter(
             (id) => !existingValueIds.includes(id)
           );
 
-          // Add new value if not "none"
           if (valueId && valueId !== "none") {
             filteredIds.push(valueId);
           }
@@ -227,48 +225,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       return selectedValueId || "";
     },
     [variants, productAttributes]
-  );
-
-  // Get variant attributes for display
-  const getVariantAttributesDisplay = useCallback(
-    (variant: ProductVariant) => {
-      if (!variant.attributeValueIds.length) return [];
-
-      return variant.attributeValueIds
-        .map((valueId) => {
-          const attribute = productAttributes.find((attr) =>
-            attr.values.some((val) => val.id === valueId)
-          );
-          const value = productAttributes
-            .flatMap((attr) => attr.values)
-            .find((val) => val.id === valueId);
-
-          return attribute && value
-            ? {
-                attributeName: attribute.name,
-                valueName: value.value,
-                valueId: valueId,
-              }
-            : null;
-        })
-        .filter(Boolean);
-    },
-    [productAttributes]
-  );
-
-  // Get existing attributes from original data
-  const getExistingVariantAttributes = useCallback(
-    (variantId: string) => {
-      const originalVariant = data.variants?.find((v) => v.id === variantId);
-      if (!originalVariant?.variant_attributes) return [];
-
-      return originalVariant.variant_attributes.map((variantAttr) => ({
-        attributeName: variantAttr.attribute.name,
-        valueName: variantAttr.attribute_value.value,
-        valueId: variantAttr.attribute_value_id,
-      }));
-    },
-    [data.variants]
   );
 
   // Image management
@@ -461,245 +417,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     handleImageSelection,
   ]);
 
-  // Variant attributes section
-  const renderVariantAttributesSection = useCallback(
-    (variant: ProductVariant, index: number) => {
-      if (productAttributes.length === 0) return null;
-
-      const currentAttributesDisplay = getVariantAttributesDisplay(variant);
-      const existingAttributesDisplay = variant.isExisting
-        ? getExistingVariantAttributes(variant.id)
-        : [];
-
-      return (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-medium">Attributes</h4>
-              {variant.isExisting && (
-                <Badge variant="outline" className="text-xs">
-                  <Info className="h-3 w-3 mr-1" />
-                  Existing
-                </Badge>
-              )}
-            </div>
-
-            {/* Show existing attributes from original data */}
-            {variant.isExisting && existingAttributesDisplay.length > 0 && (
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-xs font-medium text-blue-800 mb-2">
-                  Original Attributes:
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {existingAttributesDisplay.map((attr) => (
-                    <Badge
-                      key={attr.valueId}
-                      variant="default"
-                      className="text-xs bg-blue-100 text-blue-800"
-                    >
-                      {attr.attributeName}: {attr.valueName}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Attribute selectors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {productAttributes.map((attribute) => {
-                const selectedValue = getSelectedAttributeValue(
-                  variant.id,
-                  attribute.id
-                );
-
-                return (
-                  <div key={attribute.id}>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      {attribute.name}
-                    </label>
-                    <Select
-                      value={selectedValue || "none"}
-                      onValueChange={(value) =>
-                        handleAttributeValueChange(
-                          variant.id,
-                          attribute.id,
-                          value
-                        )
-                      }
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select value" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {attribute.values
-                          .filter((val) => !val.is_deleted)
-                          .map((value) => (
-                            <SelectItem key={value.id} value={value.id}>
-                              {value.value}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Current selected attributes */}
-            {currentAttributesDisplay.length > 0 && (
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="text-xs font-medium text-green-800 mb-2">
-                  Current Selection:
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentAttributesDisplay.map((attr) => (
-                    <Badge
-                      key={attr?.valueId}
-                      variant="secondary"
-                      className="text-xs bg-green-100 text-green-800"
-                    >
-                      {attr?.attributeName}: {attr?.valueName}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Empty state for existing variants */}
-            {variant.isExisting &&
-              existingAttributesDisplay.length === 0 &&
-              currentAttributesDisplay.length === 0 && (
-                <div className="text-xs text-gray-500 italic p-3 bg-gray-50 rounded">
-                  This variant has no attributes assigned
-                </div>
-              )}
-          </div>
-        </>
-      );
-    },
-    [
-      productAttributes,
-      getVariantAttributesDisplay,
-      getExistingVariantAttributes,
-      getSelectedAttributeValue,
-      handleAttributeValueChange,
-      isSubmitting,
-    ]
-  );
-
-  // Variants rendering
-  const renderVariants = useCallback(() => {
-    if (variants.length === 0) {
-      return (
-        <div className="text-center py-8 text-gray-500">
-          <p>No variants loaded yet. Click Add Variant to create one.</p>
-        </div>
-      );
-    }
-
-    return variants.map((variant, index) => (
-      <div key={variant.id} className="border rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium">Variant {index + 1}</h3>
-            {variant.isExisting && (
-              <Badge variant="outline" className="text-xs">
-                Original
-              </Badge>
-            )}
-          </div>
-          {variants.length > 1 && (
-            <Button
-              type="button"
-              onClick={() => removeVariant(variant.id)}
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:text-red-700"
-              disabled={isSubmitting}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* Basic variant info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-sm font-medium flex items-center gap-1 mb-2">
-              <Hash className="h-3 w-3" />
-              SKU *
-            </label>
-            <Input
-              placeholder={
-                form.watch("name") && !variant.isExisting
-                  ? generateSKU(form.watch("name") || "", index)
-                  : "Enter SKU"
-              }
-              value={variant.sku}
-              onChange={(e) => updateVariant(variant.id, "sku", e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium flex items-center gap-1 mb-2">
-              <DollarSign className="h-3 w-3" />
-              Price *
-            </label>
-            <Input
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              value={variant.price || ""}
-              onChange={(e) =>
-                updateVariant(
-                  variant.id,
-                  "price",
-                  parseFloat(e.target.value) || 0
-                )
-              }
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium flex items-center gap-1 mb-2">
-              <Warehouse className="h-3 w-3" />
-              Stock *
-            </label>
-            <Input
-              type="number"
-              placeholder="0"
-              value={variant.stock_quantity || ""}
-              onChange={(e) =>
-                updateVariant(
-                  variant.id,
-                  "stock_quantity",
-                  parseInt(e.target.value) || 0
-                )
-              }
-              disabled={isSubmitting}
-            />
-          </div>
-        </div>
-
-        {/* Attributes section */}
-        {renderVariantAttributesSection(variant, index)}
-      </div>
-    ));
-  }, [
-    variants,
-    isSubmitting,
-    removeVariant,
-    form,
-    generateSKU,
-    updateVariant,
-    renderVariantAttributesSection,
-  ]);
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -763,11 +480,13 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
+                  {categories
+                    .filter((c) => !c.is_deleted)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -795,11 +514,13 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {subcategories.map((sub) => (
-                      <SelectItem key={sub.id} value={sub.id}>
-                        {sub.name}
-                      </SelectItem>
-                    ))}
+                    {subcategories
+                      .filter((subcategory) => !subcategory.is_deleted)
+                      .map((sub) => (
+                        <SelectItem key={sub.id} value={sub.id}>
+                          {sub.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -822,34 +543,182 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         />
 
         {/* Variants */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Product Variants *</h2>
-            <Button
-              type="button"
-              onClick={addVariant}
-              variant="outline"
-              size="sm"
-              disabled={isSubmitting}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Variant
-            </Button>
-          </div>
-
-          <div className="space-y-6">{renderVariants()}</div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-medium">Product Variants *</h2>
           <Button
             type="button"
+            onClick={addVariant}
             variant="outline"
-            onClick={closeModal}
+            size="sm"
             disabled={isSubmitting}
           >
-            Cancel
+            <Plus className="h-4 w-4 mr-2" />
+            Add Variant
           </Button>
+        </div>
+        <div className="space-y-6">
+          {variants.map((variant, index) => (
+            <div key={variant.id} className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Variant {index + 1}</h3>
+                {variants.length > 1 && (
+                  <Button
+                    type="button"
+                    onClick={() => removeVariant(variant.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Basic variant info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                    <Hash className="h-3 w-3" />
+                    SKU *
+                  </label>
+                  <Input
+                    placeholder={
+                      form.watch("name")
+                        ? generateSKU(form.watch("name") || "", index)
+                        : "Enter SKU"
+                    }
+                    value={variant.sku}
+                    onChange={(e) =>
+                      updateVariant(variant.id, "sku", e.target.value)
+                    }
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                    <DollarSign className="h-3 w-3" />
+                    Price *
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={variant.price || ""}
+                    onChange={(e) =>
+                      updateVariant(
+                        variant.id,
+                        "price",
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                    <Warehouse className="h-3 w-3" />
+                    Stock *
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={variant.stock_quantity || ""}
+                    onChange={(e) =>
+                      updateVariant(
+                        variant.id,
+                        "stock_quantity",
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Attributes */}
+              {productAttributes.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium">Attributes</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {productAttributes.map((attribute) => (
+                        <div key={attribute.id}>
+                          <label className="text-xs font-medium text-gray-600 mb-1 block">
+                            {attribute.name}
+                          </label>
+                          <Select
+                            value={getSelectedAttributeValue(
+                              variant.id,
+                              attribute.id
+                            )}
+                            onValueChange={(value) =>
+                              handleAttributeValueChange(
+                                variant.id,
+                                attribute.id,
+                                value
+                              )
+                            }
+                            disabled={isSubmitting}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select value" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {attribute.values
+                                .filter((val) => !val.is_deleted)
+                                .map((value) => (
+                                  <SelectItem key={value.id} value={value.id}>
+                                    {value.value}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Selected attributes display */}
+                    {variant.attributeValueIds.length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-xs text-gray-600 mb-2">
+                          Selected:
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {variant.attributeValueIds.map((valueId) => {
+                            const value = productAttributes
+                              .flatMap((attr) => attr.values)
+                              .find((val) => val.id === valueId);
+                            const attribute = productAttributes.find((attr) =>
+                              attr.values.some((val) => val.id === valueId)
+                            );
+
+                            return value && attribute ? (
+                              <Badge
+                                key={valueId}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {attribute.name}: {value.value}
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting} className="min-w-32">
             {isSubmitting ? <Loading /> : "Update Product"}
           </Button>
