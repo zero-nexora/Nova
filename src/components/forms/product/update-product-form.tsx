@@ -49,7 +49,6 @@ import {
   useUploadImages,
 } from "@/components/uploader/hooks/use-uploader";
 import { useUpdateProduct } from "@/app/(admin)/admin/products/hooks/products/use-update-product";
-import { useDeleteProductImages } from "@/app/(admin)/admin/products/hooks/products/use-delete-product-images";
 
 // Types
 interface ProductVariant extends VariantInput {
@@ -69,7 +68,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
 
   const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { updateProductAsync, isPending: isUpdating } = useUpdateProduct();
-  const { deleteProductImagesAsync } = useDeleteProductImages();
   const { deleteImagesAsync } = useDeleteImages();
 
   // State
@@ -200,21 +198,31 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [productAttributes]
   );
 
+  // Cải thiện hàm getSelectedAttributeValue để đảm bảo hiển thị đúng giá trị đã chọn
   const getSelectedAttributeValue = useCallback(
     (variantId: string, attributeId: string) => {
       const variant = variants.find((v) => v.id === variantId);
-      if (!variant) return "";
+      if (!variant || !variant.attributeValueIds) return "none";
 
       const attribute = productAttributes.find(
         (attr) => attr.id === attributeId
       );
-      if (!attribute) return "";
+      if (!attribute || !attribute.values) return "none";
 
+      // Tìm value ID đã được chọn cho attribute này
       const selectedValueId = variant.attributeValueIds.find((valueId) =>
         attribute.values.some((v) => v.id === valueId)
       );
 
-      return selectedValueId || "";
+      // Đảm bảo value tồn tại trong danh sách options trước khi return
+      if (
+        selectedValueId &&
+        attribute.values.some((v) => v.id === selectedValueId)
+      ) {
+        return selectedValueId;
+      }
+
+      return "none";
     },
     [variants, productAttributes]
   );
@@ -277,6 +285,8 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     return true;
   }, [form, selectedImages, variants]);
 
+  console.log(variants)
+
   const onSubmit = useCallback(
     async (values: z.infer<typeof UpdateProductSchema>) => {
       if (!validateForm()) return;
@@ -284,7 +294,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       try {
         if (imageIdsToRemove.length > 0) {
           await deleteImagesAsync({ publicIds: imagePublicIdsToRemove });
-          await deleteProductImagesAsync({ ids: imageIdsToRemove });
         }
 
         let newImages: { image_url: string; public_id: string }[] = [];
@@ -338,7 +347,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       variants,
       form,
       deleteImagesAsync,
-      deleteProductImagesAsync,
       uploadImagesAsync,
       updateProductAsync,
       closeModal,
@@ -627,68 +635,90 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                   <div className="space-y-4">
                     <h4 className="text-sm font-medium">Attributes</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {productAttributes.map((attribute) => (
-                        <div key={attribute.id}>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">
-                            {attribute.name}
-                          </label>
-                          <Select
-                            value={getSelectedAttributeValue(
-                              variant.id!,
-                              attribute.id
-                            )}
-                            onValueChange={(value) =>
-                              handleAttributeValueChange(
-                                variant.id!,
-                                attribute.id,
-                                value
-                              )
-                            }
-                            disabled={isSubmitting}
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder="Select value" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {attribute.values.map((value) => (
-                                <SelectItem key={value.id} value={value.id}>
-                                  {value.value}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ))}
+                      {productAttributes.map((attribute) => {
+                        const selectedValue = getSelectedAttributeValue(
+                          variant.id!,
+                          attribute.id
+                        );
+
+                        // Tìm value đã chọn để hiển thị tên trong SelectTrigger
+                        const selectedValueObj = attribute.values.find(
+                          (val) => val.id === selectedValue
+                        );
+                        const displayText = selectedValueObj
+                          ? selectedValueObj.value
+                          : "Select value";
+
+                        return (
+                          <div key={attribute.id}>
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">
+                              {attribute.name}
+                            </label>
+                            <Select
+                              value={selectedValue}
+                              onValueChange={(value) =>
+                                handleAttributeValueChange(
+                                  variant.id!,
+                                  attribute.id,
+                                  value
+                                )
+                              }
+                              disabled={isSubmitting}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Select value">
+                                  {selectedValue !== "none"
+                                    ? displayText
+                                    : "Select value"}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {attribute.values.map((value) => (
+                                  <SelectItem key={value.id} value={value.id}>
+                                    {value.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    {variant.attributeValueIds.length > 0 && (
-                      <div className="mt-3">
-                        <div className="text-xs text-gray-600 mb-2">
-                          Selected:
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {variant.attributeValueIds.map((valueId) => {
-                            const value = productAttributes
-                              .flatMap((attr) => attr.values)
-                              .find((val) => val.id === valueId);
-                            const attribute = productAttributes.find((attr) =>
-                              attr.values.some((val) => val.id === valueId)
-                            );
+                    {variant.attributeValueIds &&
+                      variant.attributeValueIds.length > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs text-gray-600 mb-2">
+                            Selected:
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {variant.attributeValueIds
+                              .map((valueId) => {
+                                const value = productAttributes
+                                  .flatMap((attr) => attr.values)
+                                  .find((val) => val.id === valueId);
+                                const attribute = productAttributes.find(
+                                  (attr) =>
+                                    attr.values.some(
+                                      (val) => val.id === valueId
+                                    )
+                                );
 
-                            return value && attribute ? (
-                              <Badge
-                                key={valueId}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {attribute.name}: {value.value}
-                              </Badge>
-                            ) : null;
-                          })}
+                                return value && attribute ? (
+                                  <Badge
+                                    key={valueId}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {attribute.name}: {value.value}
+                                  </Badge>
+                                ) : null;
+                              })
+                              .filter(Boolean)}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </>
               )}

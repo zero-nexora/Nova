@@ -205,7 +205,7 @@ export const ProductList = () => {
 
   const handleViewProduct = useCallback(async (product: Product) => {
     openModal({
-      title: "Category Details",
+      title: "Product Details",
       children: <ProductDetailCard product={product} />,
     });
   }, []);

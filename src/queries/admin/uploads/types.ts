@@ -8,7 +8,7 @@ export const UploadSingleImageSchema = z.object({
 export const UploadImagesSchema = z.object({
   images: z
     .array(z.string().min(1, "Image data cannot be empty"))
-    .min(2, "At least two image is required")
+    .min(1, "At least one image is required")
     .max(
       MAX_IMAGES_PER_REQUEST,
       `Maximum ${MAX_IMAGES_PER_REQUEST} images allowed per request`
@@ -22,7 +22,7 @@ export const DeleteSingleImageSchema = z.object({
 export const DeleteImagesSchema = z.object({
   publicIds: z
     .array(z.string().min(1, "Public ID cannot be empty"))
-    .min(2, "At least two public ID is required")
+    .min(1, "At least one public ID is required")
     .max(
       MAX_IMAGES_PER_REQUEST,
       `Maximum ${MAX_IMAGES_PER_REQUEST} public IDs allowed per request`

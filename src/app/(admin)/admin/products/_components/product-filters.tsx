@@ -27,12 +27,12 @@ interface ProductFiltersProps {
   onClearFilters: () => void;
 }
 
-export const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
+export const ProductFiltersComponent = ({
   filters,
   categories,
   onFiltersChange,
   onClearFilters,
-}) => {
+}: ProductFiltersProps) => {
   const subcategories =
     categories.find((c) => c.id === filters.categoryId)?.subcategories || [];
 

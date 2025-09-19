@@ -22,12 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -39,7 +33,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
-import { ChevronDown, Download, EyeOff, Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { Pagination, Product } from "@/queries/admin/products/types";
 
 interface ProductTableProps {
@@ -59,8 +53,8 @@ interface ProductTableProps {
   setPage: (page: number) => void;
   limit: number;
   setLimit: (limit: number) => void;
-  onBulkDelete?: (selectedIds: string[]) => Promise<void>;
-  onBulkToggle?: (selectedIds: string[]) => Promise<void>;
+  onBulkDelete?: () => Promise<void>;
+  onBulkToggle?: () => Promise<void>;
 }
 
 export const ProductTable = ({
@@ -109,17 +103,16 @@ export const ProductTable = ({
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
-  const selectedIds = selectedRows.map((row) => row.original.id);
 
   const handleBulkDelete = async () => {
-    if (onBulkDelete && selectedIds.length > 0) {
-      await onBulkDelete(selectedIds);
+    if (onBulkDelete) {
+      await onBulkDelete();
     }
   };
 
   const handleBulkToggle = async () => {
-    if (onBulkToggle && selectedIds.length > 0) {
-      await onBulkToggle(selectedIds);
+    if (onBulkToggle) {
+      await onBulkToggle();
     }
   };
 
@@ -158,36 +151,6 @@ export const ProductTable = ({
                 </Button>
               </div>
             )}
-
-            {/* Column visibility */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <EyeOff className="h-4 w-4 mr-2" />
-                  Columns
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id === "select" ? "Selection" : column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {/* Export */}
             <Button variant="outline" size="sm">

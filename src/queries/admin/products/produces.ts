@@ -733,37 +733,4 @@ export const productsRouter = createTRPCRouter({
         notFoundIds,
       };
     }),
-
-  deleteProductImages: adminOrManageProductProcedure
-    .input(
-      z.object({
-        ids: z.array(z.string().uuid("Invalid image id")),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { ids } = input;
-
-      if (!ids.length) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "No image IDs provided",
-        });
-      }
-
-      const result = await ctx.db.product_Images.deleteMany({
-        where: { id: { in: ids } },
-      });
-
-      if (result.count === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No product images found to delete",
-        });
-      }
-
-      return {
-        success: true,
-        deletedCount: result.count,
-      };
-    }),
 });

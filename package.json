@@ -11,8 +11,7 @@
     "dev:webhook": "ngrok http --domain=lightly-possible-locust.ngrok-free.app 3000",
     "dev:all": "concurrently \"npm run dev:webhook\" \"npm run dev\"",
     "seed:base": "npx tsx src/database/seed-base.ts",
-    "seed:category": "npx tsx src/database/seed-category-subcategory.ts",
-    "seed:product-attributes": "npx tsx src/database/seed-product-attributes.ts"
+    "seed:product": "npx tsx src/database/seed-product.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.31.6",
