@@ -263,7 +263,7 @@ export async function createProductVariant(
     },
   });
 
-  if (variantData.attributeValueIds.length > 0) {
+  if (variantData.attributeValueIds?.length) {
     await tx.product_Variant_Attributes.createMany({
       data: variantData.attributeValueIds.map((attrValueId: string) => ({
         product_variant_id: variant.id,

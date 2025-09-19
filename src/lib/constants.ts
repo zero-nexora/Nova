@@ -38,31 +38,61 @@ export const categoriesData = [
   {
     name: "Electronics",
     slug: "electronics",
-    image_url: null,
-    public_id: null,
+    image_url: "https://picsum.photos/seed/electronics/400/300",
+    public_id: "electronics-img",
     subcategories: [
-      { name: "Smartphones", slug: "smartphones" },
-      { name: "Laptops", slug: "laptops" },
+      {
+        name: "Smartphones",
+        slug: "smartphones",
+        image_url: "https://picsum.photos/seed/smartphones/400/300",
+        public_id: "smartphones-img",
+      },
+      {
+        name: "Laptops",
+        slug: "laptops",
+        image_url: "https://picsum.photos/seed/laptops/400/300",
+        public_id: "laptops-img",
+      },
     ],
   },
   {
     name: "Clothing",
     slug: "clothing",
-    image_url: null,
-    public_id: null,
+    image_url: "https://picsum.photos/seed/clothing/400/300",
+    public_id: "clothing-img",
     subcategories: [
-      { name: "Men", slug: "men-clothing" },
-      { name: "Women", slug: "women-clothing" },
+      {
+        name: "Men",
+        slug: "men-clothing",
+        image_url: "https://picsum.photos/seed/men/400/300",
+        public_id: "men-clothing-img",
+      },
+      {
+        name: "Women",
+        slug: "women-clothing",
+        image_url: "https://picsum.photos/seed/women/400/300",
+        public_id: "women-clothing-img",
+      },
     ],
   },
   {
     name: "Furniture",
     slug: "furniture",
-    image_url: null,
-    public_id: null,
+    image_url: "https://picsum.photos/seed/furniture/400/300",
+    public_id: "furniture-img",
     subcategories: [
-      { name: "Tables", slug: "tables" },
-      { name: "Chairs", slug: "chairs" },
+      {
+        name: "Tables",
+        slug: "tables",
+        image_url: "https://picsum.photos/seed/tables/400/300",
+        public_id: "tables-img",
+      },
+      {
+        name: "Chairs",
+        slug: "chairs",
+        image_url: "https://picsum.photos/seed/chairs/400/300",
+        public_id: "chairs-img",
+      },
     ],
   },
 ];

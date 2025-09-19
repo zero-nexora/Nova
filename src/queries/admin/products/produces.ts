@@ -264,7 +264,10 @@ export const productsRouter = createTRPCRouter({
 
         if (variants?.length) {
           for (const variantData of variants) {
-            await createProductVariant(tx, product.id, variantData);
+            await createProductVariant(tx, product.id, {
+              ...variantData,
+              attributeValueIds: variantData.attributeValueIds || [],
+            });
           }
         }
 

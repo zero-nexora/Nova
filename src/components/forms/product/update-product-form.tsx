@@ -144,6 +144,9 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [categories, selectedCategoryId]
   );
 
+
+  console.log(data.variants)
+
   const addVariant = useCallback(() => {
     const newVariant: ProductVariant = {
       id: `new_${Date.now()}`,
@@ -198,7 +201,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [productAttributes]
   );
 
-  // Cải thiện hàm getSelectedAttributeValue để đảm bảo hiển thị đúng giá trị đã chọn
   const getSelectedAttributeValue = useCallback(
     (variantId: string, attributeId: string) => {
       const variant = variants.find((v) => v.id === variantId);
@@ -209,12 +211,10 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       );
       if (!attribute || !attribute.values) return "none";
 
-      // Tìm value ID đã được chọn cho attribute này
       const selectedValueId = variant.attributeValueIds.find((valueId) =>
         attribute.values.some((v) => v.id === valueId)
       );
 
-      // Đảm bảo value tồn tại trong danh sách options trước khi return
       if (
         selectedValueId &&
         attribute.values.some((v) => v.id === selectedValueId)
@@ -284,8 +284,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
 
     return true;
   }, [form, selectedImages, variants]);
-
-  console.log(variants)
 
   const onSubmit = useCallback(
     async (values: z.infer<typeof UpdateProductSchema>) => {

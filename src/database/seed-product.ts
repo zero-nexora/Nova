@@ -4,9 +4,12 @@ import { attributesData, categoriesData } from "@/lib/constants";
 async function clearDatabase() {
   console.log("🧹 Clearing existing data...");
 
+  await db.product_Variant_Attributes.deleteMany();
   await db.product_Variants.deleteMany();
-  await db.products.deleteMany();
+  await db.product_Attribute_Values.deleteMany();
   await db.product_Attributes.deleteMany();
+  await db.product_Images.deleteMany();
+  await db.products.deleteMany();
   await db.subcategories.deleteMany();
   await db.categories.deleteMany();
 
@@ -27,6 +30,8 @@ async function seedCategories() {
           create: cat.subcategories.map((sub) => ({
             name: sub.name,
             slug: sub.slug,
+            image_url: sub.image_url || null,
+            public_id: sub.public_id || null,
           })),
         },
       },
@@ -44,7 +49,9 @@ async function seedProductAttributes() {
       data: {
         name: attr.name,
         values: {
-          create: attr.values,
+          create: attr.values.map((val: { value: string }) => ({
+            value: val.value,
+          })),
         },
       },
     });
@@ -60,11 +67,21 @@ async function seedProducts() {
     include: { subcategories: true },
   });
 
+  const attributes = await db.product_Attributes.findMany({
+    include: { values: true },
+  });
+
   if (categories.length === 0) {
     throw new Error("No categories found. Please seed categories first.");
   }
 
-  const productsData = Array.from({ length: 12 }).map((_, i) => {
+  if (attributes.length === 0) {
+    throw new Error(
+      "No attributes found. Please seed product attributes first."
+    );
+  }
+
+  const productsData = Array.from({ length: 5 }).map((_, i) => {
     const category = categories[i % categories.length];
     const subcategory =
       category.subcategories[i % category.subcategories.length];
@@ -75,38 +92,49 @@ async function seedProducts() {
       description: `This is a description for Product ${i + 1}`,
       category: { connect: { id: category.id } },
       subcategory: { connect: { id: subcategory.id } },
-      variants: {
-        create: [
-          {
-            sku: `SKU-${i + 1}-1`,
-            slug: `product-${i + 1}-variant-1`,
-            price: 10 + i,
-            stock_quantity: 100,
-          },
-          {
-            sku: `SKU-${i + 1}-2`,
-            slug: `product-${i + 1}-variant-2`,
-            price: 20 + i,
-            stock_quantity: 50,
-          },
-        ],
-      },
     };
   });
 
   for (const p of productsData) {
-    await db.products.create({ data: p });
+    const product = await db.products.create({ data: p });
+
+    // thêm 2 variants cho mỗi product
+    for (let j = 1; j <= 2; j++) {
+      const variant = await db.product_Variants.create({
+        data: {
+          product_id: product.id,
+          sku: `SKU-${product.slug}-${j}`,
+          slug: `${product.slug}-variant-${j}`,
+          price: 10 * j,
+          stock_quantity: 100 * j,
+        },
+      });
+
+      // chọn random 1 attribute + 1 value để gắn cho variant
+      const randomAttr =
+        attributes[Math.floor(Math.random() * attributes.length)];
+      const randomValue =
+        randomAttr.values[Math.floor(Math.random() * randomAttr.values.length)];
+
+      await db.product_Variant_Attributes.create({
+        data: {
+          product_variant_id: variant.id,
+          attribute_value_id: randomValue.id,
+        },
+      });
+    }
   }
 
-  console.log(`✅ Seeded ${productsData.length} products`);
+  console.log(
+    `✅ Seeded ${productsData.length} products with variants & attributes`
+  );
 }
 
 async function main() {
   try {
     console.log("🚀 Starting database seeding...");
 
-    await clearDatabase(); // 🧹 dọn trước khi seed
-
+    await clearDatabase();
     await seedCategories();
     await seedProductAttributes();
     await seedProducts();
