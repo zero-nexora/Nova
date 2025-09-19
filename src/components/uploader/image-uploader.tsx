@@ -4,13 +4,13 @@ import { useEffect, useRef } from "react";
 import { UploadIcon } from "lucide-react";
 import { ImagesPreview } from "./images-preview";
 import { MAX_FILE_CATEGORY, MAX_FILES } from "@/lib/constants";
-import { useImageUploader } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 import {
   LocalImagePreview,
   mapPreviewList,
 } from "@/app/(admin)/admin/categories/hooks/types";
 
 import { Button } from "@/components/ui/button";
+import { useImageUploader } from "./hooks/use-uploader";
 
 export interface ImageUploaderProps {
   maxFiles?: number;
@@ -22,7 +22,7 @@ export interface ImageUploaderProps {
 export const ImageUploader = ({
   maxFiles = MAX_FILES,
   disabled = false,
-  multiple = false,
+  multiple = true,
   onImagesChange,
 }: ImageUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,4 +120,3 @@ export const ImageUploader = ({
     </div>
   );
 };
-

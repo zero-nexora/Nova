@@ -1,16 +1,23 @@
 import slugify from "slugify";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { Image, ImageInput, Variant, VariantInput } from "./types";
+
+type TransactionClient = Omit<
+  PrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
 
 export const generateProductSlug = async (
   db: PrismaClient,
   name: string,
   excludeId?: string
-) => {
+): Promise<string> => {
   const baseSlug = slugify(name, {
     lower: true,
     strict: true,
   });
+
   let slug = baseSlug;
   let counter = 1;
 
@@ -20,9 +27,11 @@ export const generateProductSlug = async (
         slug,
         ...(excludeId && { id: { not: excludeId } }),
       },
+      select: { id: true },
     });
 
     if (!existing) break;
+
     slug = `${baseSlug}-${counter}`;
     counter++;
   }
@@ -47,11 +56,12 @@ export function buildProductWhereClause({
 }): Prisma.ProductsWhereInput {
   const where: Prisma.ProductsWhereInput = {};
 
-  if (search) {
+  if (search?.trim()) {
+    const searchTerm = search.trim();
     where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { description: { contains: search, mode: "insensitive" } },
-      { slug: { contains: search, mode: "insensitive" } },
+      { name: { contains: searchTerm, mode: "insensitive" } },
+      { description: { contains: searchTerm, mode: "insensitive" } },
+      { slug: { contains: searchTerm, mode: "insensitive" } },
     ];
   }
 
@@ -69,15 +79,23 @@ export function buildProductWhereClause({
 
   // Price filtering through variants
   if (priceMin !== undefined || priceMax !== undefined) {
-    const priceFilters = [];
-    if (priceMin !== undefined) priceFilters.push({ price: { gte: priceMin } });
-    if (priceMax !== undefined) priceFilters.push({ price: { lte: priceMax } });
+    const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
 
-    where.variants = {
-      some: {
-        AND: [...priceFilters],
-      },
-    };
+    if (priceMin !== undefined && priceMin >= 0) {
+      priceFilters.push({ price: { gte: priceMin } });
+    }
+
+    if (priceMax !== undefined && priceMax >= 0) {
+      priceFilters.push({ price: { lte: priceMax } });
+    }
+
+    if (priceFilters.length > 0) {
+      where.variants = {
+        some: {
+          AND: priceFilters,
+        },
+      };
+    }
   }
 
   return where;
@@ -87,228 +105,36 @@ export function buildProductOrderBy(
   sortBy: string,
   sortOrder: "asc" | "desc"
 ): Prisma.ProductsOrderByWithRelationInput {
+  const validSortFields = ["name", "created_at", "updated_at", "price"];
+
+  if (!validSortFields.includes(sortBy)) {
+    return { created_at: "desc" };
+  }
+
   if (sortBy === "price") {
     return {
       variants: {
         _min: {
-          price: {
-            [sortOrder]: true,
-          },
+          price: sortOrder,
         },
       },
-    } as any;
+    } as Prisma.ProductsOrderByWithRelationInput;
   }
 
-  return { [sortBy]: sortOrder };
-}
-
-export function getProductIncludeOptions() {
-  return {
-    category: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        image_url: true,
-        public_id: true,
-      },
-    },
-    subcategory: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        category_id: true,
-        image_url: true,
-        public_id: true,
-      },
-    },
-    images: {
-      select: {
-        id: true,
-        image_url: true,
-        public_id: true,
-        created_at: true,
-        updated_at: true,
-      },
-      orderBy: {
-        created_at: "asc" as const,
-      },
-    },
-    variants: {
-      select: {
-        id: true,
-        sku: true,
-        slug: true,
-        price: true,
-        stock_quantity: true,
-        created_at: true,
-        updated_at: true,
-        attributes: {
-          select: {
-            id: true,
-            product_variant_id: true,
-            attribute_value_id: true,
-            created_at: true,
-            updated_at: true,
-            attributeValue: {
-              select: {
-                id: true,
-                value: true,
-                attribute_id: true,
-                is_deleted: true,
-                created_at: true,
-                updated_at: true,
-                attribute: {
-                  select: {
-                    id: true,
-                    name: true,
-                    is_deleted: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: {
-            created_at: "asc" as const,
-          },
-        },
-      },
-      orderBy: {
-        created_at: "asc" as const,
-      },
-    },
-    reviews: {
-      select: {
-        id: true,
-        rating: true,
-        comment: true,
-        created_at: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            image_url: true,
-            first_name: true,
-            last_name: true,
-          },
-        },
-      },
-      orderBy: {
-        created_at: "desc" as const,
-      },
-    },
-    _count: {
-      select: {
-        reviews: true,
-        variants: true,
-      },
-    },
-  };
-}
-
-// Enhanced include options for detailed operations (create/update)
-export function getProductDetailIncludeOptions() {
-  return {
-    category: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        image_url: true,
-        public_id: true,
-      },
-    },
-    subcategory: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        image_url: true,
-        public_id: true,
-        category_id: true,
-      },
-    },
-    images: {
-      select: {
-        id: true,
-        image_url: true,
-        public_id: true,
-        created_at: true,
-        updated_at: true,
-      },
-      orderBy: {
-        created_at: "asc" as const,
-      },
-    },
-    variants: {
-      include: {
-        attributes: {
-          include: {
-            attributeValue: {
-              include: {
-                attribute: {
-                  select: {
-                    id: true,
-                    name: true,
-                    is_deleted: true,
-                  },
-                },
-              },
-              where: {
-                is_deleted: false,
-              },
-            },
-          },
-          orderBy: {
-            created_at: "asc" as const,
-          },
-        },
-        _count: {
-          select: {
-            cartItems: true,
-            orderItems: true,
-            wishlists: true,
-          },
-        },
-      },
-      orderBy: {
-        created_at: "asc" as const,
-      },
-    },
-    reviews: {
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatar: true,
-          },
-        },
-      },
-      orderBy: {
-        created_at: "desc" as const,
-      },
-      take: 5, // Latest 5 reviews for preview
-    },
-    _count: {
-      select: {
-        reviews: true,
-        variants: true,
-      },
-    },
-  };
+  return { [sortBy]: sortOrder } as Prisma.ProductsOrderByWithRelationInput;
 }
 
 export async function validateProductDependencies(
   db: PrismaClient,
   categoryId: string,
-  subcategoryId?: string
-) {
-  // Check if category exists and is not deleted
+  subcategoryId?: string | null
+): Promise<void> {
   const category = await db.categories.findFirst({
-    where: { id: categoryId, is_deleted: false },
+    where: {
+      id: categoryId,
+      is_deleted: false,
+    },
+    select: { id: true },
   });
 
   if (!category) {
@@ -318,7 +144,6 @@ export async function validateProductDependencies(
     });
   }
 
-  // Check subcategory if provided
   if (subcategoryId) {
     const subcategory = await db.subcategories.findFirst({
       where: {
@@ -326,6 +151,7 @@ export async function validateProductDependencies(
         category_id: categoryId,
         is_deleted: false,
       },
+      select: { id: true },
     });
 
     if (!subcategory) {
@@ -340,32 +166,52 @@ export async function validateProductDependencies(
 
 export async function validateVariantData(
   db: PrismaClient,
-  variants: any[],
+  variants: VariantInput[],
   excludeProductId?: string
-) {
-  // Validate attribute value IDs
-  const allAttributeValueIds = variants.flatMap((v) => v.attributeValueIds);
-  const uniqueAttributeValueIds = [...new Set(allAttributeValueIds)];
+): Promise<void> {
+  if (!variants.length) return;
 
-  if (uniqueAttributeValueIds.length > 0) {
+  const allAttributeValueIds = [
+    ...new Set(variants.flatMap((variant) => variant.attributeValueIds)),
+  ];
+
+  if (allAttributeValueIds.length > 0) {
     const attributeValues = await db.product_Attribute_Values.findMany({
       where: {
-        id: { in: uniqueAttributeValueIds },
+        id: { in: allAttributeValueIds },
         is_deleted: false,
       },
+      select: { id: true },
     });
 
-    if (attributeValues.length !== uniqueAttributeValueIds.length) {
+    if (attributeValues.length !== allAttributeValueIds.length) {
+      const foundIds = attributeValues.map((av) => av.id);
+      const missingIds = allAttributeValueIds.filter(
+        (id) => !foundIds.includes(id)
+      );
+
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Some attribute values not found or have been deleted",
+        message: `Some attribute values not found or have been deleted: ${missingIds.join(
+          ", "
+        )}`,
       });
     }
   }
 
-  // Check SKU uniqueness (excluding current product variants if updating)
-  const skuList = variants.map((v) => v.sku);
-  const whereClause: any = { sku: { in: skuList } };
+  const skuList = variants.map((variant) => variant.sku);
+  const uniqueSkus = [...new Set(skuList)];
+
+  if (uniqueSkus.length !== skuList.length) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Duplicate SKUs found in variant data",
+    });
+  }
+
+  const whereClause: Prisma.Product_VariantsWhereInput = {
+    sku: { in: skuList },
+  };
 
   if (excludeProductId) {
     whereClause.product = { NOT: { id: excludeProductId } };
@@ -373,29 +219,47 @@ export async function validateVariantData(
 
   const existingVariants = await db.product_Variants.findMany({
     where: whereClause,
+    select: { sku: true },
   });
 
   if (existingVariants.length > 0) {
+    const existingSkus = existingVariants.map((variant) => variant.sku);
     throw new TRPCError({
       code: "CONFLICT",
-      message: `SKU(s) already exist: ${existingVariants
-        .map((v) => v.sku)
-        .join(", ")}`,
+      message: `SKU(s) already exist: ${existingSkus.join(", ")}`,
+    });
+  }
+
+  // Validate prices and stock quantities
+  const invalidVariants = variants.filter(
+    (variant) => variant.price < 0 || variant.stock_quantity < 0
+  );
+
+  if (invalidVariants.length > 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Price and stock quantity must be non-negative",
     });
   }
 }
 
 export async function createProductVariant(
-  tx: any,
+  tx: TransactionClient,
   productId: string,
-  variantData: any
-) {
+  variantData: VariantInput
+): Promise<{ id: string; sku: string; price: number; stock_quantity: number }> {
   const variant = await tx.product_Variants.create({
     data: {
       product_id: productId,
       sku: variantData.sku,
       price: variantData.price,
       stock_quantity: variantData.stock_quantity,
+    },
+    select: {
+      id: true,
+      sku: true,
+      price: true,
+      stock_quantity: true,
     },
   });
 
@@ -412,65 +276,71 @@ export async function createProductVariant(
 }
 
 export async function updateProductImages(
-  tx: any,
+  tx: TransactionClient,
   productId: string,
-  newImages: any[],
-  existingImages: any[]
-) {
-  // Get existing image URLs for comparison
-  const existingImageUrls = new Set(existingImages.map((img) => img.image_url));
+  newImages: ImageInput[],
+  existingImages: Image[]
+): Promise<void> {
+  if (!newImages.length) return;
 
-  // Filter out images that already exist
+  const existingPublicIds = new Set(existingImages.map((img) => img.public_id));
+
   const imagesToCreate = newImages.filter(
-    (img) => img.image_url && !existingImageUrls.has(img.image_url)
+    (img) => img.public_id.trim() && !existingPublicIds.has(img.public_id)
   );
 
-  // Create new images
   if (imagesToCreate.length > 0) {
     await tx.product_Images.createMany({
       data: imagesToCreate.map((image) => ({
         product_id: productId,
-        image_url: image.image_url || "",
-        public_id: image.public_id || "",
+        image_url: image.image_url,
+        public_id: image.public_id,
       })),
     });
   }
-
-  // Note: We don't delete existing images automatically
-  // This should be handled by a separate endpoint for image management
 }
 
 export async function updateProductVariants(
-  tx: any,
+  tx: TransactionClient,
   productId: string,
-  newVariants: any[],
-  existingVariants: any[]
-) {
-  const existingVariantIds = new Set(existingVariants.map((v) => v.id));
-  const newVariantIds = new Set(
-    newVariants.filter((v) => v.id).map((v) => v.id)
+  newVariants: VariantInput[],
+  existingVariants: Variant[]
+): Promise<void> {
+  if (!newVariants.length) {
+    if (existingVariants.length > 0) {
+      const existingVariantIds = existingVariants.map((variant) => variant.id);
+      await tx.product_Variants.deleteMany({
+        where: {
+          id: { in: existingVariantIds },
+        },
+      });
+    }
+    return;
+  }
+
+  const existingVariantIds = new Set(
+    existingVariants.map((variant) => variant.id)
   );
 
-  // Soft delete variants not in the new list
+  const newVariantIds = new Set(
+    newVariants.filter((variant) => variant.id).map((variant) => variant.id)
+  );
+
   const variantsToDelete = existingVariants.filter(
-    (v) => !newVariantIds.has(v.id)
+    (variant) => !newVariantIds.has(variant.id)
   );
 
   if (variantsToDelete.length > 0) {
-    await tx.product_Variants.updateMany({
-      where: { id: { in: variantsToDelete.map((v) => v.id) } },
-      data: {
-        is_deleted: true,
-        deleted_at: new Date(),
-        updated_at: new Date(),
+    const variantsToDeleteIds = variantsToDelete.map((variant) => variant.id);
+    await tx.product_Variants.deleteMany({
+      where: {
+        id: { in: variantsToDeleteIds },
       },
     });
   }
 
-  // Update or create variants
   for (const variant of newVariants) {
     if (variant.id && existingVariantIds.has(variant.id)) {
-      // Update existing variant
       await tx.product_Variants.update({
         where: { id: variant.id },
         data: {
@@ -481,7 +351,6 @@ export async function updateProductVariants(
         },
       });
 
-      // Delete existing attributes and recreate
       await tx.product_Variant_Attributes.deleteMany({
         where: { product_variant_id: variant.id },
       });
@@ -489,14 +358,62 @@ export async function updateProductVariants(
       if (variant.attributeValueIds.length > 0) {
         await tx.product_Variant_Attributes.createMany({
           data: variant.attributeValueIds.map((attrValueId: string) => ({
-            product_variant_id: variant.id,
+            product_variant_id: variant.id!,
             attribute_value_id: attrValueId,
           })),
         });
       }
     } else {
-      // Create new variant
       await createProductVariant(tx, productId, variant);
     }
   }
+}
+
+// Helper function to calculate average rating
+export function calculateAverageRating(
+  reviews: Array<{ rating: number | null }>
+): number {
+  if (!reviews.length) return 0;
+
+  const validRatings = reviews
+    .map((r) => r.rating)
+    .filter((rating): rating is number => rating !== null && rating > 0);
+
+  if (!validRatings.length) return 0;
+
+  const sum = validRatings.reduce((acc, rating) => acc + rating, 0);
+  return Math.round((sum / validRatings.length) * 100) / 100;
+}
+
+// Helper function to get price range for a product
+export function getPriceRange(variants: Array<{ price: number }>): {
+  min: number;
+  max: number;
+  hasRange: boolean;
+} {
+  if (!variants.length) {
+    return { min: 0, max: 0, hasRange: false };
+  }
+
+  const prices = variants.map((v) => v.price).sort((a, b) => a - b);
+  const min = prices[0];
+  const max = prices[prices.length - 1];
+
+  return {
+    min,
+    max,
+    hasRange: min !== max,
+  };
+}
+
+// Helper function to check if product has stock
+export function hasStock(variants: Array<{ stock_quantity: number }>): boolean {
+  return variants.some((variant) => variant.stock_quantity > 0);
+}
+
+// Helper function to get total stock quantity
+export function getTotalStock(
+  variants: Array<{ stock_quantity: number }>
+): number {
+  return variants.reduce((total, variant) => total + variant.stock_quantity, 0);
 }

@@ -8,12 +8,13 @@ import { ActionMenu } from "@/components/global/action-menu";
 import { ArrowUpDown, Package } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ProductTable } from "../hooks/types";
+import { Product } from "@/queries/admin/products/types";
 
 interface ProductTableColumnsProps {
-  onUpdate?: (product: ProductTable) => void;
-  onDelete?: (product: ProductTable) => void;
-  onToggle?: (product: ProductTable) => void;
-  onView?: (product: ProductTable) => void;
+  onUpdate?: (product: Product) => void;
+  onDelete?: (product: Product) => void;
+  onToggle?: (product: Product) => void;
+  onView?: (product: Product) => void;
 }
 
 export const createProductColumns = ({
@@ -21,7 +22,7 @@ export const createProductColumns = ({
   onDelete,
   onToggle,
   onView,
-}: ProductTableColumnsProps): ColumnDef<ProductTable>[] => [
+}: ProductTableColumnsProps): ColumnDef<Product>[] => [
   // Checkbox column
   {
     id: "select",

@@ -40,19 +40,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { ChevronDown, Download, EyeOff, Trash2 } from "lucide-react";
-import { ProductTable as ProductTableType } from "../hooks/types";
-
-interface Pagination {
-  page: number;
-  totalPages: number;
-  totalCount: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-}
+import { Pagination, Product } from "@/queries/admin/products/types";
 
 interface ProductTableProps {
-  products: ProductTableType[];
-  columns: ColumnDef<ProductTableType>[];
+  products: Product[];
+  columns: ColumnDef<Product>[];
   pagination: Pagination | null;
   isFetching: boolean;
   sorting: SortingState;
@@ -71,7 +63,7 @@ interface ProductTableProps {
   onBulkToggle?: (selectedIds: string[]) => Promise<void>;
 }
 
-export const ProductTableComponent: React.FC<ProductTableProps> = ({
+export const ProductTable = ({
   products,
   columns,
   pagination,
@@ -90,8 +82,8 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
   setLimit,
   onBulkDelete,
   onBulkToggle,
-}) => {
-  const table = useReactTable<ProductTableType>({
+}: ProductTableProps) => {
+  const table = useReactTable<Product>({
     data: products,
     columns,
     state: {
@@ -115,7 +107,6 @@ export const ProductTableComponent: React.FC<ProductTableProps> = ({
     getRowId: (row) => row.id,
   });
 
-  // Get selected rows
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
   const selectedIds = selectedRows.map((row) => row.original.id);

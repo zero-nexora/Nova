@@ -27,8 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/global/loading";
-import { ImageUploader } from "@/components/global/image-uploader";
-import { ImagesPreview } from "@/components/global/images-preview";
+import { ImageUploader } from "@/components/uploader/image-uploader";
+import { ImagesPreview } from "@/components/uploader/images-preview";
 
 import { Plus, DollarSign, Hash, Warehouse, X } from "lucide-react";
 
@@ -36,31 +36,28 @@ import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { useProductAttributesStore } from "@/stores/admin/product-attribute-store";
 import { useModal } from "@/stores/modal-store";
 
-import { UpdateProductSchema } from "@/queries/admin/products/types";
-import { ProductTable } from "@/app/(admin)/admin/products/hooks/types";
 import {
-  useRemoveImages,
-  useUploadImages,
-} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
-import {
-  useDeleteProductImages,
-  useUpdateProduct,
-} from "@/app/(admin)/admin/products/hooks/custom-hook-product";
+  Product,
+  UpdateProductSchema,
+  VariantInput,
+} from "@/queries/admin/products/types";
+
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import { MAX_FILES } from "@/lib/constants";
+import {
+  useDeleteImages,
+  useUploadImages,
+} from "@/components/uploader/hooks/use-uploader";
+import { useUpdateProduct } from "@/app/(admin)/admin/products/hooks/products/use-update-product";
+import { useDeleteProductImages } from "@/app/(admin)/admin/products/hooks/products/use-delete-product-images";
 
 // Types
-interface ProductVariant {
-  id: string;
-  sku: string;
-  price: number;
-  stock_quantity: number;
-  attributeValueIds: string[];
+interface ProductVariant extends VariantInput {
   isExisting?: boolean;
 }
 
 interface UpdateProductFormProps {
-  data: ProductTable;
+  data: Product;
 }
 
 export function UpdateProductForm({ data }: UpdateProductFormProps) {
@@ -72,8 +69,8 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
 
   const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { updateProductAsync, isPending: isUpdating } = useUpdateProduct();
-  const { removeImagesAsync } = useRemoveImages();
   const { deleteProductImagesAsync } = useDeleteProductImages();
+  const { deleteImagesAsync } = useDeleteImages();
 
   // State
   const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
@@ -84,7 +81,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Form configuration
   const form = useForm<z.infer<typeof UpdateProductSchema>>({
     resolver: zodResolver(UpdateProductSchema),
     defaultValues: {
@@ -98,36 +94,35 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           image_url: img.image_url,
           public_id: img.public_id,
         })) || [],
-      categoryId: data.category_id,
-      subcategoryId: data.subcategory_id || undefined,
+      categoryId: data.category.id,
+      subcategoryId: data.subcategory?.id || undefined,
     },
     mode: "onChange",
   });
 
-  // Initialize variants with existing data
   useEffect(() => {
     if (data.variants?.length > 0 && !isInitialized) {
-      const initializedVariants = data.variants.map((variant) => {
-        // Extract attribute value IDs from nested variant_attributes
-        const attributeValueIds =
-          variant.variant_attributes?.map(
-            (variantAttr) => variantAttr.attribute_value_id
-          ) || [];
+      const initializedVariants = data.variants.map(
+        (variant): ProductVariant => {
+          const attributeValueIds =
+            variant.attributes?.map(
+              (variantAttr) => variantAttr.attributeValue.id
+            ) || [];
 
-        return {
-          id: variant.id,
-          sku: variant.sku,
-          price: variant.price,
-          stock_quantity: variant.stock_quantity,
-          attributeValueIds,
-          isExisting: true,
-        };
-      });
+          return {
+            id: variant.id,
+            sku: variant.sku,
+            price: variant.price,
+            stock_quantity: variant.stock_quantity,
+            attributeValueIds,
+            isExisting: true,
+          };
+        }
+      );
 
       setVariants(initializedVariants);
       setIsInitialized(true);
     } else if (!isInitialized) {
-      // Create at least one variant if none exist
       const defaultVariant: ProductVariant = {
         id: `new_${Date.now()}`,
         sku: "",
@@ -141,7 +136,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     }
   }, [data.variants, isInitialized]);
 
-  // Computed values
   const isSubmitting =
     form.formState.isSubmitting || isLoadingUpload || isUpdating;
   const selectedCategoryId = form.watch("categoryId");
@@ -152,7 +146,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [categories, selectedCategoryId]
   );
 
-  // Variant management
   const addVariant = useCallback(() => {
     const newVariant: ProductVariant = {
       id: `new_${Date.now()}`,
@@ -180,7 +173,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     []
   );
 
-  // Attribute management
   const handleAttributeValueChange = useCallback(
     (variantId: string, attributeId: string, valueId: string) => {
       setVariants((prev) =>
@@ -227,7 +219,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [variants, productAttributes]
   );
 
-  // Image management
   const handleImageSelection = useCallback((images: LocalImagePreview[]) => {
     setSelectedImages(images);
   }, []);
@@ -246,7 +237,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [form]
   );
 
-  // Utility functions
   const generateSKU = useCallback((baseProductName: string, index: number) => {
     const productPrefix = baseProductName
       .toUpperCase()
@@ -287,21 +277,18 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     return true;
   }, [form, selectedImages, variants]);
 
-  // Form submission
   const onSubmit = useCallback(
     async (values: z.infer<typeof UpdateProductSchema>) => {
       if (!validateForm()) return;
 
       try {
-        // Remove images marked for deletion
         if (imageIdsToRemove.length > 0) {
-          await removeImagesAsync({ publicIds: imagePublicIdsToRemove });
+          await deleteImagesAsync({ publicIds: imagePublicIdsToRemove });
           await deleteProductImagesAsync({ ids: imageIdsToRemove });
         }
 
-        // Upload new images
-        let newImages: { id?: string; image_url: string; public_id: string }[] =
-          [];
+        let newImages: { image_url: string; public_id: string }[] = [];
+
         if (selectedImages.length > 0) {
           const uploadResult = await uploadImagesAsync({
             images: selectedImages.map((image) => image.base64Url),
@@ -313,31 +300,25 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           }));
         }
 
-        // Combine existing and new images
         const existingImages = form.getValues("images") || [];
         values.images = [...existingImages, ...newImages];
 
-        // Prepare variants - FIXED: Match schema structure
-        values.variants = variants.map((variant) => {
-          const variantData: any = {
+        values.variants = variants.map((variant): VariantInput => {
+          const variantData: VariantInput = {
             sku: variant.sku,
             price: variant.price,
             stock_quantity: variant.stock_quantity,
+            attributeValueIds: variant.attributeValueIds,
           };
 
-          // Only add id for existing variants (UUID format)
           if (
             variant.isExisting &&
+            variant.id &&
             variant.id.match(
               /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
             )
           ) {
             variantData.id = variant.id;
-          }
-
-          // Only add attributeValueIds if there are attributes and it's not empty
-          if (variant.attributeValueIds.length > 0) {
-            variantData.attributeValueIds = variant.attributeValueIds;
           }
 
           return variantData;
@@ -356,19 +337,24 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       selectedImages,
       variants,
       form,
-      removeImagesAsync,
+      deleteImagesAsync,
+      deleteProductImagesAsync,
       uploadImagesAsync,
       updateProductAsync,
       closeModal,
+      imagePublicIdsToRemove,
     ]
   );
 
-  // Image section rendering
   const renderImageSection = useCallback(() => {
     const existingImages = form.getValues("images") || [];
     const filteredExistingImages = existingImages.filter(
       (img) => img.id && !imageIdsToRemove.includes(img.id)
     );
+    const previewList = filteredExistingImages.map((image) => ({
+      id: image.id || "",
+      url: image.image_url || "",
+    }));
 
     return (
       <div className="space-y-4">
@@ -378,10 +364,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
               Current Images
             </label>
             <ImagesPreview
-              previewList={filteredExistingImages.map((image) => ({
-                id: image.id || "",
-                url: image.image_url || "",
-              }))}
+              previewList={previewList}
               disabled={isSubmitting}
               onRemove={handleRemoveExistingImage}
             />
@@ -420,7 +403,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* Product Name */}
         <FormField
           control={form.control}
           name="name"
@@ -470,7 +452,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 value={field.value}
                 onValueChange={(value) => {
                   field.onChange(value);
-                  if (value !== data.category_id) {
+                  if (value !== data.category.id) {
                     form.setValue("subcategoryId", undefined);
                   }
                 }}
@@ -564,7 +546,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 {variants.length > 1 && (
                   <Button
                     type="button"
-                    onClick={() => removeVariant(variant.id)}
+                    onClick={() => removeVariant(variant.id!)}
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
@@ -590,7 +572,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                     }
                     value={variant.sku}
                     onChange={(e) =>
-                      updateVariant(variant.id, "sku", e.target.value)
+                      updateVariant(variant.id!, "sku", e.target.value)
                     }
                     disabled={isSubmitting}
                   />
@@ -608,7 +590,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                     value={variant.price || ""}
                     onChange={(e) =>
                       updateVariant(
-                        variant.id,
+                        variant.id!,
                         "price",
                         parseFloat(e.target.value) || 0
                       )
@@ -628,7 +610,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                     value={variant.stock_quantity || ""}
                     onChange={(e) =>
                       updateVariant(
-                        variant.id,
+                        variant.id!,
                         "stock_quantity",
                         parseInt(e.target.value) || 0
                       )
@@ -652,12 +634,12 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                           </label>
                           <Select
                             value={getSelectedAttributeValue(
-                              variant.id,
+                              variant.id!,
                               attribute.id
                             )}
                             onValueChange={(value) =>
                               handleAttributeValueChange(
-                                variant.id,
+                                variant.id!,
                                 attribute.id,
                                 value
                               )
@@ -669,20 +651,17 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">None</SelectItem>
-                              {attribute.values
-                                .filter((val) => !val.is_deleted)
-                                .map((value) => (
-                                  <SelectItem key={value.id} value={value.id}>
-                                    {value.value}
-                                  </SelectItem>
-                                ))}
+                              {attribute.values.map((value) => (
+                                <SelectItem key={value.id} value={value.id}>
+                                  {value.value}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
                       ))}
                     </div>
 
-                    {/* Selected attributes display */}
                     {variant.attributeValueIds.length > 0 && (
                       <div className="mt-3">
                         <div className="text-xs text-gray-600 mb-2">

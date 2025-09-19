@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import {
   Folder,
   FolderOpen,
@@ -12,16 +12,21 @@ import { useModal } from "@/stores/modal-store";
 import { ActionMenu } from "@/components/global/action-menu";
 import { Subcategory } from "@/stores/admin/categories-store";
 import { SubcategoryDetailCard } from "./subcategory-detail-card";
-import {
-  useSubcategoryActions,
-  useSubcategorySelection,
-} from "../hooks/custom-hook-subcategory";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
 import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useSubcategorySelection } from "../hooks/subcategories/use-subcategory-selection";
+import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
+import { useToggleSubcategoryDeleted } from "../hooks/subcategories/use-toggle-subcategory-deleted";
+import { useDeleteSubcategory } from "../hooks/subcategories/use-delete-subcategory";
+import { UpdateSubcategoryForm } from "@/components/forms/category/update-subcategory-form";
+import { useCallback } from "react";
+import { useConfirm } from "@/stores/confirm-store";
+import { useToggleSubcategoryDeletedMultiple } from "../hooks/subcategories/use-toggle-subcategory-deleted-multiple";
+import { useDeleteSubcategoryMultiple } from "../hooks/subcategories/use-delete-subcategory-multiple";
 
 interface SubcategoryListProps {
   subcategories: Subcategory[];
@@ -29,33 +34,23 @@ interface SubcategoryListProps {
 
 export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
   const openModal = useModal((state) => state.open);
+  const openConfirm = useConfirm((state) => state.open);
+  const closeConfirm = useConfirm((state) => state.close);
 
   const {
-    handleUpdateSubcategory,
-    handleToggleSubcategory,
-    handleDeleteSubcategory,
-  } = useSubcategoryActions();
-
-  // Use new separated subcategory selection hook
-  const {
-    // Selection state
     selectedSubcategories,
-    selectedSubcategoriesData,
-    filteredSubcategories, // Use filtered data instead of raw subcategories
+    filteredSubcategories,
 
-    // Subcategory selection state
     isAllSubcategoriesSelected,
     isSubcategoriesIndeterminate,
     selectedSubcategoriesCount,
     hasSubcategorySelection,
 
-    // Search and filter state
     searchTerm,
     filterDeleted,
     sortBy,
     sortOrder,
 
-    // Handlers
     handleSelectAllSubcategories,
     handleSelectSubcategory,
     clearSubcategorySelection,
@@ -64,8 +59,76 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
     handleSortChange,
     handleSortOrderChange,
   } = useSubcategorySelection(subcategories);
+  const { deleteImagesAsync } = useDeleteImages();
+  const { toggleSubcategoryAsync } = useToggleSubcategoryDeleted();
+  const { deleteSubcategoryAsync } = useDeleteSubcategory();
+  const { toggleSubcategoryMultipleAsync } =
+    useToggleSubcategoryDeletedMultiple();
+  const { deleteSubcategoryMultipleAsync } = useDeleteSubcategoryMultiple();
 
-  // Bulk action handler - executes immediately when action is selected
+  const handleUpdateSubcategory = useCallback(
+    (subcategory: Subcategory) => {
+      openModal({
+        title: "Update Subcategory",
+        description: "Update subcategory information",
+        children: <UpdateSubcategoryForm data={subcategory} />,
+      });
+    },
+    [openModal]
+  );
+
+  const handleToggleSubcategory = useCallback(
+    async (subcategory: Subcategory) => {
+      try {
+        openConfirm({
+          title: subcategory.is_deleted
+            ? "Restore Subcategory"
+            : "Move to Trash",
+          description: subcategory.is_deleted
+            ? "Are you sure you want to restore this subcategory?"
+            : "Are you sure you want to move this subcategory to trash?",
+          onConfirm: async () => {
+            await toggleSubcategoryAsync({ id: subcategory.id });
+          },
+        });
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to toggle subcategory status");
+        closeConfirm();
+      }
+    },
+    [toggleSubcategoryAsync, openConfirm]
+  );
+
+  const handleDeleteSubcategory = useCallback(
+    async (subcategory: Subcategory) => {
+      try {
+        openConfirm({
+          title: "Permanent Deletion Warning",
+          description: `Are you absolutely sure you want to permanently delete "${subcategory.name}"? This action CANNOT be undone and will:\n
+- Remove the subcategory forever\n
+- Delete associated images\n
+- Remove all relationships`,
+          onConfirm: async () => {
+            try {
+              if (subcategory.public_id) {
+                await deleteImagesAsync({ publicIds: [subcategory.public_id] });
+              }
+              await deleteSubcategoryAsync({ id: subcategory.id });
+            } catch (error: any) {
+              toast.error(
+                error?.message || "Failed to permanently delete subcategory"
+              );
+              closeConfirm();
+            }
+          },
+        });
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to move subcategory to trash");
+      }
+    },
+    [deleteSubcategoryAsync, deleteImagesAsync, openConfirm]
+  );
+
   const handleSubcategoryBulkAction = async (action: BulkAction) => {
     if (!hasSubcategorySelection) {
       toast.error("No subcategories selected");
@@ -73,34 +136,25 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
     }
 
     try {
-      // Add your bulk action logic here based on action type
       switch (action) {
         case "toggle_deleted":
-          // Execute toggle for all selected subcategories
-          for (const subcategory of selectedSubcategoriesData) {
-            await handleToggleSubcategory(subcategory);
-          }
-          toast.success(
-            `Status toggled for ${selectedSubcategoriesData.length} subcategories`
-          );
+          await toggleSubcategoryMultipleAsync({
+            ids: Array.from(selectedSubcategories),
+          });
           break;
         case "delete_permanently":
-          // Execute permanent delete for all selected subcategories
-          for (const subcategory of selectedSubcategoriesData) {
-            await handleDeleteSubcategory(subcategory);
-          }
-          toast.success(
-            `${selectedSubcategoriesData.length} subcategories deleted permanently`
-          );
+          await deleteSubcategoryMultipleAsync({
+            ids: Array.from(selectedSubcategories),
+          });
           break;
         default:
           toast.error("Unknown action");
           return;
       }
-
       clearSubcategorySelection();
     } catch (error: any) {
       toast.error(error?.message || "Failed to execute bulk action");
+      closeConfirm();
     }
   };
 
@@ -108,14 +162,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
     openModal({
       title: "Subcategory Details",
       children: <SubcategoryDetailCard subcategory={subcategory} />,
-    });
-  };
-
-  const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
     });
   };
 
@@ -145,7 +191,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Header */}
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-foreground flex items-center gap-3">
           <div className="p-2 bg-muted/50 rounded-lg">
@@ -161,7 +206,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
         </h4>
       </div>
 
-      {/* Enhanced Bulk Actions for Subcategories */}
       <BulkActionsToolbar
         totalCount={filteredSubcategories.length}
         selectedCount={selectedSubcategoriesCount}
@@ -182,7 +226,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
         onSortOrderChange={handleSortOrderChange}
       />
 
-      {/* Enhanced Subcategories Grid */}
       <div className="grid gap-4">
         {filteredSubcategories.map((subcategory: Subcategory) => (
           <div
@@ -200,7 +243,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {/* Enhanced Subcategory Checkbox */}
                 <div className="transition-transform hover:scale-110">
                   <Checkbox
                     id={`subcategory-${subcategory.id}`}
@@ -215,7 +257,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                   />
                 </div>
 
-                {/* Enhanced Subcategory Image */}
                 <div className="relative group/image">
                   {subcategory.image_url ? (
                     <div className="relative overflow-hidden">
@@ -262,7 +303,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                   )}
                 </div>
 
-                {/* Enhanced Subcategory Info */}
                 <div className="space-y-2">
                   <h5
                     className={cn(
@@ -290,7 +330,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Enhanced Status Badge */}
                 <div className="transition-transform hover:scale-105">
                   {subcategory.is_deleted ? (
                     <Badge
@@ -309,7 +348,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                   )}
                 </div>
 
-                {/* Enhanced Action Menu */}
                 <div className="transition-transform hover:scale-105">
                   <ActionMenu
                     onUpdate={() => handleUpdateSubcategory(subcategory)}

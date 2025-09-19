@@ -31,7 +31,6 @@ export const metadata: Metadata = {
 const ProductPage = async () => {
   const queryClient = getQueryClient();
 
-  // Prefetch data on server
   await Promise.all([
     queryClient.prefetchQuery(
       trpc.admin.productsRouter.getAll.queryOptions({

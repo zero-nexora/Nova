@@ -1,7 +1,5 @@
-import { useUploadImages } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
-import { useCreateProduct } from "@/app/(admin)/admin/products/hooks/custom-hook-product";
-import { ImageUploader } from "@/components/global/image-uploader";
+import { ImageUploader } from "@/components/uploader/image-uploader";
 import {
   Form,
   FormControl,
@@ -26,13 +24,15 @@ import { CreateProductSchema } from "@/queries/admin/products/types";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { useProductAttributesStore } from "@/stores/admin/product-attribute-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { Plus, DollarSign, Hash, Warehouse, X } from "lucide-react";
 import { Loading } from "@/components/global/loading";
 import { useModal } from "@/stores/modal-store";
+import { useUploadImages } from "@/components/uploader/hooks/use-uploader";
+import { useCreateProduct } from "@/app/(admin)/admin/products/hooks/products/use-create-product";
 
 // Types
 type ProductVariant = {
@@ -48,6 +48,7 @@ export const CreateProductForm = () => {
   const productAttributes = useProductAttributesStore(
     (state) => state.productAttributes
   );
+
   const categories = useCategoriesStore((state) => state.categories);
   const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { createProductAsync } = useCreateProduct();
@@ -116,7 +117,6 @@ export const CreateProductForm = () => {
         if (variant.id === variantId) {
           const newAttributeValueIds = [...variant.attributeValueIds];
 
-          // Remove any existing value for this attribute
           const existingValueIds =
             productAttributes
               .find((attr) => attr.id === attributeId)
@@ -126,7 +126,6 @@ export const CreateProductForm = () => {
             (id) => !existingValueIds.includes(id)
           );
 
-          // Add the new value if it's not empty
           if (valueId && valueId !== "none") {
             filteredIds.push(valueId);
           }
@@ -168,6 +167,25 @@ export const CreateProductForm = () => {
     return `${productPrefix}-${String(index + 1).padStart(3, "0")}`;
   };
 
+  const resetForm = useCallback(() => {
+    form.reset({
+      description: "",
+      name: "",
+      variants: [],
+      images: [],
+    });
+    setSelectedImages([]);
+    setVariants([
+      {
+        id: "default",
+        sku: "",
+        price: 0,
+        stock_quantity: 0,
+        attributeValueIds: [],
+      },
+    ]);
+  }, [form]);
+
   const onSubmit = async (values: z.infer<typeof CreateProductSchema>) => {
     if (selectedImages.length === 0) {
       toast.error("Please select at least one image for the product");
@@ -179,7 +197,6 @@ export const CreateProductForm = () => {
       return;
     }
 
-    // Validate variants
     for (const variant of variants) {
       if (!variant.sku.trim()) {
         toast.error("All variants must have a SKU");
@@ -208,17 +225,8 @@ export const CreateProductForm = () => {
       values.variants = variants.map(({ id, ...variant }) => variant);
 
       await createProductAsync(values);
-      form.reset();
-      setSelectedImages([]);
-      setVariants([
-        {
-          id: "default",
-          sku: "",
-          price: 0,
-          stock_quantity: 0,
-          attributeValueIds: [],
-        },
-      ]);
+
+      resetForm();
       closeModal();
     } catch (error) {
       console.error("Error creating product:", error);
@@ -281,11 +289,13 @@ export const CreateProductForm = () => {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.filter((cateogry) => !cateogry.is_deleted).map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
+                  {categories
+                    .filter((cateogry) => !cateogry.is_deleted)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -372,7 +382,6 @@ export const CreateProductForm = () => {
                 )}
               </div>
 
-              {/* Basic variant info */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium flex items-center gap-1 mb-2">
@@ -435,7 +444,6 @@ export const CreateProductForm = () => {
                 </div>
               </div>
 
-              {/* Attributes */}
               {productAttributes.length > 0 && (
                 <>
                   <Separator />
@@ -466,20 +474,17 @@ export const CreateProductForm = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">None</SelectItem>
-                              {attribute.values
-                                .filter((val) => !val.is_deleted)
-                                .map((value) => (
-                                  <SelectItem key={value.id} value={value.id}>
-                                    {value.value}
-                                  </SelectItem>
-                                ))}
+                              {attribute.values.map((value) => (
+                                <SelectItem key={value.id} value={value.id}>
+                                  {value.value}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
                       ))}
                     </div>
 
-                    {/* Selected attributes display */}
                     {variant.attributeValueIds.length > 0 && (
                       <div className="mt-3">
                         <div className="text-xs text-gray-600 mb-2">

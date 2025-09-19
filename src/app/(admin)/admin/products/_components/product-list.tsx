@@ -8,32 +8,33 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  useBulkProductActions,
-  useDeleteProduct,
-  useGetAllProducts,
-  useProductFilters,
-  useToggleProductDeleted,
-} from "@/app/(admin)/admin/products/hooks/custom-hook-product";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { toast } from "sonner";
-import { ProductTable } from "../hooks/types";
 import { createProductColumns } from "./product-columns";
 import { ProductFiltersComponent } from "./product-filters";
-import { ProductTableComponent } from "./product-table";
 import { useConfirm } from "@/stores/confirm-store";
-import { useRemoveImages } from "../../categories/hooks/custom-hook-category";
 import { useModal } from "@/stores/modal-store";
 import { ProductDetailCard } from "./product-details-card";
 import { UpdateProductForm } from "@/components/forms/product/update-product-form";
+import { useProductFilters } from "../hooks/products/use-product-filters";
+import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
+import { useGetAllProducts } from "../hooks/products/use-get-all-products";
+import { useToggleProductDeletedMultiple } from "../hooks/products/use-toggle-product-deleted-multiple";
+import { useDeleteProductMultiple } from "../hooks/products/use-delete-product-multiple";
+import { Product } from "@/queries/admin/products/types";
+import { useToggleProductDeleted } from "../hooks/products/use-toggle-product-deleted";
+import { useDeleteProduct } from "../hooks/products/use-delete-product";
+import { ProductTable } from "./product-table";
 
 export const ProductList = () => {
   const categories = useCategoriesStore((state) => state.categories);
   const openConfirm = useConfirm((state) => state.open);
   const openModal = useModal((state) => state.open);
   const { toggleProductDeletedAsync } = useToggleProductDeleted();
-  const { removeImagesAsync } = useRemoveImages();
+  const {toggleProductDeletedMultipleAsync} = useToggleProductDeletedMultiple();
   const { deleteProductAsync } = useDeleteProduct();
+  const {deleteProductMultipleAsync} = useDeleteProductMultiple();
+  const { deleteImagesAsync } = useDeleteImages();
 
   // Custom hook for filters and pagination
   const {
@@ -51,7 +52,6 @@ export const ProductList = () => {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  // Get products data
   const { products, pagination, isFetching, error } = useGetAllProducts({
     page: paginationState.page,
     limit: paginationState.limit,
@@ -74,30 +74,74 @@ export const ProductList = () => {
     sortOrder: sorting[0]?.desc ? "desc" : "asc",
   });
 
-  const { handleBulkDelete, handleBulkToggle } = useBulkProductActions();
-
   const selectedIds = Object.keys(rowSelection).filter(
     (id) => rowSelection[id]
   );
 
-  const onBulkDelete = async () => {
-    await handleBulkDelete(
-      selectedIds,
-      products.filter((product) => selectedIds.includes(product.id)) || [],
-      () => setRowSelection({})
-    );
-  };
+  const handleBulkToggle = useCallback(async () => {
+    if (selectedIds.length === 0) return;
 
-  const onBulkToggle = async () => {
-    await handleBulkToggle(
-      selectedIds,
-      () => setRowSelection({})
-    );
-  };
+    openConfirm({
+      title: `Toggle ${selectedIds.length} Products`,
+      description: `Are you sure you want to toggle the status of ${selectedIds.length} selected products? This will move active products to trash and restore deleted products.`,
+      onConfirm: async () => {
+        try {
+          await toggleProductDeletedMultipleAsync({ ids: selectedIds });
+
+          setRowSelection({});
+        } catch (error: any) {
+          toast.error(error?.message || "Failed to toggle products");
+          console.error("Bulk toggle error:", error);
+        }
+      },
+    });
+  }, [toggleProductDeletedAsync, openConfirm]);
+
+  const handleBulkDelete = useCallback(
+    async (
+    ) => {
+      if (selectedIds.length === 0) return;
+
+      openConfirm({
+        title: `Permanently Delete ${selectedIds.length} Products`,
+        description: `Are you absolutely sure you want to permanently delete ${selectedIds.length} selected products? This action CANNOT be undone and will:\n 
+        -Delete all associated images\n -Remove all relationships \n -Permanently remove the products from the database`,
+        onConfirm: async () => {
+          try {
+            const allImagePublicIds: string[] = [];
+
+            if (products) {
+              products.forEach((product) => {
+                if (product.images && Array.isArray(product.images)) {
+                  product.images.forEach((image) => {
+                    if (image.public_id) {
+                      allImagePublicIds.push(image.public_id);
+                    }
+                  });
+                }
+              });
+            }
+
+            if (allImagePublicIds.length > 0) {
+              await deleteImagesAsync({ publicIds: allImagePublicIds });
+            }
+
+            await deleteProductMultipleAsync({ ids: selectedIds });
+
+            setRowSelection({});
+          } catch (error: any) {
+            toast.error(error?.message || "Failed to delete products");
+            console.error("Bulk delete error:", error);
+          }
+        },
+      });
+    },
+    [deleteProductAsync, deleteImagesAsync, openConfirm]
+  );
 
   // Event handlers
-  const onUpdate = useCallback(
-    (product: ProductTable) => {
+  const handleUpdateProduct = useCallback(
+    (product: Product) => {
       openModal({
         children: <UpdateProductForm data={product} />,
         title: "Update Category",
@@ -107,8 +151,8 @@ export const ProductList = () => {
     [openModal]
   );
 
-  const onToggle = useCallback(
-    async (product: ProductTable) => {
+  const handleToggleProduct = useCallback(
+    async (product: Product) => {
       try {
         openConfirm({
           title: product.is_deleted ? "Restore product" : "Move to Trash",
@@ -127,8 +171,8 @@ export const ProductList = () => {
     [toggleProductDeletedAsync, openConfirm]
   );
 
-  const onDelete = useCallback(
-    async (product: ProductTable) => {
+  const handleDeleteProduct = useCallback(
+    async (product: Product) => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
@@ -138,7 +182,7 @@ export const ProductList = () => {
           onConfirm: async () => {
             try {
               if (product.images.length > 0) {
-                await removeImagesAsync({
+                await deleteImagesAsync({
                   publicIds: product.images.map((image) => image.public_id),
                 });
               }
@@ -156,22 +200,21 @@ export const ProductList = () => {
         toast.error(error?.message || "Failed to move category to trash");
       }
     },
-    [deleteProductAsync, removeImagesAsync, openConfirm]
+    [deleteProductAsync, deleteImagesAsync, openConfirm]
   );
 
-  const onView = useCallback(async (product: ProductTable) => {
+  const handleViewProduct = useCallback(async (product: Product) => {
     openModal({
       title: "Category Details",
       children: <ProductDetailCard product={product} />,
     });
   }, []);
 
-  // Create columns with handlers
   const columns = createProductColumns({
-    onUpdate,
-    onDelete,
-    onToggle,
-    onView,
+    onUpdate: handleUpdateProduct,
+    onDelete: handleDeleteProduct,
+    onToggle: handleToggleProduct,
+    onView: handleViewProduct,
   });
 
   if (error) {
@@ -199,7 +242,7 @@ export const ProductList = () => {
       />
 
       {/* Table */}
-      <ProductTableComponent
+      <ProductTable
         products={products}
         columns={columns}
         pagination={pagination}
@@ -216,8 +259,8 @@ export const ProductList = () => {
         setPage={setPage}
         limit={paginationState.limit}
         setLimit={setLimit}
-        onBulkDelete={onBulkDelete}
-        onBulkToggle={onBulkToggle}
+        onBulkDelete={handleBulkDelete}
+        onBulkToggle={handleBulkToggle}
       />
     </div>
   );

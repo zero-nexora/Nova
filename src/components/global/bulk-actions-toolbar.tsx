@@ -35,7 +35,6 @@ interface BulkActionsToolbarProps {
   onExecuteBulkAction: (action: BulkAction) => void;
   entityType?: EntityType;
 
-  // Search and filter props
   searchTerm: string;
   onSearch: (term: string) => void;
   filterDeleted: "all" | "active" | "deleted";
@@ -70,7 +69,6 @@ export const BulkActionsToolbar = ({
   const entityLabel =
     entityType === "category" ? "categories" : "subcategories";
 
-  // Handle immediate bulk action execution
   const handleBulkActionSelect = (action: BulkAction) => {
     openConfirm({
       title:
@@ -139,7 +137,6 @@ export const BulkActionsToolbar = ({
           </div>
         </div>
 
-        {/* Selection Controls */}
         <div className="flex items-center justify-between py-4 px-6 bg-muted/20 rounded-lg border">
           <div className="flex items-center gap-3">
             <Checkbox
@@ -168,7 +165,6 @@ export const BulkActionsToolbar = ({
 
   return (
     <div className="space-y-4">
-      {/* Search and Filter Controls */}
       <div className="flex items-center gap-4 py-3 px-4 bg-muted/10 rounded-lg border">
         <div className="flex items-center gap-2 flex-1">
           <Search className="w-4 h-4 text-muted-foreground" />

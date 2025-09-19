@@ -18,12 +18,6 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import {
-  useCategorySelection,
-  useDeleteCategory,
-  useRemoveImages,
-  useToggleDeleted,
-} from "../hooks/custom-hook-category";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +30,12 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
+import { useDeleteCategory } from "../hooks/categories/use-delete-category";
+import { useCategorySelection } from "../hooks/categories/use-category-selection";
+import { useToggleCategoryDeleted } from "../hooks/categories/use-toggle-category-deleted";
+import { useDeleteImage } from "@/components/uploader/hooks/use-uploader";
+import { useDeleteCategoryMultiple } from "../hooks/categories/use-delete-category-multiple";
+import { useToggleCategoryDeletedMultiple } from "../hooks/categories/use-toggle-category-deleted-multiple";
 
 interface CategoryListProps {
   categories: Category[];
@@ -45,9 +45,11 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
   const openModal = useModal((state) => state.open);
   const openConfirm = useConfirm((state) => state.open);
 
-  const { removeImagesAsync } = useRemoveImages();
   const { deleteCategoryAsync } = useDeleteCategory();
-  const { toggleCategoryAsync } = useToggleDeleted();
+  const { deleteCategoryMultipleAsync } = useDeleteCategoryMultiple();
+  const { toggleCategoryAsync } = useToggleCategoryDeleted();
+  const { toggleCategoryMultipleAsync } = useToggleCategoryDeletedMultiple();
+  const { deleteImageAsync } = useDeleteImage();
 
   // Use new separated category selection hook
   const {
@@ -95,14 +97,14 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
-          description: `Are you absolutely sure you want to permanently delete "${category.name}"? This action CANNOT be undone and will:
-- Remove the category forever
-- Delete associated images
+          description: `Are you absolutely sure you want to permanently delete "${category.name}"? This action CANNOT be undone and will:\n
+- Remove the category forever\n
+- Delete associated images\n
 - Remove all relationships`,
           onConfirm: async () => {
             try {
               if (category.public_id) {
-                await removeImagesAsync({ publicIds: [category.public_id] });
+                await deleteImageAsync({ publicId: category.public_id });
               }
               await deleteCategoryAsync({ id: category.id });
             } catch (error: any) {
@@ -118,7 +120,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
         toast.error(error?.message || "Failed to move category to trash");
       }
     },
-    [deleteCategoryAsync, removeImagesAsync, openConfirm]
+    [deleteCategoryAsync, deleteImageAsync, openConfirm]
   );
 
   const handleToggleCategory = useCallback(
@@ -141,6 +143,16 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     [toggleCategoryAsync, openConfirm]
   );
 
+  const handleViewCategory = useCallback(
+    (category: Category) => {
+      openModal({
+        title: "Category Details",
+        children: <CategoryDetailCard category={category} />,
+      });
+    },
+    [openModal]
+  );
+
   // Bulk action handler - executes immediately when action is selected
   const handleCategoryBulkAction = useCallback(
     async (action: BulkAction) => {
@@ -150,28 +162,16 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
       }
 
       try {
-        // Add your bulk action logic here based on action type
         switch (action) {
           case "toggle_deleted":
-            // Execute toggle for all selected categories
-            for (const category of selectedCategoriesData) {
-              await toggleCategoryAsync({ id: category.id });
-            }
-            toast.success(
-              `Status toggled for ${selectedCategoriesData.length} categories`
-            );
+            await toggleCategoryMultipleAsync({
+              ids: Array.from(selectedCategories),
+            });
             break;
           case "delete_permanently":
-            // Execute permanent delete for all selected categories
-            for (const category of selectedCategoriesData) {
-              if (category.public_id) {
-                await removeImagesAsync({ publicIds: [category.public_id] });
-              }
-              await deleteCategoryAsync({ id: category.id });
-            }
-            toast.success(
-              `${selectedCategoriesData.length} categories deleted permanently`
-            );
+            await deleteCategoryMultipleAsync({
+              ids: Array.from(selectedCategories),
+            });
             break;
           default:
             toast.error("Unknown action");
@@ -187,20 +187,10 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
       hasCategorySelection,
       selectedCategoriesData,
       toggleCategoryAsync,
-      removeImagesAsync,
+      deleteImageAsync,
       deleteCategoryAsync,
       clearCategorySelection,
     ]
-  );
-
-  const handleViewCategory = useCallback(
-    (category: Category) => {
-      openModal({
-        title: "Category Details",
-        children: <CategoryDetailCard category={category} />,
-      });
-    },
-    [openModal]
   );
 
   if (categories.length === 0) {
@@ -229,7 +219,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Category Bulk Actions Toolbar */}
       <BulkActionsToolbar
         totalCount={filteredCategories.length}
         selectedCount={selectedCategoriesCount}
@@ -365,7 +354,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                             </div>
                             <div
                               className={cn(
-                                "flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md",
+                                "flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md"
                               )}
                             >
                               <Hash className="w-3.5 h-3.5" />
@@ -415,7 +404,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
                   <AccordionContent className="px-6 pb-6">
                     <div className="pl-6 border-l-2 border-primary/20 ml-2">
-                      {/* Enhanced Subcategories with full functionality */}
                       <SubcategoryList subcategories={category.subcategories} />
                     </div>
                   </AccordionContent>

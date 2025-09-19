@@ -1,8 +1,8 @@
+import { Metadata } from "next";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { CategoryView } from "./_components/category-view";
 import { PageHeader } from "@/components/global/page-header";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
-import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Category Management | Admin Dashboard",

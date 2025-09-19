@@ -6,10 +6,9 @@ import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useCallback, useMemo } from "react";
-import { ImageUploader } from "../../global/image-uploader";
-import { ImagesPreview } from "../../global/images-preview";
+import { ImageUploader } from "../../uploader/image-uploader";
+import { ImagesPreview } from "../../uploader/images-preview";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
-import { useUpdateSubcategory } from "@/app/(admin)/admin/categories/hooks/custom-hook-subcategory";
 import {
   Subcategory,
   useCategoriesStore,
@@ -18,10 +17,6 @@ import {
   UpdateSubcategorySchema,
   UpdateSubcategoryType,
 } from "@/queries/admin/subcategories/types";
-import {
-  useRemoveImages,
-  useUploadImages,
-} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 
 import {
   Form,
@@ -40,6 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  useDeleteImage,
+  useUploadImage,
+} from "@/components/uploader/hooks/use-uploader";
+import { useUpdateSubcategory } from "@/app/(admin)/admin/categories/hooks/subcategories/use-update-subcategory";
 
 interface UpdateSubcategoryFormProps {
   data: Subcategory;
@@ -49,41 +49,32 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
   // States and hooks
   const { close } = useModal();
   const categories = useCategoriesStore((state) => state.categories);
-  const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
+  const [selectedImage, setSelectedImage] = useState<LocalImagePreview | null>(
+    null
+  );
 
-  // API hooks
-  const { uploadImagesAsync, isPending: isUploadingImages } = useUploadImages();
-  const { updateSubcategoryAsync, isPending: isUpdatingSubcategory } =
-    useUpdateSubcategory();
-  const { removeImagesAsync, isPending: isRemovingImages } = useRemoveImages();
+  const { uploadImageAsync, isPending: isUploadingImages } = useUploadImage();
+  const { updateSubcategoryAsync } = useUpdateSubcategory();
+  const { deleteImageAsync, isPending: isDeleteingImages } = useDeleteImage();
 
-  // Form setup
   const form = useForm<UpdateSubcategoryType>({
     resolver: zodResolver(UpdateSubcategorySchema),
     mode: "onChange",
     defaultValues: {
       id: data.id,
-      name: data.name || "",
-      category_id: data.category_id?.toString() || "",
+      name: data.name,
+      category_id: data.category_id?.toString(),
       public_id: data.public_id || null,
       image_url: data.image_url || null,
     },
   });
 
-  // Computed values
-  const isSubmitting = useMemo(
-    () =>
-      form.formState.isSubmitting ||
-      isUploadingImages ||
-      isRemovingImages ||
-      isUpdatingSubcategory,
-    [
-      form.formState.isSubmitting,
-      isUploadingImages,
-      isRemovingImages,
-      isUpdatingSubcategory,
-    ]
+  const isLoading = useMemo(
+    () => form.formState.isLoading || isUploadingImages || isDeleteingImages,
+    [(form.formState.isLoading, isUploadingImages, isDeleteingImages)]
   );
+
+  const previewList = [{ id: data.id, url: data.image_url || "" }];
 
   const hasExistingImage = useMemo(
     () => Boolean(form.getValues("image_url")),
@@ -95,30 +86,26 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
     [categories]
   );
 
-  // Event handlers
   const handleImageSelection = useCallback((images: LocalImagePreview[]) => {
-    setSelectedImages(images);
+    setSelectedImage(images[0]);
   }, []);
 
-  const handleRemoveImage = useCallback(async () => {
-    const publicId = data.public_id;
-
-    if (!publicId) {
-      toast.error("No image to remove");
-      return;
-    }
-
+  const handleDeleteImage = useCallback(async () => {
     try {
-      await removeImagesAsync({ publicIds: [publicId] });
+      if (!data.public_id) {
+        toast.error("No image to remove");
+        return;
+      }
 
-      // Update form values
+      await deleteImageAsync({ publicId: data.public_id });
+
       form.setValue("image_url", null);
       form.setValue("public_id", null);
     } catch (error) {
       console.error("Error removing image:", error);
       toast.error("Failed to remove image. Please try again.");
     }
-  }, [data.public_id, removeImagesAsync, form]);
+  }, [data.public_id, deleteImageAsync, form]);
 
   const handleCategoryChange = useCallback(
     (categoryId: string) => {
@@ -138,25 +125,24 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
       public_id: null,
       image_url: null,
     });
-    setSelectedImages([]);
+    setSelectedImage(null);
   }, [form, data]);
 
   const handleFormSubmit = useCallback(
     async (values: UpdateSubcategoryType) => {
       try {
-        // Handle image upload if new image is selected
-        if (selectedImages.length > 0) {
-          const uploadResult = await uploadImagesAsync({
-            images: [selectedImages[0].base64Url],
+        if (selectedImage) {
+          const uploadResult = await uploadImageAsync({
+            image: selectedImage.base64Url,
           });
 
-          const uploadedImage = uploadResult.data[0];
+          const uploadedImage = uploadResult.data;
           values.image_url = uploadedImage.imageUrl;
           values.public_id = uploadedImage.publicId;
         }
 
         await updateSubcategoryAsync(values);
-        setSelectedImages([]);
+
         resetForm();
         close();
       } catch (error) {
@@ -164,26 +150,15 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
         toast.error("Failed to update subcategory. Please try again.");
       }
     },
-    [
-      selectedImages,
-      uploadImagesAsync,
-      updateSubcategoryAsync,
-      resetForm,
-      close,
-    ]
+    [selectedImage, uploadImageAsync, updateSubcategoryAsync, resetForm, close]
   );
 
-  // Render helpers
   const renderCategoryOptions = useCallback(() => {
     if (availableCategories.length === 0) {
-      return (
-        <SelectItem value="" disabled>
-          No categories available
-        </SelectItem>
-      );
+      return <div className="text-center p-2 rounded-md">No categories available</div>;
     }
 
-    return availableCategories.map((category) => (
+    return availableCategories.filter((category) => !category.is_deleted).map((category) => (
       <SelectItem key={category.id} value={category.id.toString()}>
         {category.name}
       </SelectItem>
@@ -194,14 +169,9 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
     if (hasExistingImage) {
       return (
         <ImagesPreview
-          previewList={[
-            {
-              id: data.id,
-              url: form.getValues("image_url") as string,
-            },
-          ]}
-          disabled={isSubmitting}
-          onRemove={handleRemoveImage}
+          previewList={previewList}
+          disabled={isLoading}
+          onRemove={handleDeleteImage}
         />
       );
     }
@@ -210,7 +180,7 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
       <FormControl>
         <ImageUploader
           multiple={false}
-          disabled={isSubmitting}
+          disabled={isLoading}
           onImagesChange={handleImageSelection}
         />
       </FormControl>
@@ -219,8 +189,8 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
     hasExistingImage,
     data.id,
     form,
-    isSubmitting,
-    handleRemoveImage,
+    isLoading,
+    handleDeleteImage,
     handleImageSelection,
   ]);
 
@@ -231,7 +201,6 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
           onSubmit={form.handleSubmit(handleFormSubmit)}
           className="space-y-6"
         >
-          {/* Subcategory Name Field */}
           <FormField
             control={form.control}
             name="name"
@@ -244,7 +213,7 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
                   <Input
                     {...field}
                     placeholder="Enter subcategory name"
-                    disabled={isSubmitting}
+                    disabled={isLoading}
                     className="h-11"
                   />
                 </FormControl>
@@ -253,7 +222,6 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
             )}
           />
 
-          {/* Parent Category Field */}
           <FormField
             control={form.control}
             name="category_id"
@@ -266,7 +234,7 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
                   <Select
                     value={field.value}
                     onValueChange={handleCategoryChange}
-                    disabled={isSubmitting}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select parent category" />
@@ -279,7 +247,6 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
             )}
           />
 
-          {/* Image Upload Field */}
           <FormField
             control={form.control}
             name="image_url"
@@ -294,22 +261,21 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
             )}
           />
 
-          {/* Submit Button */}
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={close}
-              disabled={isSubmitting}
+              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !form.formState.isValid}
+              disabled={isLoading || !form.formState.isValid}
               className="min-w-[140px]"
             >
-              {isSubmitting ? <Loading /> : "Update Subcategory"}
+              {isLoading ? <Loading /> : "Update Subcategory"}
             </Button>
           </div>
         </form>

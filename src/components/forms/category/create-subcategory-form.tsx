@@ -6,11 +6,9 @@ import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useMemo, useState } from "react";
-import { ImageUploader } from "../../global/image-uploader";
+import { ImageUploader } from "../../uploader/image-uploader";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
-import { useUploadImages } from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
-import { useCreateSubcategory } from "@/app/(admin)/admin/categories/hooks/custom-hook-subcategory";
 import {
   CreateSubcategorySchema,
   CreateSubcategoryType,
@@ -33,6 +31,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useCreateSubcategory } from "@/app/(admin)/admin/categories/hooks/subcategories/use-create-subcategory";
+import { useUploadImage } from "@/components/uploader/hooks/use-uploader";
 
 export const CreateSubcategoryForm = () => {
   const { close } = useModal();
@@ -40,9 +40,11 @@ export const CreateSubcategoryForm = () => {
   const categories = useCategoriesStore((state) => state.categories);
 
   const { createSubcategoryAsync } = useCreateSubcategory();
-  const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
+  const { uploadImageAsync, isPending: isUploadingImage } = useUploadImage();
 
-  const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
+  const [selectedImage, setSelectedImage] = useState<LocalImagePreview | null>(
+    null
+  );
 
   const form = useForm<CreateSubcategoryType>({
     resolver: zodResolver(CreateSubcategorySchema),
@@ -55,27 +57,26 @@ export const CreateSubcategoryForm = () => {
     },
   });
 
+  const isLoading = useMemo(
+    () => form.formState.isLoading || isUploadingImage,
+    [form.formState.isLoading, isUploadingImage]
+  );
+
   const availableCategories = useMemo(
     () => categories.filter((category) => !category.is_deleted),
     [categories]
   );
 
-  const isSubmitting = form.formState.isSubmitting || isLoadingUpload;
-
   const handleImageSelection = (images: LocalImagePreview[]) => {
-    setSelectedImages(images);
+    setSelectedImage(images[0]);
   };
 
   const renderCategoryOptions = useCallback(() => {
     if (availableCategories.length === 0) {
-      return (
-        <SelectItem value="" disabled>
-          No categories available
-        </SelectItem>
-      );
+      return <div className="text-center p-2 rounded-md">No categories available</div>;
     }
 
-    return availableCategories.map((category) => (
+    return availableCategories.filter((category) => !category.is_deleted).map((category) => (
       <SelectItem key={category.id} value={category.id.toString()}>
         {category.name}
       </SelectItem>
@@ -99,29 +100,29 @@ export const CreateSubcategoryForm = () => {
       public_id: null,
       image_url: null,
     });
-    setSelectedImages([]);
+    setSelectedImage(null);
   }, [form]);
 
   const handleFormSubmit = async (values: CreateSubcategoryType) => {
-    if (selectedImages.length === 0) {
+    if (!selectedImage) {
       toast.error("Please select an image for the subcategory");
       return;
     }
 
     try {
-      const uploadResult = await uploadImagesAsync({
-        images: [selectedImages[0].base64Url],
+      const uploadResult = await uploadImageAsync({
+        image: selectedImage.base64Url,
       });
 
-      const uploadedImage = uploadResult.data[0];
+      const uploadedImage = uploadResult.data;
 
       values.image_url = uploadedImage.imageUrl;
       values.public_id = uploadedImage.publicId;
 
       await createSubcategoryAsync(values);
-      setSelectedImages([]);
-      close();
+
       resetForm();
+      close();
     } catch (error) {
       console.error("Error creating subcategory:", error);
       toast.error("Failed to create subcategory. Please try again.");
@@ -144,7 +145,7 @@ export const CreateSubcategoryForm = () => {
                 <Input
                   {...field}
                   placeholder="Enter subcategory name"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   className="h-12"
                 />
               </FormControl>
@@ -165,7 +166,7 @@ export const CreateSubcategoryForm = () => {
                 <Select
                   value={field.value}
                   onValueChange={handleCategoryChange}
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                 >
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select parent category" />
@@ -187,7 +188,7 @@ export const CreateSubcategoryForm = () => {
               <FormControl>
                 <ImageUploader
                   multiple={false}
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   onImagesChange={handleImageSelection}
                 />
               </FormControl>
@@ -198,10 +199,10 @@ export const CreateSubcategoryForm = () => {
 
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isLoading}
           className="min-w-[140px] ml-auto"
         >
-          {isSubmitting ? <Loading /> : "Create Subcategory"}
+          {isLoading ? <Loading /> : "Create Subcategory"}
         </Button>
       </form>
     </Form>

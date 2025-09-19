@@ -5,6 +5,8 @@ import {
   CreateCategorySchema,
   UpdateCategorySchema,
   DeleteCategorySchema,
+  DeleteMultipleCategoriesSchema,
+  ToggleDeletedMultipleCategoriesSchema,
 } from "./types";
 
 export const categoriesRouter = createTRPCRouter({
@@ -54,6 +56,10 @@ export const categoriesRouter = createTRPCRouter({
           image_url,
           slug,
         },
+        select: {
+          id: true,
+          name: true,
+        },
       });
 
       return category;
@@ -64,7 +70,7 @@ export const categoriesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;
 
-      const existingCategory = await ctx.db.categories.findFirst({
+      const existingCategory = await ctx.db.categories.findUnique({
         where: { id },
       });
 
@@ -76,11 +82,13 @@ export const categoriesRouter = createTRPCRouter({
       }
 
       let slug = existingCategory.slug;
+
       if (updateData.name && updateData.name !== existingCategory.name) {
         slug = await generateCategorySlug(
           ctx.db,
           updateData.name,
-          "categories"
+          "categories",
+          existingCategory.id
         );
       }
 
@@ -90,17 +98,28 @@ export const categoriesRouter = createTRPCRouter({
           ...updateData,
           slug,
         },
+        select: {
+          id: true,
+          name: true,
+        },
       });
 
       return category;
     }),
 
+  // Standardized Category Procedures with consistent return format
+
   toggleDeleted: adminOrManageCategoryProcedure
     .input(DeleteCategorySchema)
     .mutation(async ({ ctx, input }) => {
-      const category = await ctx.db.categories.findFirst({
-        where: { id: input.id },
-        include: {
+      const { id } = input;
+
+      const category = await ctx.db.categories.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          is_deleted: true,
           subcategories: {
             select: {
               id: true,
@@ -130,16 +149,20 @@ export const categoriesRouter = createTRPCRouter({
 
       const result = await ctx.db.$transaction(async (tx) => {
         const updatedCategory = await tx.categories.update({
-          where: { id: input.id },
+          where: { id },
           data: {
             is_deleted: newDeletedStatus,
             deleted_at: newDeletedStatus ? new Date() : null,
+          },
+          select: {
+            id: true,
+            name: true,
           },
         });
 
         if (newDeletedStatus && category.subcategories.length > 0) {
           await tx.subcategories.updateMany({
-            where: { category_id: input.id },
+            where: { category_id: id },
             data: {
               is_deleted: true,
               deleted_at: new Date(),
@@ -148,58 +171,145 @@ export const categoriesRouter = createTRPCRouter({
         }
 
         if (newDeletedStatus && category.products.length > 0) {
-          const productsToDelete = category.products.filter((product) => {
-            if (!product.subcategory_id) {
-              return true;
-            }
-
-            const subcategory = category.subcategories.find(
-              (sub) => sub.id === product.subcategory_id
-            );
-            return subcategory && subcategory.is_deleted;
+          await tx.products.updateMany({
+            where: { category_id: id },
+            data: {
+              is_deleted: newDeletedStatus,
+              deleted_at: newDeletedStatus ? new Date() : null,
+            },
           });
-
-          if (productsToDelete.length > 0) {
-            const productIdsToDelete = productsToDelete.map((p) => p.id);
-
-            await tx.products.updateMany({
-              where: {
-                id: { in: productIdsToDelete },
-              },
-              data: {
-                is_deleted: true,
-                deleted_at: new Date(),
-              },
-            });
-          }
-        }
-
-        if (!newDeletedStatus) {
-          if (category.subcategories.length > 0) {
-            await tx.subcategories.updateMany({
-              where: { category_id: input.id },
-              data: {
-                is_deleted: false,
-                deleted_at: null,
-              },
-            });
-          }
-
-          if (category.products.length > 0) {
-            await tx.products.updateMany({
-              where: { category_id: input.id },
-              data: {
-                is_deleted: false,
-                deleted_at: null,
-              },
-            });
-          }
         }
 
         return updatedCategory;
       });
 
-      return result;
+      return {
+        success: true,
+        data: result,
+        action: newDeletedStatus ? "deleted" : "restored",
+        affectedSubcategories: category.subcategories.length,
+        affectedProducts: category.products.length,
+      };
+    }),
+
+  toggleDeletedMultiple: adminOrManageCategoryProcedure
+    .input(ToggleDeletedMultipleCategoriesSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { ids } = input;
+
+      const categories = await ctx.db.categories.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          name: true,
+          is_deleted: true,
+          subcategories: {
+            select: {
+              id: true,
+              name: true,
+              is_deleted: true,
+              category_id: true,
+            },
+          },
+          products: {
+            select: {
+              id: true,
+              name: true,
+              is_deleted: true,
+              subcategory_id: true,
+              category_id: true,
+            },
+          },
+        },
+      });
+
+      if (categories.length === 0) {
+        return {
+          success: true,
+          count: 0,
+          data: [],
+          notFoundIds: ids,
+          affectedSubcategories: 0,
+          affectedProducts: 0,
+        };
+      }
+
+      const result = await ctx.db.$transaction(async (tx) => {
+        const updatedCategories = [];
+        const subcategoriesToUpdate = [];
+        const productsToUpdate = [];
+
+        for (const category of categories) {
+          const newDeletedStatus = !category.is_deleted;
+
+          const updatedCategory = await tx.categories.update({
+            where: { id: category.id },
+            data: {
+              is_deleted: newDeletedStatus,
+              deleted_at: newDeletedStatus ? new Date() : null,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          });
+
+          updatedCategories.push({
+            ...updatedCategory,
+            action: newDeletedStatus ? "deleted" : "restored",
+          });
+
+          if (newDeletedStatus && category.subcategories.length > 0) {
+            const subcategoryIds = category.subcategories.map(
+              (subcategory) => subcategory.id
+            );
+            subcategoriesToUpdate.push(...subcategoryIds);
+          }
+
+          if (newDeletedStatus && category.products.length > 0) {
+            const productIds = category.products.map((product) => product.id);
+            productsToUpdate.push(...productIds);
+          }
+        }
+
+        if (subcategoriesToUpdate.length > 0) {
+          await tx.subcategories.updateMany({
+            where: { id: { in: subcategoriesToUpdate } },
+            data: {
+              is_deleted: true,
+              deleted_at: new Date(),
+            },
+          });
+        }
+
+        if (productsToUpdate.length > 0) {
+          await tx.products.updateMany({
+            where: { id: { in: productsToUpdate } },
+            data: {
+              is_deleted: true,
+              deleted_at: new Date(),
+            },
+          });
+        }
+
+        return {
+          categories: updatedCategories,
+          affectedSubcategories: subcategoriesToUpdate.length,
+          affectedProducts: productsToUpdate.length,
+        };
+      });
+
+      const foundIds = categories.map((cat) => cat.id);
+      const notFoundIds = ids.filter((id) => !foundIds.includes(id));
+
+      return {
+        success: true,
+        count: result.categories.length,
+        data: result.categories,
+        notFoundIds,
+        affectedSubcategories: result.affectedSubcategories,
+        affectedProducts: result.affectedProducts,
+      };
     }),
 
   delete: adminOrManageCategoryProcedure
@@ -207,9 +317,11 @@ export const categoriesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
 
-      const category = await ctx.db.categories.findFirst({
+      const category = await ctx.db.categories.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          name: true,
           subcategories: {
             select: {
               id: true,
@@ -248,8 +360,103 @@ export const categoriesRouter = createTRPCRouter({
 
       const deletedCategory = await ctx.db.categories.delete({
         where: { id },
+        select: {
+          id: true,
+          name: true,
+        },
       });
 
-      return deletedCategory;
+      return {
+        success: true,
+        data: deletedCategory,
+      };
+    }),
+
+  deleteMultiple: adminOrManageCategoryProcedure
+    .input(DeleteMultipleCategoriesSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { ids } = input;
+
+      const categories = await ctx.db.categories.findMany({
+        where: {
+          id: { in: ids },
+        },
+        select: {
+          id: true,
+          name: true,
+          subcategories: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          products: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (categories.length === 0) {
+        return {
+          success: true,
+          count: 0,
+          deletedCategories: [],
+          notFoundIds: ids,
+          categoriesWithSubcategories: [],
+          categoriesWithProducts: [],
+        };
+      }
+
+      const categoriesWithSubcategories = categories.filter(
+        (cat) => cat.subcategories.length > 0
+      );
+
+      const categoriesWithProducts = categories.filter(
+        (cat) => cat.products.length > 0
+      );
+
+      const categoriesToDelete = categories.filter(
+        (cat) => cat.subcategories.length === 0 && cat.products.length === 0
+      );
+
+      let deletedCount = 0;
+      let deletedCategories: Array<{ id: string; name: string }> = [];
+
+      if (categoriesToDelete.length > 0) {
+        await ctx.db.categories.deleteMany({
+          where: {
+            id: { in: categoriesToDelete.map((cat) => cat.id) },
+          },
+        });
+
+        deletedCount = categoriesToDelete.length;
+        deletedCategories = categoriesToDelete.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+        }));
+      }
+
+      const foundIds = categories.map((cat) => cat.id);
+      const notFoundIds = ids.filter((id) => !foundIds.includes(id));
+
+      return {
+        success: true,
+        count: deletedCount,
+        deletedCategories,
+        notFoundIds,
+        categoriesWithSubcategories: categoriesWithSubcategories.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          subcategoriesCount: cat.subcategories.length,
+        })),
+        categoriesWithProducts: categoriesWithProducts.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          productsCount: cat.products.length,
+        })),
+      };
     }),
 });

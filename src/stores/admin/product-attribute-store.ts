@@ -1,25 +1,14 @@
 // stores/productAttributesStore.ts
 import { create } from "zustand";
 
-// Định nghĩa interface cho 1 Value
 export interface ProductAttributeValue {
   id: string;
-  created_at: Date;
-  updated_at: Date;
-  is_deleted: boolean;
-  deleted_at: Date | null;
   value: string;
-  attribute_id: string;
 }
 
-// Định nghĩa interface cho 1 Attribute
 export interface ProductAttribute {
   id: string;
   name: string;
-  created_at: Date;
-  updated_at: Date;
-  is_deleted: boolean;
-  deleted_at: Date | null;
   values: ProductAttributeValue[];
 }
 

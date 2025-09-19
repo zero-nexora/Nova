@@ -23,6 +23,24 @@ export const DeleteSubcategorySchema = z.object({
   id: z.string().uuid("Invalid subcategory ID format"),
 });
 
+export const DeleteMultipleSubcategoriesSchema = z.object({
+  ids: z
+    .array(z.string().uuid())
+    .min(1, "At least one subcategory ID is required"),
+});
+
+export const ToggleDeletedMultipleSubcategoriesSchema = z.object({
+  ids: z
+    .array(z.string().uuid())
+    .min(1, "At least one subcategory ID is required"),
+});
+
 export type UpdateSubcategoryType = z.infer<typeof UpdateSubcategorySchema>;
 export type CreateSubcategoryType = z.infer<typeof CreateSubcategorySchema>;
 export type DeleteSubcategoryType = z.infer<typeof DeleteSubcategorySchema>;
+export type DeleteMultipleSubcategoriesType = z.infer<
+  typeof DeleteMultipleSubcategoriesSchema
+>;
+export type ToggleDeletedMultipleSubcategoriesType = z.infer<
+  typeof ToggleDeletedMultipleSubcategoriesSchema
+>;

@@ -11,10 +11,10 @@ import {
   Layers,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { ProductTable } from "../hooks/types";
+import { Product } from "@/queries/admin/products/types";
 
 interface ProductDetailCardProps {
-  product: ProductTable;
+  product: Product;
 }
 
 export const ProductDetailCard = ({ product }: ProductDetailCardProps) => {
@@ -76,7 +76,6 @@ export const ProductDetailCard = ({ product }: ProductDetailCardProps) => {
           )}
         </div>
 
-        {/* Metadata Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-muted p-4 rounded-lg text-muted-foreground">
           <div className="flex items-center gap-3">
             <Calendar className="w-5 h-5 text-blue-500" />
@@ -129,17 +128,60 @@ export const ProductDetailCard = ({ product }: ProductDetailCardProps) => {
               {product.variants.map((variant) => (
                 <div
                   key={variant.id}
-                  className="flex justify-between items-center p-3 border rounded-lg bg-card hover:shadow-sm"
+                  className="p-4 border rounded-lg bg-card hover:shadow-sm space-y-2"
                 >
-                  <span className="font-medium">{variant.sku}</span>
-                  <div className="flex gap-6 text-sm text-muted-foreground">
-                    <span>
-                      Price: <b>${variant.price}</b>
-                    </span>
-                    <span>
-                      Stock: <b>{variant.stock_quantity}</b>
-                    </span>
+                  {/* SKU, Price, Stock */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{variant.sku}</span>
+                    <div className="flex gap-6 text-sm text-muted-foreground">
+                      <span>
+                        Price: <b>${variant.price}</b>
+                      </span>
+                      <span>
+                        Stock: <b>{variant.stock_quantity}</b>
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Attributes */}
+                  {variant.attributes.length > 0 && (
+                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                      {variant.attributes.map((attr) => (
+                        <Badge
+                          key={attr.id}
+                          variant="secondary"
+                          className="px-2 py-1"
+                        >
+                          {attr.attributeValue.attribute.name}:{" "}
+                          {attr.attributeValue.value}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Extra Images */}
+        {product.images.length > 1 && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-foreground">
+              Additional Images
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {product.images.slice(1).map((img) => (
+                <div
+                  key={img.id}
+                  className="relative w-full h-40 rounded-lg overflow-hidden"
+                >
+                  <Image
+                    src={img.image_url}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
               ))}
             </div>

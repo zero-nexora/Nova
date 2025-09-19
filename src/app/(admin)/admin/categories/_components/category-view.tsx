@@ -2,7 +2,6 @@
 
 import { CategorySkeleton } from "@/components/global/category-skeleton";
 import { CategoryList } from "./category-list";
-import { useEffect, useState } from "react";
 import { CategoryStats } from "@/components/global/category-stats";
 import { CreateCategory } from "./create-category";
 import { CreateSubcategory } from "./create-subcategory";
@@ -10,13 +9,6 @@ import { useCategoriesStore } from "@/stores/admin/categories-store";
 
 export const CategoryView = () => {
   const { categories, error, loading } = useCategoriesStore();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) return null;
 
   if (loading) {
     return <CategorySkeleton />;

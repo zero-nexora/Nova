@@ -1,24 +1,19 @@
 "use client";
 
 import { toast } from "sonner";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Loading } from "../../global/loading";
 import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageUploader } from "../../global/image-uploader";
-import { ImagesPreview } from "../../global/images-preview";
+import { ImageUploader } from "../../uploader/image-uploader";
+import { ImagesPreview } from "../../uploader/images-preview";
 import { Category } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import {
   UpdateCategorySchema,
   UpdateCategoryType,
 } from "@/queries/admin/categories/types";
-import {
-  useRemoveImages,
-  useUpdateCategory,
-  useUploadImages,
-} from "@/app/(admin)/admin/categories/hooks/custom-hook-category";
 
 import {
   Form,
@@ -30,6 +25,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  useDeleteImage,
+  useUploadImage,
+} from "@/components/uploader/hooks/use-uploader";
+import { useUpdateCategory } from "@/app/(admin)/admin/categories/hooks/categories/use-update-category";
 
 interface UpdateCategoryFormProps {
   data: Category;
@@ -37,11 +37,12 @@ interface UpdateCategoryFormProps {
 
 export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
   const { close } = useModal();
-  const [selectedImages, setSelectedImages] = useState<LocalImagePreview[]>([]);
-  const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
+  const [selectedImage, setSelectedImage] = useState<LocalImagePreview | null>(
+    null
+  );
+  const { uploadImageAsync, isPending: isUploadingImage } = useUploadImage();
   const { updateCategoryAsync } = useUpdateCategory();
-  const { removeImagesAsync, isPending: isLoadingRemoveImages } =
-    useRemoveImages();
+  const { deleteImageAsync, isPending: isDeletingImage } = useDeleteImage();
 
   const form = useForm<UpdateCategoryType>({
     resolver: zodResolver(UpdateCategorySchema),
@@ -54,20 +55,30 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
     },
   });
 
-  const isSubmitting =
-    form.formState.isSubmitting || isLoadingUpload || isLoadingRemoveImages;
+  const isLoading = useMemo(
+    () => form.formState.isLoading || isUploadingImage || isDeletingImage,
+    [form.formState.isLoading, isUploadingImage, isDeletingImage]
+  );
+
+  const previewList = [{ id: data.id, url: data.image_url || "" }];
+
+  const hasExistingImage = useMemo(
+    () => Boolean(form.getValues("image_url")),
+    [form]
+  );
 
   const handleImageSelection = (images: LocalImagePreview[]) => {
-    setSelectedImages(images);
+    setSelectedImage(images[0]);
   };
 
-  const onRemoveImage = async () => {
+  const handleDeleteImage = async () => {
     try {
       if (!data.public_id) {
         toast.error("No image to remove");
         return;
       }
-      await removeImagesAsync({ publicIds: [data.public_id] });
+      await deleteImageAsync({ publicId: data.public_id });
+
       form.setValue("image_url", null);
       form.setValue("public_id", null);
     } catch (error) {
@@ -76,31 +87,65 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
     }
   };
 
+  const formReset = () => {
+    form.reset({
+      id: data.id,
+      name: data.name || "",
+      public_id: null,
+      image_url: null,
+    });
+    setSelectedImage(null);
+  };
+
   const handleFormSubmit = async (values: UpdateCategoryType) => {
     try {
-      if (selectedImages.length > 0) {
-        const uploadResult = await uploadImagesAsync({
-          images: [selectedImages[0].base64Url],
+      if (selectedImage) {
+        const uploadResult = await uploadImageAsync({
+          image: selectedImage.base64Url,
         });
-        const uploadedImage = uploadResult.data[0];
+        const uploadedImage = uploadResult.data;
         values.image_url = uploadedImage.imageUrl;
         values.public_id = uploadedImage.publicId;
       }
 
       await updateCategoryAsync(values);
-      form.reset({
-        id: data.id,
-        name: data.name || "",
-        public_id: null,
-        image_url: null,
-      });
-      setSelectedImages([]);
+
+      formReset();
       close();
     } catch (error) {
       console.error("Error updating category:", error);
       toast.error("Failed to update category. Please try again.");
     }
   };
+
+  const renderImageSection = useCallback(() => {
+    if (hasExistingImage) {
+      return (
+        <ImagesPreview
+          previewList={previewList}
+          disabled={isLoading}
+          onRemove={handleDeleteImage}
+        />
+      );
+    }
+
+    return (
+      <FormControl>
+        <ImageUploader
+          multiple={false}
+          disabled={isLoading}
+          onImagesChange={handleImageSelection}
+        />
+      </FormControl>
+    );
+  }, [
+    hasExistingImage,
+    data.id,
+    form,
+    isLoading,
+    handleDeleteImage,
+    handleImageSelection,
+  ]);
 
   return (
     <Form {...form}>
@@ -118,7 +163,7 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
                 <Input
                   {...field}
                   placeholder="Enter category name"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   className="h-12"
                 />
               </FormControl>
@@ -133,24 +178,7 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
           render={() => (
             <FormItem>
               <FormLabel>Category Image *</FormLabel>
-              {form.getValues("image_url") && (
-                <ImagesPreview
-                  previewList={[
-                    { id: data.id, url: form.getValues("image_url") as string },
-                  ]}
-                  disabled={isSubmitting}
-                  onRemove={onRemoveImage}
-                />
-              )}
-              {!form.getValues("image_url") && (
-                <FormControl>
-                  <ImageUploader
-                    multiple={false}
-                    disabled={isSubmitting}
-                    onImagesChange={handleImageSelection}
-                  />
-                </FormControl>
-              )}
+              {renderImageSection()}
               <FormMessage />
             </FormItem>
           )}
@@ -158,10 +186,10 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
 
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isLoading}
           className="min-w-[140px] ml-auto"
         >
-          {isSubmitting ? <Loading /> : "Update Category"}
+          {isLoading ? <Loading /> : "Update Category"}
         </Button>
       </form>
     </Form>
