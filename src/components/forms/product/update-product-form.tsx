@@ -144,9 +144,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     [categories, selectedCategoryId]
   );
 
-
-  console.log(data.variants)
-
   const addVariant = useCallback(() => {
     const newVariant: ProductVariant = {
       id: `new_${Date.now()}`,
@@ -159,7 +156,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     setVariants((prev) => [...prev, newVariant]);
   }, []);
 
-  const removeVariant = useCallback((variantId: string) => {
+  const deleteVariant = useCallback((variantId: string) => {
     setVariants((prev) =>
       prev.length > 1 ? prev.filter((v) => v.id !== variantId) : prev
     );
@@ -552,7 +549,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 {variants.length > 1 && (
                   <Button
                     type="button"
-                    onClick={() => removeVariant(variant.id!)}
+                    onClick={() => deleteVariant(variant.id!)}
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700"

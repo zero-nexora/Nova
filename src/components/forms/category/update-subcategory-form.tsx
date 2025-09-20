@@ -74,7 +74,7 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
     [(form.formState.isLoading, isUploadingImages, isDeleteingImages)]
   );
 
-  const previewList = [{ id: data.id, url: data.image_url || "" }];
+  const previewList = [{ id: data.id, url: form.getValues("image_url") || "" }];
 
   const hasExistingImage = useMemo(
     () => Boolean(form.getValues("image_url")),
