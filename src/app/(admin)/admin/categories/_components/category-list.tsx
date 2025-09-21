@@ -251,17 +251,17 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
               >
                 <div
                   className={cn(
-                    "transition-all duration-300 bg-muted/10 border border-l-4 border-l-primary/50 rounded-md hover:bg-muted/15",
+                    "transition-all duration-300 border bg-muted/10 rounded-md hover:bg-muted/15",
                     category.is_deleted &&
                       "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
                     selectedCategories.has(category.id) &&
-                      "ring-2 ring-primary/30 bg-primary/5 border-l-primary shadow-lg",
+                      "ring-2 ring-primary/30 bg-primary/5",
                     category.is_deleted &&
                       selectedCategories.has(category.id) &&
                       "ring-2 ring-destructive/30 bg-destructive/5 border-l-destructive"
                   )}
                 >
-                  <AccordionTrigger className="px-6 py-5 hover:no-underline group">
+                  <AccordionTrigger className="p-3 hover:no-underline group">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-5">
                         {/* Enhanced Category Checkbox */}
@@ -403,9 +403,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                   </AccordionTrigger>
 
                   <AccordionContent className="px-6 pb-6">
-                    <div className="pl-6 border-l-2 border-primary/20 ml-2">
-                      <SubcategoryList subcategories={category.subcategories} />
-                    </div>
+                    <SubcategoryList subcategories={category.subcategories} />
                   </AccordionContent>
                 </div>
               </AccordionItem>

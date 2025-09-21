@@ -231,14 +231,14 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
           <div
             key={subcategory.id}
             className={cn(
-              "p-5 bg-muted/10 border transition-all duration-300 border-l-4 border-l-primary/50 rounded-md transform",
+              "p-3 bg-muted/10 border transition-all duration-300 rounded-md transform",
               subcategory.is_deleted &&
                 "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
               selectedSubcategories.has(subcategory.id) &&
-                "ring-2 ring-primary/30 bg-primary/5 border-l-primary shadow-lg",
+                "ring-2 ring-primary/30 bg-primary/5",
               subcategory.is_deleted &&
                 selectedSubcategories.has(subcategory.id) &&
-                "ring-2 ring-destructive/30 bg-destructive/5 border-l-destructive"
+                "ring-2 ring-destructive/30 bg-destructive/5"
             )}
           >
             <div className="flex items-center justify-between">
