@@ -7,7 +7,7 @@ interface StoreProviderProps {
   children: React.ReactNode;
 }
 
-export const StoreProvider = ({ children }: StoreProviderProps) => {
+export const StoreAdminProvider = ({ children }: StoreProviderProps) => {
   useGetAllCategories();
   useGetAllProductAttributes();
 

@@ -1,4 +1,5 @@
 import { categoriesRouter } from "@/queries/admin/categories/produces";
+import { categoriesRouter as categoriesRouterClient } from "@/queries/client/categories/produces";
 import { createTRPCRouter } from "../init";
 import { uploadRouter } from "@/queries/admin/uploads/produces";
 import { subcategoriesRouter } from "@/queries/admin/subcategories/produces";
@@ -11,6 +12,9 @@ export const appRouter = createTRPCRouter({
     productsRouter,
   },
   upload: uploadRouter,
+  client: {
+    categoriesRouterClient,
+  },
 });
 
 export type AppRouter = typeof appRouter;

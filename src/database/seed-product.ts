@@ -81,7 +81,7 @@ async function seedProducts() {
     );
   }
 
-  const productsData = Array.from({ length: 5 }).map((_, i) => {
+  const productsData = Array.from({ length: 10 }).map((_, i) => {
     const category = categories[i % categories.length];
     const subcategory =
       category.subcategories[i % category.subcategories.length];
@@ -98,7 +98,6 @@ async function seedProducts() {
   for (const p of productsData) {
     const product = await db.products.create({ data: p });
 
-    // thêm 2 variants cho mỗi product
     for (let j = 1; j <= 2; j++) {
       const variant = await db.product_Variants.create({
         data: {
@@ -110,7 +109,6 @@ async function seedProducts() {
         },
       });
 
-      // chọn random 1 attribute + 1 value để gắn cho variant
       const randomAttr =
         attributes[Math.floor(Math.random() * attributes.length)];
       const randomValue =

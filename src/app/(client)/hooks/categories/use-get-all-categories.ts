@@ -1,0 +1,37 @@
+"use client";
+
+import { useEffect } from "react";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { useCategoriesStore } from "@/stores/client/categories-store";
+
+export function useGetAllCategories() {
+  const trpc = useTRPC();
+  const setCategories = useCategoriesStore((state) => state.setCategories);
+  const setLoading = useCategoriesStore((state) => state.setLoading);
+  const setError = useCategoriesStore((state) => state.setError);
+
+  const { data, error, isFetching } = useQuery(
+    trpc.client.categoriesRouterClient.getAll.queryOptions()
+  );
+
+  useEffect(() => {
+    if (data) {
+      setCategories(data);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    setLoading(isFetching);
+  }, [isFetching]);
+
+  useEffect(() => {
+    if (error) setError(error);
+  }, [error]);
+
+  return {
+    error,
+    categories: data,
+    isPending: isFetching,
+  };
+}

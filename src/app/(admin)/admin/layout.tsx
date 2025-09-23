@@ -1,7 +1,7 @@
 import { BlurPage } from "@/components/global/blur-page";
 import { InfoBar } from "./_components/info-bar";
 import { Sidebar } from "./_components/sidebar";
-import { StoreProvider } from "@/providers/store-provider";
+import { StoreAdminProvider } from "@/providers/store-admin-provider";
 
 interface LayoutAdminProps {
   children: React.ReactNode;
@@ -14,9 +14,9 @@ const LayoutAdmin = ({ children }: LayoutAdminProps) => {
       <div className="md:pl-[300px]">
         <InfoBar />
         <div className="relative">
-          <StoreProvider>
+          <StoreAdminProvider>
             <BlurPage>{children}</BlurPage>
-          </StoreProvider>
+          </StoreAdminProvider>
         </div>
       </div>
     </main>
