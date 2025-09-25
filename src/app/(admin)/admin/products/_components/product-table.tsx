@@ -116,6 +116,17 @@ export const ProductTable = ({
     }
   };
 
+  const handlePageSizeChange = (value: string) => {
+    setLimit(Number(value));
+    setPage(1);
+    setRowSelection({}); // Clear selection on page size change
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    setRowSelection({}); // Clear selection on page change
+  };
+
   return (
     <Card className="bg-muted/10 border">
       <CardHeader>
@@ -243,14 +254,7 @@ export const ProductTable = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <p className="text-sm font-medium">Rows per page</p>
-                <Select
-                  value={`${limit}`}
-                  onValueChange={(value) => {
-                    setLimit(Number(value));
-                    setPage(1);
-                    setRowSelection({}); // Clear selection on page size change
-                  }}
-                >
+                <Select value={`${limit}`} onValueChange={handlePageSizeChange}>
                   <SelectTrigger className="h-8 w-[70px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -272,10 +276,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => {
-                      setPage(1);
-                      setRowSelection({}); // Clear selection on page change
-                    }}
+                    onClick={() => handlePageChange(1)}
                     disabled={!pagination.hasPreviousPage}
                   >
                     <span className="sr-only">Go to first page</span>⟪
@@ -283,10 +284,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => {
-                      setPage(page - 1);
-                      setRowSelection({});
-                    }}
+                    onClick={() => handlePageChange(page - 1)}
                     disabled={!pagination.hasPreviousPage}
                   >
                     <span className="sr-only">Go to previous page</span>⟨
@@ -294,10 +292,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => {
-                      setPage(page + 1);
-                      setRowSelection({});
-                    }}
+                    onClick={() => handlePageChange(page + 1)}
                     disabled={!pagination.hasNextPage}
                   >
                     <span className="sr-only">Go to next page</span>⟩
@@ -305,10 +300,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => {
-                      setPage(pagination.totalPages);
-                      setRowSelection({});
-                    }}
+                    onClick={() => handlePageChange(pagination.totalPages)}
                     disabled={!pagination.hasNextPage}
                   >
                     <span className="sr-only">Go to last page</span>⟫

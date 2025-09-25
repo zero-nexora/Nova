@@ -26,126 +26,88 @@ export const productsRouter = createTRPCRouter({
   getAll: adminOrManageProductProcedure
     .input(GetAllProductsSchema)
     .query(async ({ input, ctx }) => {
-      const {
-        page,
-        limit,
-        search,
-        categoryId,
-        subcategoryId,
-        isDeleted,
-        sortBy,
-        sortOrder,
-        priceMin,
-        priceMax,
-      } = input;
+      const { page, limit, sortBy, sortOrder, ...filters } = input;
 
-      try {
-        const skip = (page - 1) * limit;
-        const where = buildProductWhereClause({
-          search,
-          categoryId,
-          subcategoryId,
-          isDeleted,
-          priceMin,
-          priceMax,
-        });
+      const where = buildProductWhereClause(filters);
 
-        const orderBy = buildProductOrderBy(sortBy, sortOrder);
+      const orderBy = buildProductOrderBy(sortBy, sortOrder);
 
-        const [products, totalCount] = await Promise.all([
-          ctx.db.products.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy,
+      const offset = (page - 1) * limit;
+
+      const totalCount = await ctx.db.products.count({ where });
+
+      const products = await ctx.db.products.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          is_deleted: true,
+          created_at: true,
+          updated_at: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+          subcategory: {
+            select: { id: true, name: true, slug: true },
+          },
+          images: {
             select: {
               id: true,
-              name: true,
-              slug: true,
-              description: true,
-              is_deleted: true,
-              created_at: true,
-              updated_at: true,
-              category: {
+              image_url: true,
+              public_id: true,
+            },
+            take: 1,
+            orderBy: { created_at: "asc" },
+          },
+          variants: {
+            select: {
+              id: true,
+              sku: true,
+              price: true,
+              stock_quantity: true,
+              attributes: {
                 select: {
                   id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-              subcategory: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-              images: {
-                select: {
-                  id: true,
-                  image_url: true,
-                  public_id: true,
-                },
-                take: 1,
-                orderBy: { created_at: "asc" },
-              },
-              variants: {
-                select: {
-                  id: true,
-                  sku: true,
-                  price: true,
-                  stock_quantity: true,
-                  attributes: {
+                  attributeValue: {
                     select: {
                       id: true,
-                      attributeValue: {
-                        select: {
-                          id: true,
-                          value: true,
-                          attribute: {
-                            select: {
-                              id: true,
-                              name: true,
-                            },
-                          },
-                        },
+                      value: true,
+                      attribute: {
+                        select: { id: true, name: true },
                       },
                     },
                   },
                 },
-                orderBy: { price: "asc" },
-              },
-              _count: {
-                select: {
-                  reviews: true,
-                  variants: true,
-                },
               },
             },
-          }),
-          ctx.db.products.count({ where }),
-        ]);
-
-        const totalPages = Math.ceil(totalCount / limit);
-
-        return {
-          products,
-          pagination: {
-            page,
-            limit,
-            totalCount,
-            totalPages,
-            hasNextPage: page < totalPages,
-            hasPreviousPage: page > 1,
+            orderBy: { price: "asc" },
           },
-        } as GetAllProductsResponse;
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch products",
-        });
-      }
+          _count: {
+            select: { reviews: true, variants: true },
+          },
+        },
+      });
+
+      const totalPages = Math.ceil(totalCount / limit);
+      const hasNextPage = page < totalPages;
+      const hasPreviousPage = page > 1;
+
+      return {
+        products,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage,
+        },
+      };
     }),
 
   getByCategory: adminOrManageProductProcedure

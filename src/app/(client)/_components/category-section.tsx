@@ -33,9 +33,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Category, useCategoriesStore } from "@/stores/client/categories-store";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const CategorySection = () => {
   const categories = useCategoriesStore((state) => state.categories);
+  const isLoading = useCategoriesStore((state) => state.loading);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleCategoryClick = (categorySlug: string) => {
@@ -48,6 +50,8 @@ export const CategorySection = () => {
     setIsSheetOpen(false); // Close sheet on mobile after selection
     // Add your navigation logic here
   };
+
+  if (isLoading) return <CategorySectionSkeleton />
 
   return (
     <div className="w-full border-b">
@@ -84,7 +88,7 @@ export const CategorySection = () => {
           {/* Navigation Menu for Categories */}
           <NavigationMenu className="flex-1">
             <NavigationMenuList className="flex-wrap gap-2">
-              {categories.slice(0, 6).map((category) => (
+              {categories.slice(0, 7).map((category) => (
                 <NavigationMenuItem key={category.id}>
                   {category.subcategories.length > 0 ? (
                     <>
@@ -169,7 +173,7 @@ export const CategorySection = () => {
 
           {/* Quick access to top categories */}
           <div className="flex items-center space-x-1 flex-wrap">
-            {categories.slice(0, 4).map((category) => (
+            {categories.slice(0, 7).map((category) => (
               <Button
                 key={category.id}
                 variant="ghost"
@@ -241,6 +245,60 @@ export const CategorySection = () => {
               </div>
             </SheetContent>
           </Sheet>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CategorySectionSkeleton = () => {
+  return (
+    <div className="w-full border-b">
+      <div className="container mx-auto px-4">
+        {/* Desktop Skeleton */}
+        <div className="hidden lg:flex items-center py-4">
+          <div className="flex items-center space-x-2 mr-8">
+            {/* All Categories Dropdown Skeleton */}
+            <div className="flex items-center space-x-2 border rounded-md px-3 py-2 bg-background">
+              <Menu className="h-4 w-4 text-muted-foreground" />
+              <Skeleton className="h-4 w-24" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Navigation Menu Skeleton */}
+          <div className="flex items-center space-x-4 flex-1">
+            {[...Array(6)].map((_, index) => (
+              <Skeleton key={index} className="h-9 w-20" />
+            ))}
+          </div>
+        </div>
+
+        {/* Tablet Skeleton */}
+        <div className="hidden md:flex lg:hidden items-center py-4">
+          <div className="flex items-center space-x-2 mr-4">
+            {/* Categories Dropdown Skeleton for Tablet */}
+            <div className="flex items-center space-x-2 border rounded-md px-2 py-1 bg-background text-sm">
+              <Menu className="h-4 w-4 text-muted-foreground" />
+              <Skeleton className="h-4 w-16" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Quick access categories skeleton */}
+          <div className="flex items-center space-x-1 flex-wrap">
+            {[...Array(4)].map((_, index) => (
+              <Skeleton key={index} className="h-8 w-16 rounded-md" />
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile Skeleton */}
+        <div className="md:hidden py-4">
+          <div className="w-full flex items-center justify-center space-x-2 border rounded-md px-4 py-2 bg-background">
+            <Menu className="h-4 w-4 text-muted-foreground" />
+            <Skeleton className="h-4 w-32" />
+          </div>
         </div>
       </div>
     </div>

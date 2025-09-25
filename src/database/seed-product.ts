@@ -81,7 +81,7 @@ async function seedProducts() {
     );
   }
 
-  const productsData = Array.from({ length: 10 }).map((_, i) => {
+  const productsData = Array.from({ length: 40 }).map((_, i) => {
     const category = categories[i % categories.length];
     const subcategory =
       category.subcategories[i % category.subcategories.length];

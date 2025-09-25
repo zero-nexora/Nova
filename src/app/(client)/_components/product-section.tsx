@@ -1,26 +1,29 @@
-"use client"
-
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star, ShoppingCart, Eye } from "lucide-react";
-import { useGetAllProducts } from "../hooks/products/use-get-all-products";
 import { Product } from "@/queries/client/products/types";
-
-// Remove the mock data array
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import { useInfiniteProducts } from "../hooks/products/use-infinity-products";
+import { useInfiniteScrollTrigger } from "../hooks/products/use-infinite-scroll-trigger";
 
 const ProductCard = ({ product }: { product: Product }) => {
   const mainImage = product.images[0]?.image_url || "/api/placeholder/300/300";
-  const minPrice = Math.min(...product.variants.map(v => v.price));
-  const maxPrice = Math.max(...product.variants.map(v => v.price));
+  const minPrice = Math.min(...product.variants.map((v) => v.price));
+  const maxPrice = Math.max(...product.variants.map((v) => v.price));
   const totalStock = product.variants.reduce(
     (sum, v) => sum + v.stock_quantity,
     0
   );
-  const rating = 4.5; // Mock rating
+  const rating = 4.5;
 
   return (
     <Card className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
@@ -55,19 +58,19 @@ const ProductCard = ({ product }: { product: Product }) => {
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-4 flex-grow">
         <div className="space-y-2">
           <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
-          
+
           {product.description && (
             <p className="text-muted-foreground text-sm line-clamp-2">
               {product.description}
             </p>
           )}
-          
+
           <div className="flex items-center gap-2 text-sm">
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -77,7 +80,7 @@ const ProductCard = ({ product }: { product: Product }) => {
               ({product._count.reviews} reviews)
             </span>
           </div>
-          
+
           {product.subcategory && (
             <Badge variant="outline" className="text-xs w-fit">
               {product.subcategory.name}
@@ -85,7 +88,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           )}
         </div>
       </CardContent>
-      
+
       <CardFooter className="p-4 pt-0">
         <div className="w-full space-y-3">
           <div className="flex items-center justify-between">
@@ -110,7 +113,7 @@ const ProductCard = ({ product }: { product: Product }) => {
               </p>
             </div>
           </div>
-          
+
           <button className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 transition-colors font-medium">
             Add to Cart
           </button>
@@ -147,10 +150,52 @@ const ProductSkeleton = () => (
   </Card>
 );
 
-export const ProductSection = () => {
-  const { isFetching, products } = useGetAllProducts();
+interface ProductSectionProps {
+  limit?: number;
+  sortBy?: "created_at" | "name" | "price";
+  sortOrder?: "asc" | "desc";
+  categoryId?: string;
+  subcategoryId?: string;
+  searchQuery?: string;
+  minPrice?: number;
+  maxPrice?: number;
+}
 
-  if (isFetching) {
+export const ProductSection: React.FC<ProductSectionProps> = ({
+  limit = DEFAULT_LIMIT,
+  sortBy = "created_at",
+  sortOrder = "desc",
+  categoryId,
+  subcategoryId,
+  searchQuery,
+  minPrice,
+  maxPrice,
+}) => {
+  const {
+    products,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending,
+    error,
+  } = useInfiniteProducts({
+    limit,
+    sortBy,
+    sortOrder,
+    ...(categoryId && { categoryId }),
+    ...(subcategoryId && { subcategoryId }),
+    ...(searchQuery && { searchQuery }),
+    ...(minPrice !== undefined && { minPrice }),
+    ...(maxPrice !== undefined && { maxPrice }),
+  });
+
+  const loadMoreRef = useInfiniteScrollTrigger(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  );
+
+  if (isPending) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -166,6 +211,26 @@ export const ProductSection = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <div className="max-w-md mx-auto">
+            <div className="mb-4">
+              <ShoppingCart className="w-16 h-16 mx-auto text-destructive/50" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2 text-destructive">
+              Error loading products
+            </h3>
+            <p className="text-muted-foreground">
+              Something went wrong. Please try again later.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -174,13 +239,28 @@ export const ProductSection = () => {
           Discover our curated collection of premium products
         </p>
       </div>
-      
+
       {products && products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product, index) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          {hasNextPage && (
+            <div className="mt-8">
+              <div ref={loadMoreRef} className="h-1" />
+              {isFetchingNextPage && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {Array.from({ length: limit }).map((_, index) => (
+                    <ProductSkeleton key={`loading-${index}`} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
@@ -189,7 +269,8 @@ export const ProductSection = () => {
             </div>
             <h3 className="text-xl font-semibold mb-2">No products found</h3>
             <p className="text-muted-foreground">
-              We couldn't find any products. Please try again later.
+              We couldn&apos;t find any products matching your criteria. Please
+              try adjusting your filters.
             </p>
           </div>
         </div>

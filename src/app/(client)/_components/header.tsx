@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, ShoppingCart, User, Heart, Menu, X } from "lucide-react";
+import { Search, ShoppingCart, Heart, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { UserButton } from "@clerk/nextjs";
 import ThemeToggle from "@/components/global/theme-toggle";
@@ -33,7 +31,7 @@ export function Header() {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b">
+    <header className="sticky top-0 z-50 w-full border-b backdrop-blur-xl opacity-90">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}

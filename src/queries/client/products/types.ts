@@ -84,24 +84,20 @@ export interface Product {
   _count: ProductCounts;
 }
 
-export interface GetAllProductsResponse {
+export interface GetInfiniteProductsResponse {
   products: Product[];
-  pagination: Pagination;
+  nextCursor?: string;
+  hasMore: boolean;
 }
 
-export const GetAllProductsSchema = z.object({
-  page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(100).default(10),
+export const GetInfiniteProductsSchema = z.object({
+  limit: z.number().min(1).max(100).default(20),
+  cursor: z.string().optional(),
   search: z.string().optional(),
-  categoryId: z.string().uuid().optional(),
-  subcategoryId: z.string().uuid().optional(),
-  isDeleted: z.boolean().optional(),
-  sortBy: z
-    .enum(["price", "name", "created_at", "updated_at"])
-    .default("created_at"),
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
-  priceMin: z.number().nonnegative().optional(),
-  priceMax: z.number().nonnegative().optional(),
+  categoryId: z.string().optional(),
+  subcategoryId: z.string().optional(),
+  sortBy: z.enum(['name', 'created_at', 'price']).default('created_at'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  priceMin: z.number().min(0).optional(),
+  priceMax: z.number().min(0).optional(),
 });
-
-export type GetAllProductsInput = z.infer<typeof GetAllProductsSchema>;
