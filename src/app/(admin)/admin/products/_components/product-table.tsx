@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -23,18 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { Download, Trash2 } from "lucide-react";
 import { Pagination, Product } from "@/queries/admin/products/types";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface ProductTableProps {
   products: Product[];
@@ -51,8 +45,6 @@ interface ProductTableProps {
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   page: number;
   setPage: (page: number) => void;
-  limit: number;
-  setLimit: (limit: number) => void;
   onBulkDelete?: () => Promise<void>;
   onBulkToggle?: () => Promise<void>;
 }
@@ -72,11 +64,13 @@ export const ProductTable = ({
   setRowSelection,
   page,
   setPage,
-  limit,
-  setLimit,
   onBulkDelete,
   onBulkToggle,
 }: ProductTableProps) => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const table = useReactTable<Product>({
     data: products,
     columns,
@@ -101,6 +95,12 @@ export const ProductTable = ({
     getRowId: (row) => row.id,
   });
 
+  useEffect(() => {
+    if (searchParams.get("page")) {
+      setPage(parseInt(searchParams.get("page") || "1"));
+    }
+  }, [searchParams]);
+
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
 
@@ -116,15 +116,17 @@ export const ProductTable = ({
     }
   };
 
-  const handlePageSizeChange = (value: string) => {
-    setLimit(Number(value));
-    setPage(1);
-    setRowSelection({}); // Clear selection on page size change
+  const createQueryString = (name: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(name, value);
+    return params.toString();
   };
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    setRowSelection({}); // Clear selection on page change
+    setRowSelection({});
+
+    router.push(`${pathname}?${createQueryString("page", newPage.toString())}`);
   };
 
   return (
@@ -251,23 +253,7 @@ export const ProductTable = ({
         {pagination && pagination.totalPages > 1 && (
           <>
             <Separator className="my-4" />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium">Rows per page</p>
-                <Select value={`${limit}`} onValueChange={handlePageSizeChange}>
-                  <SelectTrigger className="h-8 w-[70px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent side="top">
-                    {[10, 20, 30, 40, 50].map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <div className="flex items-center justify-end">
               <div className="flex items-center space-x-6 lg:space-x-8">
                 <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                   Page {pagination.page} of {pagination.totalPages}

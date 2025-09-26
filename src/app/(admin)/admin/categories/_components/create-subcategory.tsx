@@ -1,18 +1,13 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/stores/modal-store";
-import { memo, useCallback, useEffect, useState } from "react";
 import { CreateSubcategoryForm } from "@/components/forms/category/create-subcategory-form";
 
 export const CreateSubcategory = memo(() => {
   const { open } = useModal();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const handleCreateSubcategory = useCallback(async () => {
     open({
@@ -21,8 +16,6 @@ export const CreateSubcategory = memo(() => {
       children: <CreateSubcategoryForm />,
     });
   }, [open]);
-
-  if (!isMounted) return null;
 
   return (
     <Button

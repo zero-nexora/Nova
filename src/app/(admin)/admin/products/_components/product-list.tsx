@@ -25,43 +25,64 @@ import { Product } from "@/queries/admin/products/types";
 import { useToggleProductDeleted } from "../hooks/products/use-toggle-product-deleted";
 import { useDeleteProduct } from "../hooks/products/use-delete-product";
 import { ProductTable } from "./product-table";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+
+// Hàm kiểm tra UUID hợp lệ
+const isValidUUID = (str: string) => {
+  const uuidRegex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+  return (
+    uuidRegex.test(str) ||
+    str === "00000000-0000-0000-0000-000000000000" ||
+    str === "ffffffff-ffff-ffff-ffff-ffffffffffff"
+  );
+};
 
 export const ProductList = () => {
   const categories = useCategoriesStore((state) => state.categories);
   const openConfirm = useConfirm((state) => state.open);
   const openModal = useModal((state) => state.open);
   const { toggleProductDeletedAsync } = useToggleProductDeleted();
-  const {toggleProductDeletedMultipleAsync} = useToggleProductDeletedMultiple();
+  const { toggleProductDeletedMultipleAsync } =
+    useToggleProductDeletedMultiple();
   const { deleteProductAsync } = useDeleteProduct();
-  const {deleteProductMultipleAsync} = useDeleteProductMultiple();
+  const { deleteProductMultipleAsync } = useDeleteProductMultiple();
   const { deleteImagesAsync } = useDeleteImages();
 
-  // Custom hook for filters and pagination
   const {
     filters,
     pagination: paginationState,
     updateFilters,
     clearFilters,
     setPage,
-    setLimit,
   } = useProductFilters();
 
-  // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
+  // Map deletedFilter to boolean/undefined and validate categoryId/subcategoryId
+  const isDeleted =
+    filters.deletedFilter === "all"
+      ? undefined
+      : filters.deletedFilter === "true";
+  const categoryId =
+    filters.categoryId && isValidUUID(filters.categoryId)
+      ? filters.categoryId
+      : undefined;
+  const subcategoryId =
+    filters.subcategoryId && isValidUUID(filters.subcategoryId)
+      ? filters.subcategoryId
+      : undefined;
+
   const { products, pagination, isFetching, error } = useGetAllProducts({
     page: paginationState.page,
-    limit: paginationState.limit,
-    search: filters.search,
-    categoryId: filters.categoryId || undefined,
-    subcategoryId: filters.subcategoryId || undefined,
-    isDeleted:
-      filters.deletedFilter === "all"
-        ? undefined
-        : filters.deletedFilter === "true",
+    limit: DEFAULT_LIMIT,
+    search: filters.search || undefined,
+    categoryId,
+    subcategoryId,
+    isDeleted,
     priceMin: filters.priceRange.min
       ? parseFloat(filters.priceRange.min)
       : undefined,
@@ -87,7 +108,6 @@ export const ProductList = () => {
       onConfirm: async () => {
         try {
           await toggleProductDeletedMultipleAsync({ ids: selectedIds });
-
           setRowSelection({});
         } catch (error: any) {
           toast.error(error?.message || "Failed to toggle products");
@@ -95,57 +115,57 @@ export const ProductList = () => {
         }
       },
     });
-  }, [toggleProductDeletedAsync, openConfirm]);
+  }, [toggleProductDeletedMultipleAsync, openConfirm, selectedIds]);
 
-  const handleBulkDelete = useCallback(
-    async (
-    ) => {
-      if (selectedIds.length === 0) return;
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.length === 0) return;
 
-      openConfirm({
-        title: `Permanently Delete ${selectedIds.length} Products`,
-        description: `Are you absolutely sure you want to permanently delete ${selectedIds.length} selected products? This action CANNOT be undone and will:\n 
-        -Delete all associated images\n -Remove all relationships \n -Permanently remove the products from the database`,
-        onConfirm: async () => {
-          try {
-            const allImagePublicIds: string[] = [];
+    openConfirm({
+      title: `Permanently Delete ${selectedIds.length} Products`,
+      description: `Are you absolutely sure you want to permanently delete ${selectedIds.length} selected products? This action CANNOT be undone and will:\n 
+        - Delete all associated images\n - Remove all relationships \n - Permanently remove the products from the database`,
+      onConfirm: async () => {
+        try {
+          const allImagePublicIds: string[] = [];
 
-            if (products) {
-              products.forEach((product) => {
-                if (product.images && Array.isArray(product.images)) {
-                  product.images.forEach((image) => {
-                    if (image.public_id) {
-                      allImagePublicIds.push(image.public_id);
-                    }
-                  });
-                }
-              });
-            }
-
-            if (allImagePublicIds.length > 0) {
-              await deleteImagesAsync({ publicIds: allImagePublicIds });
-            }
-
-            await deleteProductMultipleAsync({ ids: selectedIds });
-
-            setRowSelection({});
-          } catch (error: any) {
-            toast.error(error?.message || "Failed to delete products");
-            console.error("Bulk delete error:", error);
+          if (products) {
+            products.forEach((product) => {
+              if (product.images && Array.isArray(product.images)) {
+                product.images.forEach((image) => {
+                  if (image.public_id) {
+                    allImagePublicIds.push(image.public_id);
+                  }
+                });
+              }
+            });
           }
-        },
-      });
-    },
-    [deleteProductAsync, deleteImagesAsync, openConfirm]
-  );
 
-  // Event handlers
+          if (allImagePublicIds.length > 0) {
+            await deleteImagesAsync({ publicIds: allImagePublicIds });
+          }
+
+          await deleteProductMultipleAsync({ ids: selectedIds });
+          setRowSelection({});
+        } catch (error: any) {
+          toast.error(error?.message || "Failed to delete products");
+          console.error("Bulk delete error:", error);
+        }
+      },
+    });
+  }, [
+    deleteProductMultipleAsync,
+    deleteImagesAsync,
+    openConfirm,
+    products,
+    selectedIds,
+  ]);
+
   const handleUpdateProduct = useCallback(
     (product: Product) => {
       openModal({
         children: <UpdateProductForm data={product} />,
-        title: "Update Category",
-        description: "Update category information",
+        title: "Update Product",
+        description: "Update product information",
       });
     },
     [openModal]
@@ -181,9 +201,11 @@ export const ProductList = () => {
   - Remove all relationships`,
           onConfirm: async () => {
             try {
-              if (product.images.length > 0) {
+              if (product.images?.length > 0) {
                 await deleteImagesAsync({
-                  publicIds: product.images.map((image) => image.public_id),
+                  publicIds: product.images
+                    .map((image) => image.public_id)
+                    .filter(Boolean),
                 });
               }
               await deleteProductAsync({ id: product.id });
@@ -197,18 +219,21 @@ export const ProductList = () => {
         });
       } catch (error: any) {
         toast.dismiss();
-        toast.error(error?.message || "Failed to move category to trash");
+        toast.error(error?.message || "Failed to delete product");
       }
     },
     [deleteProductAsync, deleteImagesAsync, openConfirm]
   );
 
-  const handleViewProduct = useCallback(async (product: Product) => {
-    openModal({
-      title: "Product Details",
-      children: <ProductDetailCard product={product} />,
-    });
-  }, []);
+  const handleViewProduct = useCallback(
+    (product: Product) => {
+      openModal({
+        title: "Product Details",
+        children: <ProductDetailCard product={product} />,
+      });
+    },
+    [openModal]
+  );
 
   const columns = createProductColumns({
     onUpdate: handleUpdateProduct,
@@ -257,8 +282,6 @@ export const ProductList = () => {
         setRowSelection={setRowSelection}
         page={paginationState.page}
         setPage={setPage}
-        limit={paginationState.limit}
-        setLimit={setLimit}
         onBulkDelete={handleBulkDelete}
         onBulkToggle={handleBulkToggle}
       />

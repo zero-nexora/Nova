@@ -118,5 +118,4 @@ export interface ProductFilters {
 
 export interface PaginationState {
   page: number;
-  limit: number;
 }

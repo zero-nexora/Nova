@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
-import { ArrowUpDown, Package } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ProductTable } from "../hooks/types";
 import { Product } from "@/queries/admin/products/types";
+import Image from "next/image";
+import { placeholderImage } from "@/lib/constants";
 
 interface ProductTableColumnsProps {
   onUpdate?: (product: Product) => void;
@@ -53,20 +55,15 @@ export const createProductColumns = ({
     header: "Image",
     cell: ({ row }) => {
       const images = row.getValue("images") as ProductTable["images"];
-      const firstImage = images?.[0];
+      const firstImage = images?.[0]?.image_url || placeholderImage;
       return (
-        <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100">
-          {firstImage ? (
-            <img
-              src={firstImage.image_url}
-              alt={row.original.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="h-6 w-6 text-gray-400" />
-            </div>
-          )}
+        <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100">
+          <Image
+            src={firstImage}
+            alt={row.original.name}
+            className="object-cover"
+            fill
+          />
         </div>
       );
     },
