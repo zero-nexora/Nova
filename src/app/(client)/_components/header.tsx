@@ -1,8 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Search, ShoppingCart, Heart, Menu, X } from "lucide-react";
-import { useState } from "react";
+import {
+  Search,
+  ShoppingCart,
+  Heart,
+  Menu,
+  X,
+  User,
+  LayoutDashboard,
+} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +27,83 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isDesktopSearchFocused, setIsDesktopSearchFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+
+  const products = [
+    "iPhone 15 Pro Max",
+    "Macbook Pro M3",
+    "Samsung Galaxy S24",
+    "AirPods Pro 2",
+    "iPad Air 2024",
+    "Apple Watch Series 9",
+    "Nintendo Switch",
+    "PlayStation 5",
+    "Xbox Series X",
+    "Surface Pro 10",
+  ];
+
+  // Lọc sản phẩm theo query
+  const filtered =
+    searchQuery.trim().length > 0
+      ? products.filter((p) =>
+          p.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : [];
+
+  // Xử lý click outside để ẩn suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        desktopSearchRef.current &&
+        !desktopSearchRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+        setIsDesktopSearchFocused(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleDesktopSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      console.log("Searching for:", searchQuery);
-      setIsMobileSearchOpen(false);
+      console.log("Desktop searching for:", searchQuery);
+      setShowSuggestions(false);
+      setIsDesktopSearchFocused(false);
+      // Thực hiện search logic ở đây
     }
+  };
+
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      console.log("Mobile searching for:", searchQuery);
+      setIsMobileSearchOpen(false);
+      // Thực hiện search logic ở đây
+    }
+  };
+
+  const handleSuggestionSelect = (item: string) => {
+    setSearchQuery(item);
+    setShowSuggestions(false);
+    setIsDesktopSearchFocused(false);
+    console.log("Selected suggestion:", item);
+    // Thực hiện search với suggestion
+  };
+
+  const handleDesktopInputFocus = () => {
+    setIsDesktopSearchFocused(true);
+    setShowSuggestions(true);
+  };
+
+  const handleDesktopInputChange = (value: string) => {
+    setSearchQuery(value);
+    setShowSuggestions(value.length > 0 || isDesktopSearchFocused);
   };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -45,24 +123,56 @@ export function Header() {
           </Link>
 
           {/* Desktop Search */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-8">
-            <form onSubmit={handleSearch} className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-20 h-10 border-0 focus-visible:ring-1"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="ghost"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 px-3"
-              >
-                Search
-              </Button>
+          <div
+            className="hidden md:flex flex-1 max-w-xl mx-8 relative"
+            ref={desktopSearchRef}
+          >
+            <form onSubmit={handleDesktopSearch} className="w-full">
+              <div className="relative">
+                <div className="flex items-center border rounded-lg shadow-md bg-background">
+                  <Search className="ml-3 mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => handleDesktopInputChange(e.target.value)}
+                    onFocus={handleDesktopInputFocus}
+                    className="border-0 focus-visible:ring-0 bg-transparent"
+                  />
+                </div>
+
+                {/* Desktop Suggestions Dropdown */}
+                {showSuggestions && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                    {filtered.length > 0 ? (
+                      <div className="p-2">
+                        <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+                          Suggestions
+                        </div>
+                        {filtered.map((item) => (
+                          <button
+                            key={item}
+                            onClick={() => handleSuggestionSelect(item)}
+                            className="w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
+                          >
+                            <div className="flex items-center">
+                              <Search className="mr-2 h-4 w-4 opacity-50" />
+                              {item}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : searchQuery.length > 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No products found for &quot;{searchQuery}&quot;
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Start typing to see suggestions
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </form>
           </div>
 
@@ -84,7 +194,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               asChild
-              className="relative h-10 w-10"
+              className="relative h-10 w-10 hidden sm:flex"
             >
               <Link href="/wishlist">
                 <Heart className="h-5 w-5" />
@@ -100,7 +210,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               asChild
-              className="relative h-10 w-10"
+              className="relative h-10 w-10 hidden sm:flex"
             >
               <Link href="/cart">
                 <ShoppingCart className="h-5 w-5" />
@@ -112,8 +222,21 @@ export function Header() {
             </Button>
 
             {/* User Account */}
-            <div className="hidden sm:flex items-center space-x-2">
-              <UserButton />
+            <div className="flex items-center space-x-2">
+              <UserButton>
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="Profile"
+                    href="/users/current"
+                    labelIcon={<User className="size-4" />}
+                  />
+                  <UserButton.Link
+                    label="Dashboard"
+                    href="/admin/dashboard"
+                    labelIcon={<LayoutDashboard className="size-4" />}
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
               <ThemeToggle />
             </div>
 
@@ -133,7 +256,7 @@ export function Header() {
 
       {/* Mobile Search Sheet */}
       <Sheet open={isMobileSearchOpen} onOpenChange={setIsMobileSearchOpen}>
-        <SheetContent side="top" className="h-auto border-0">
+        <SheetContent side="top" className="h-auto border-0" showX={false}>
           <SheetHeader className="text-left pb-4">
             <div className="flex items-center justify-between">
               <SheetTitle className="text-lg">Search</SheetTitle>
@@ -148,7 +271,7 @@ export function Header() {
             </div>
           </SheetHeader>
 
-          <form onSubmit={handleSearch} className="space-y-4">
+          <form onSubmit={handleMobileSearch} className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -160,16 +283,46 @@ export function Header() {
                 autoFocus
               />
             </div>
-            <Button type="submit" className="w-full h-12">
-              Search
-            </Button>
+
+            {(filtered.length > 0 || searchQuery.length > 0) && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                {filtered.length > 0 ? (
+                  <div className="p-2">
+                    <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+                      Suggestions
+                    </div>
+                    {filtered.slice(0, 5).map((item) => (
+                      <button
+                        key={item}
+                        onClick={() => {
+                          setSearchQuery(item);
+                          handleMobileSearch({
+                            preventDefault: () => {},
+                          } as React.FormEvent);
+                        }}
+                        className="w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
+                      >
+                        <div className="flex items-center">
+                          <Search className="mr-2 h-4 w-4 opacity-50" />
+                          {item}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No products found for &quot;{searchQuery}&quot;
+                  </div>
+                )}
+              </div>
+            )}
           </form>
         </SheetContent>
       </Sheet>
 
       {/* Mobile Menu Sheet */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent side="right" className="w-80 border-0">
+        <SheetContent side="right" className="w-80 border" showX={false}>
           <SheetHeader className="pb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -190,18 +343,7 @@ export function Header() {
           </SheetHeader>
 
           <div className="space-y-2">
-            {/* User Section */}
-            <div className="flex items-center space-x-3 p-3 border rounded-lg">
-              <UserButton />
-              <div className="flex-1">
-                <div className="text-sm font-medium">My Account</div>
-                <div className="text-xs text-muted-foreground">
-                  Manage profile & settings
-                </div>
-              </div>
-            </div>
 
-            {/* Navigation Links */}
             <nav className="space-y-1">
               <Button
                 variant="ghost"
@@ -212,9 +354,9 @@ export function Header() {
                 <Link href="/orders">
                   <ShoppingCart className="mr-3 h-5 w-5" />
                   <div>
-                    <div className="font-medium">Orders</div>
+                    <div className="font-medium">Carts</div>
                     <div className="text-xs text-muted-foreground">
-                      Track & manage orders
+                      Track & manage carts
                     </div>
                   </div>
                 </Link>
