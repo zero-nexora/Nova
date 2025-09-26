@@ -1,15 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Menu,
-  ChevronDown,
-  ChevronRight,
-  Grid3X3,
-  Sparkles,
-  Package,
-  X,
-} from "lucide-react";
+import { Menu, ChevronDown, ChevronRight, Grid3X3, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -43,55 +35,24 @@ import { Category, useCategoriesStore } from "@/stores/client/categories-store";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
+import { placeholderImage } from "@/lib/constants";
+import { useRouter } from "next/navigation";
 
 export const CategorySection = () => {
+  const router = useRouter();
   const categories = useCategoriesStore((state) => state.categories);
   const isLoading = useCategoriesStore((state) => state.loading);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleCategoryClick = (categorySlug: string) => {
-    console.log(`Navigate to category: ${categorySlug}`);
-    // Add your navigation logic here
+    router.push(`/categories/${categorySlug}`);
+    setIsSheetOpen(false);
   };
 
   const handleSubcategoryClick = (subcategorySlug: string) => {
-    console.log(`Navigate to subcategory: ${subcategorySlug}`);
-    setIsSheetOpen(false); // Close sheet on mobile after selection
-    // Add your navigation logic here
-  };
-
-  const getCategoryIcon = (categoryName: string): string => {
-    const iconMap: { [key: string]: string } = {
-      electronics: "📱",
-      fashion: "👕",
-      clothing: "👚",
-      shoes: "👟",
-      home: "🏠",
-      garden: "🌱",
-      kitchen: "🍳",
-      sports: "⚽",
-      fitness: "🏋️",
-      books: "📚",
-      toys: "🧸",
-      beauty: "💄",
-      health: "🏥",
-      automotive: "🚗",
-      jewelry: "💎",
-      music: "🎵",
-      gaming: "🎮",
-      office: "🏢",
-      pets: "🐕",
-      travel: "✈️",
-    };
-
-    const key = categoryName.toLowerCase().split(" ")[0];
-    return iconMap[key] || "📦";
-  };
-
-  // Helper function to determine if category is featured (e.g., has many subcategories)
-  const isFeaturedCategory = (category: Category): boolean => {
-    return category.subcategories.length >= 3;
+    router.push(`/subcategories/${subcategorySlug}`);
+    setIsSheetOpen(false);
   };
 
   if (isLoading) return <CategorySectionSkeleton />;
@@ -99,10 +60,8 @@ export const CategorySection = () => {
   return (
     <div className="w-full border-b">
       <div className="container mx-auto px-4">
-        {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center py-4">
           <div className="flex items-center space-x-2 mr-8">
-            {/* All Categories Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -128,66 +87,65 @@ export const CategorySection = () => {
             </DropdownMenu>
           </div>
 
-          {/* Navigation Menu for Categories */}
-          <NavigationMenu className="flex-1">
-            <NavigationMenuList className="flex-wrap gap-2">
-              {categories.slice(0, 7).map((category) => (
-                <NavigationMenuItem key={category.id}>
-                  {category.subcategories.length > 0 ? (
-                    <>
-                      <NavigationMenuTrigger className="h-auto px-3 py-2 text-sm font-medium">
-                        {category.name}
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent className="min-w-[200px] p-0">
-                        <div className="grid gap-0">
-                          <NavigationMenuLink
-                            onClick={() => handleCategoryClick(category.slug)}
-                            className={cn(
-                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer border-b"
-                            )}
-                          >
-                            <div className="text-sm font-medium leading-none">
-                              View All {category.name}
-                            </div>
-                          </NavigationMenuLink>
-                          {category.subcategories.map((subcategory) => (
+          <div className="flex-1">
+            <NavigationMenu>
+              <NavigationMenuList className="flex-wrap gap-2 justify-start">
+                {categories.slice(0, 8).map((category) => (
+                  <NavigationMenuItem key={category.id}>
+                    {category.subcategories.length > 0 ? (
+                      <>
+                        <NavigationMenuTrigger className="h-auto px-3 py-2 text-sm font-medium">
+                          {category.name}
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent className="min-w-[200px] p-0">
+                          <div className="grid gap-0">
                             <NavigationMenuLink
-                              key={subcategory.id}
-                              onClick={() =>
-                                handleSubcategoryClick(subcategory.slug)
-                              }
+                              onClick={() => handleCategoryClick(category.slug)}
                               className={cn(
-                                "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer"
+                                "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent  focus:bg-accent focus:text-accent-foreground cursor-pointer border-b"
                               )}
                             >
-                              <div className="text-sm leading-none text-muted-foreground hover:text-foreground">
-                                {subcategory.name}
+                              <div className="text-sm font-medium leading-none">
+                                View All {category.name}
                               </div>
                             </NavigationMenuLink>
-                          ))}
-                        </div>
-                      </NavigationMenuContent>
-                    </>
-                  ) : (
-                    <NavigationMenuLink
-                      onClick={() => handleCategoryClick(category.slug)}
-                      className={cn(
-                        "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
-                      )}
-                    >
-                      {category.name}
-                    </NavigationMenuLink>
-                  )}
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
+                            {category.subcategories.map((subcategory) => (
+                              <NavigationMenuLink
+                                key={subcategory.id}
+                                onClick={() =>
+                                  handleSubcategoryClick(subcategory.slug)
+                                }
+                                className={cn(
+                                  "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent focus:text-accent-foreground cursor-pointer"
+                                )}
+                              >
+                                <div className="text-sm leading-none text-muted-foreground">
+                                  {subcategory.name}
+                                </div>
+                              </NavigationMenuLink>
+                            ))}
+                          </div>
+                        </NavigationMenuContent>
+                      </>
+                    ) : (
+                      <NavigationMenuLink
+                        onClick={() => handleCategoryClick(category.slug)}
+                        className={cn(
+                          "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+                        )}
+                      >
+                        {category.name}
+                      </NavigationMenuLink>
+                    )}
+                  </NavigationMenuItem>
+                ))}
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
         </div>
 
-        {/* Tablet Navigation */}
         <div className="hidden md:flex lg:hidden items-center py-4">
           <div className="flex items-center space-x-2 mr-4">
-            {/* All Categories Dropdown for Tablet */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -238,10 +196,6 @@ export const CategorySection = () => {
                 variant="outline"
                 className="w-full flex items-center justify-center space-x-2 h-12 border-2 border-dashed hover:border-solid hover:bg-accent/10 transition-all duration-200 group"
               >
-                <div className="relative">
-                  <Grid3X3 className="h-5 w-5 transition-transform group-hover:scale-110" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
                 <span className="font-medium">Browse Categories</span>
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -270,98 +224,73 @@ export const CategorySection = () => {
               </div>
 
               {/* Categories List */}
-              <ScrollArea className="flex-1 px-6">
-                <div className="py-6">
-                  {/* Featured Categories Badge */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Sparkles className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Featured Categories
-                    </span>
-                  </div>
+              <div className="overflow-auto p-2">
+                <ScrollArea>
+                  <div>
+                    {/* Featured Categories Badge */}
+                    <div className="flex items-center space-x-2 mb-4">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Featured Categories
+                      </span>
+                    </div>
 
-                  <Accordion
-                    type="single"
-                    collapsible
-                    className="w-full space-y-2"
-                  >
-                    {categories.map((category) => (
-                      <AccordionItem
-                        key={category.id}
-                        value={category.id}
-                        className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                      >
-                        <AccordionTrigger className="hover:no-underline px-4 py-3 bg-card hover:bg-accent/50 transition-colors">
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center space-x-3">
-                              {/* Category Icon or Image */}
-                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                                {category.image_url ? (
-                                  <img
-                                    src={category.image_url}
+                    <Accordion type="multiple" className="w-full">
+                      {categories.map((category) => (
+                        <AccordionItem key={category.id} value={category.id}>
+                          <AccordionTrigger className="hover:no-underline hover:bg-accent/30 p-3">
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center space-x-3">
+                                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                                  <Image
+                                    src={category.image_url || placeholderImage}
                                     alt={category.name}
-                                    className="w-full h-full object-cover"
+                                    className="object-cover"
+                                    fill
                                   />
-                                ) : (
-                                  <span className="text-xl">
-                                    {getCategoryIcon(category.name)}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Category Info */}
-                              <div className="text-left">
-                                <div className="flex items-center space-x-2">
-                                  <span
-                                    className="font-semibold text-base hover:text-primary cursor-pointer transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCategoryClick(category.slug);
-                                    }}
-                                  >
-                                    {category.name}
-                                  </span>
-                                  {isFeaturedCategory(category) && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs px-2 py-0.5"
-                                    >
-                                      <Sparkles className="h-3 w-3 mr-1" />
-                                      Featured
-                                    </Badge>
-                                  )}
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {category.subcategories.length} subcategories
-                                </p>
+
+                                <div className="text-left">
+                                  <div className="flex items-center space-x-2">
+                                    <span
+                                      className="font-semibold text-base hover:text-primary cursor-pointer transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCategoryClick(category.slug);
+                                      }}
+                                    >
+                                      {category.name}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {category.subcategories.length}{" "}
+                                    subcategories
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </AccordionTrigger>
+                          </AccordionTrigger>
 
-                        <AccordionContent className="px-4 pb-4 bg-muted/20">
-                          <div className="space-y-1 mt-2">
-                            {category.subcategories.map(
-                              (subcategory, index) => (
+                          <AccordionContent>
+                            <div className="space-y-1 mt-2">
+                              {category.subcategories.map((subcategory) => (
                                 <button
                                   key={subcategory.id}
                                   onClick={() =>
                                     handleSubcategoryClick(subcategory.slug)
                                   }
-                                  className="w-full group flex items-center justify-between p-3 text-left rounded-lg hover:bg-background hover:shadow-sm transition-all duration-200 border border-transparent hover:border-border"
+                                  className="w-full group flex items-center justify-between p-3 text-left rounded-lg transition-all duration-200 border border-transparent hover:bg-accent/30"
                                 >
                                   <div className="flex items-center space-x-3">
-                                    {/* Subcategory Image or Icon */}
-                                    <div className="w-8 h-8 rounded-md overflow-hidden bg-muted/50 flex items-center justify-center flex-shrink-0">
-                                      {subcategory.image_url ? (
-                                        <img
-                                          src={subcategory.image_url}
-                                          alt={subcategory.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <Package className="h-4 w-4 text-muted-foreground" />
-                                      )}
+                                    <div className="relative w-8 h-8 rounded-md overflow-hidden bg-muted/50 flex items-center justify-center flex-shrink-0">
+                                      <Image
+                                        src={
+                                          subcategory.image_url ||
+                                          placeholderImage
+                                        }
+                                        alt={subcategory.name}
+                                        className="object-cover"
+                                        fill
+                                      />
                                     </div>
 
                                     <div>
@@ -373,17 +302,16 @@ export const CategorySection = () => {
                                       </p>
                                     </div>
                                   </div>
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                 </button>
-                              )
-                            )}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
-              </ScrollArea>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+                </ScrollArea>
+              </div>
 
               {/* Footer */}
               <div className="border-t bg-muted/10 p-4">
@@ -450,7 +378,6 @@ const CategorySectionSkeleton = () => {
           </div>
         </div>
 
-        {/* Mobile Skeleton */}
         <div className="md:hidden py-4">
           <div className="w-full flex items-center justify-center space-x-2 border rounded-md px-4 py-2 bg-background">
             <Menu className="h-4 w-4 text-muted-foreground" />
@@ -462,12 +389,17 @@ const CategorySectionSkeleton = () => {
   );
 };
 
-// Helper component for dropdown menu items with subcategories
-const DropdownMenuItemWithSubcategories: React.FC<{
+interface DropdownMenuItemWithSubcategoriesProps {
   category: Category;
   onCategoryClick: (slug: string) => void;
   onSubcategoryClick: (slug: string) => void;
-}> = ({ category, onCategoryClick, onSubcategoryClick }) => {
+}
+
+const DropdownMenuItemWithSubcategories = ({
+  category,
+  onCategoryClick,
+  onSubcategoryClick,
+}: DropdownMenuItemWithSubcategoriesProps) => {
   return (
     <div>
       <DropdownMenuItemClickable onClick={() => onCategoryClick(category.slug)}>
@@ -492,11 +424,15 @@ const DropdownMenuItemWithSubcategories: React.FC<{
   );
 };
 
-// Helper component for clickable dropdown menu items
-const DropdownMenuItemClickable: React.FC<{
+interface DropdownMenuItemClickableProps {
   onClick: () => void;
   children: React.ReactNode;
-}> = ({ onClick, children }) => {
+}
+
+const DropdownMenuItemClickable = ({
+  onClick,
+  children,
+}: DropdownMenuItemClickableProps) => {
   return (
     <DropdownMenuItem asChild>
       <button onClick={onClick} className="w-full text-left cursor-pointer">

@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Product } from "@/queries/client/products/types";
 import { placeholderImage } from "@/lib/constants";
-import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Star } from "lucide-react";
 
@@ -17,94 +12,82 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const mainImage = product.images[0]?.image_url || placeholderImage;
+  const image = product.images[0]?.image_url || placeholderImage;
   const minPrice = Math.min(...product.variants.map((v) => v.price));
   const maxPrice = Math.max(...product.variants.map((v) => v.price));
-  const totalStock = product.variants.reduce(
-    (sum, v) => sum + v.stock_quantity,
-    0
-  );
-  const rating = 4.5;
+  const stock = product.variants.reduce((sum, v) => sum + v.stock_quantity, 0);
 
   return (
-    <Card className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <CardHeader className="p-0">
-        <div className="relative overflow-hidden w-full h-48 sm:h-56 ">
-          <Image
-            src={mainImage}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-          <div className="absolute top-3 left-3">
-            <Badge variant="secondary" className="text-xs">
-              {product.category.name}
-            </Badge>
-          </div>
-          {totalStock < 10 && (
-            <div className="absolute bottom-3 left-3">
-              <Badge variant="destructive" className="text-xs">
-                Low Stock
-              </Badge>
-            </div>
-          )}
-        </div>
-      </CardHeader>
+    <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full flex flex-col">
+      {/* Image */}
+      <div className="relative h-52 overflow-hidden">
+        <Image
+          src={image}
+          alt={product.name}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        {stock < 10 && (
+          <Badge
+            variant="destructive"
+            className="absolute top-3 right-3 text-xs"
+          >
+            Low Stock
+          </Badge>
+        )}
+      </div>
 
-      <CardContent className="p-4 flex-grow">
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
+      {/* Content */}
+      <div className="p-3 flex-1 flex flex-col justify-between space-y-3">
+        <div className="space-y-3">
+          {/* Categories */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge className="text-xs">{product.category.name}</Badge>
+            <Badge className="text-xs">{product.subcategory?.name}</Badge>
+          </div>
+
+          {/* Title */}
+          <h3 className="font-semibold text-lg line-clamp-2 leading-tight">
             {product.name}
           </h3>
 
+          {/* Description */}
           {product.description && (
-            <p className="text-muted-foreground text-sm line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
               {product.description}
             </p>
           )}
 
-          <div className="flex items-center gap-2 text-sm">
+          {/* Rating */}
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-medium">{rating}</span>
+              <span className="text-sm font-medium">4.5</span>
             </div>
-            <span className="text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               ({product._count.reviews} reviews)
             </span>
           </div>
-
-          {product.subcategory?.name && (
-            <Badge variant="outline" className="text-xs w-fit">
-              {product.subcategory?.name}
-            </Badge>
-          )}
         </div>
-      </CardContent>
 
-      <CardFooter className="p-4 pt-0">
-        <div className="w-full space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              {minPrice === maxPrice ? (
-                <p className="text-xl font-bold">${minPrice}</p>
-              ) : (
-                <p className="text-xl font-bold">
-                  ${minPrice} - ${maxPrice}
-                </p>
-              )}
+        {/* Footer */}
+        <div className="space-y-3">
+          <div className="flex items-end justify-between">
+            <div className="font-bold text-xl">
+              {minPrice === maxPrice
+                ? `$${minPrice}`
+                : `$${minPrice} - $${maxPrice}`}
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {totalStock} in stock
-              </p>
-            </div>
+            <span className="text-sm text-muted-foreground">
+              {stock} in stock
+            </span>
           </div>
 
-          <button className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 transition-colors font-medium">
+          <button className="w-full bg-primary text-primary-foreground py-2.5 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200">
             Add to Cart
           </button>
         </div>
-      </CardFooter>
+      </div>
     </Card>
   );
 };

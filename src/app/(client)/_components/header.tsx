@@ -109,10 +109,9 @@ export function Header() {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b backdrop-blur-3xl opacity-95">
+    <header className="sticky top-0 z-50 w-full border-b backdrop-blur-md">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
             <div className="w-8 h-8 border rounded-md flex items-center justify-center">
               <span className="font-semibold text-sm">S</span>
@@ -122,7 +121,6 @@ export function Header() {
             </div>
           </Link>
 
-          {/* Desktop Search */}
           <div
             className="hidden md:flex flex-1 max-w-xl mx-8 relative"
             ref={desktopSearchRef}
