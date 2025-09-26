@@ -92,12 +92,17 @@ export interface GetInfiniteProductsResponse {
 
 export const GetInfiniteProductsSchema = z.object({
   limit: z.number().min(1).max(100).default(20),
-  cursor: z.string().optional(),
+  cursor: z
+    .object({
+      id: z.string().uuid(),
+      updatedAt: z.date(),
+    })
+    .nullish(),
   search: z.string().optional(),
   categoryId: z.string().optional(),
   subcategoryId: z.string().optional(),
-  sortBy: z.enum(['name', 'created_at', 'price']).default('created_at'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  sortBy: z.enum(["name", "created_at", "price"]).default("created_at"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
   priceMin: z.number().min(0).optional(),
   priceMax: z.number().min(0).optional(),
 });

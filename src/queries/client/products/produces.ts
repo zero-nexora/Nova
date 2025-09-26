@@ -5,23 +5,19 @@ import {
   baseProcedure,
   createTRPCRouter,
 } from "@/trpc/init";
-import {
-  GetInfiniteProductsResponse,
-  GetInfiniteProductsSchema,
-} from "./types";
-import { buildProductOrderBy, buildProductWhereClause } from "./utils";
+import { GetInfiniteProductsSchema } from "./types";
+import { buildProductWhereClause } from "./utils";
 
 export const productsRouter = createTRPCRouter({
   getAll: baseProcedure
     .input(GetInfiniteProductsSchema)
-    .query(async ({ input, ctx }): Promise<GetInfiniteProductsResponse> => {
+    .query(async ({ input, ctx }) => {
       const {
         limit,
         cursor,
         search,
         categoryId,
         subcategoryId,
-        sortBy,
         sortOrder,
         priceMin,
         priceMax,
@@ -40,13 +36,29 @@ export const productsRouter = createTRPCRouter({
 
         if (cursor) {
           if (sortOrder === "desc") {
-            where.id = { lt: cursor };
+            where.OR = [
+              { updated_at: { lt: cursor.updatedAt } },
+              {
+                AND: [
+                  { updated_at: cursor.updatedAt },
+                  { id: { lt: cursor.id } },
+                ],
+              },
+            ];
           } else {
-            where.id = { gt: cursor };
+            where.OR = [
+              { updated_at: { gt: cursor.updatedAt } },
+              {
+                AND: [
+                  { updated_at: cursor.updatedAt },
+                  { id: { gt: cursor.id } },
+                ],
+              },
+            ];
           }
         }
 
-        const orderBy = buildProductOrderBy(sortBy, sortOrder);
+        const orderBy = [{ updated_at: sortOrder }, { id: sortOrder }];
 
         const products = await ctx.db.products.findMany({
           where,
@@ -61,25 +73,13 @@ export const productsRouter = createTRPCRouter({
             created_at: true,
             updated_at: true,
             category: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
+              select: { id: true, name: true, slug: true },
             },
             subcategory: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
+              select: { id: true, name: true, slug: true },
             },
             images: {
-              select: {
-                id: true,
-                image_url: true,
-                public_id: true,
-              },
+              select: { id: true, image_url: true, public_id: true },
               take: 1,
               orderBy: { created_at: "asc" },
             },
@@ -96,12 +96,7 @@ export const productsRouter = createTRPCRouter({
                       select: {
                         id: true,
                         value: true,
-                        attribute: {
-                          select: {
-                            id: true,
-                            name: true,
-                          },
-                        },
+                        attribute: { select: { id: true, name: true } },
                       },
                     },
                   },
@@ -110,23 +105,21 @@ export const productsRouter = createTRPCRouter({
               orderBy: { price: "asc" },
             },
             _count: {
-              select: {
-                reviews: true,
-                variants: true,
-              },
+              select: { reviews: true, variants: true },
             },
           },
         });
 
         const hasMore = products.length > limit;
-        const returnedProducts = hasMore ? products.slice(0, -1) : products;
+        const items = hasMore ? products.slice(0, -1) : products;
+        const lastItem = items[items.length - 1];
 
         const nextCursor = hasMore
-          ? returnedProducts[returnedProducts.length - 1]?.id
-          : undefined;
+          ? { id: lastItem.id, updatedAt: lastItem.updated_at }
+          : null;
 
         return {
-          products: returnedProducts,
+          products: items,
           nextCursor,
           hasMore,
         };

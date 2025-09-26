@@ -6,14 +6,9 @@ import { useTRPC } from "@/trpc/client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import z from "zod";
+import { ProductFilters } from "./use-product-fillter";
 
-export function useInfiniteProducts(
-  params: Omit<z.infer<typeof GetInfiniteProductsSchema>, "cursor"> = {
-    limit: DEFAULT_LIMIT,
-    sortBy: "created_at",
-    sortOrder: "desc",
-  }
-) {
+export function useInfiniteProducts(params: ProductFilters) {
   const trpc = useTRPC();
 
   const {
@@ -25,7 +20,7 @@ export function useInfiniteProducts(
     isPending,
   } = useInfiniteQuery(
     trpc.client.productsRouterClient.getAll.infiniteQueryOptions(
-      { ...params, cursor: undefined },
+      { ...params },
       { getNextPageParam: (lastPage) => lastPage.nextCursor }
     )
   );
