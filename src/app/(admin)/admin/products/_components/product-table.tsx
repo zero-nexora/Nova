@@ -126,7 +126,7 @@ export const ProductTable = ({
     setPage(newPage);
     setRowSelection({});
 
-    router.push(`${pathname}?${createQueryString("page", newPage.toString())}`);
+    router.push(`${pathname}?${createQueryString("page", newPage.toString())}`, { scroll: false });
   };
 
   return (

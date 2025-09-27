@@ -103,10 +103,12 @@ export interface ProductAttribute {
 }
 
 export interface ProductDetail {
+  id: string;
   name: string;
   slug: string;
   description: string | null;
   // reviews: any[];
+  images: Image[];
   updated_at: Date;
   category: Category;
   subcategory: Subcategory | null;

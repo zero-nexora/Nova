@@ -55,7 +55,9 @@ export const useProductFilters = () => {
 
   useEffect(() => {
     const queryString = createQueryString(filters, pagination);
-    router.push(`${pathname}${queryString ? `?${queryString}` : ""}`);
+    router.push(`${pathname}${queryString ? `?${queryString}` : ""}`, {
+      scroll: false,
+    });
   }, [filters, pagination, pathname, router, createQueryString]);
 
   const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {

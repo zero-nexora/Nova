@@ -190,6 +190,7 @@ export const productsRouter = createTRPCRouter({
           is_deleted: false,
         },
         select: {
+          id: true,
           name: true,
           slug: true,
           description: true,
@@ -206,6 +207,13 @@ export const productsRouter = createTRPCRouter({
               id: true,
               name: true,
               slug: true,
+            },
+          },
+          images: {
+            select: {
+              id: true,
+              image_url: true,
+              public_id: true,
             },
           },
           variants: {
