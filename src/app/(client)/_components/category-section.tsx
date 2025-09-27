@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Menu, ChevronDown, ChevronRight, Grid3X3, X } from "lucide-react";
+import { Menu, ChevronDown, ChevronRight, Grid3X3 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -324,14 +324,6 @@ export const CategorySection = () => {
                     )}{" "}
                     subcategories
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsSheetOpen(false)}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Close
-                  </Button>
                 </div>
               </div>
             </SheetContent>

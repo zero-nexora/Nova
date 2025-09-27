@@ -93,7 +93,7 @@ export const ProductSection = ({
               hasNextPage={hasNextPage}
               isFetchingNextPage={isFetchingNextPage}
               showSkeleton={true}
-              skeletonCount={4}
+              skeletonCount={8}
             />
           </div>
         </>

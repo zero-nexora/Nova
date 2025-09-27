@@ -1,13 +1,6 @@
 import Image from "next/image";
-import { cn, formatDate } from "@/lib/utils";
-import {
-  Folder,
-  FolderOpen,
-  Calendar,
-  Hash,
-  Search,
-  Filter,
-} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Folder, Search, Filter } from "lucide-react";
 import { useModal } from "@/stores/modal-store";
 import { ActionMenu } from "@/components/global/action-menu";
 import { Subcategory } from "@/stores/admin/categories-store";
@@ -27,6 +20,7 @@ import { useCallback } from "react";
 import { useConfirm } from "@/stores/confirm-store";
 import { useToggleSubcategoryDeletedMultiple } from "../hooks/subcategories/use-toggle-subcategory-deleted-multiple";
 import { useDeleteSubcategoryMultiple } from "../hooks/subcategories/use-delete-subcategory-multiple";
+import { placeholderImage } from "@/lib/constants";
 
 interface SubcategoryListProps {
   subcategories: Subcategory[];
@@ -104,10 +98,8 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
-          description: `Are you absolutely sure you want to permanently delete "${subcategory.name}"? This action CANNOT be undone and will:\n
-- Remove the subcategory forever\n
-- Delete associated images\n
-- Remove all relationships`,
+          description: `Permanently delete "${subcategory.name}"? This cannot be undone.
+`,
           onConfirm: async () => {
             try {
               if (subcategory.public_id) {
@@ -191,21 +183,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-foreground flex items-center gap-3">
-          <div className="p-2 bg-muted/50 rounded-lg">
-            <FolderOpen className="w-5 h-5" />
-          </div>
-          <span>Subcategories</span>
-          <Badge
-            variant="secondary"
-            className="bg-muted/50 text-muted-foreground"
-          >
-            {filteredSubcategories.length}
-          </Badge>
-        </h4>
-      </div>
-
       <BulkActionsToolbar
         totalCount={filteredSubcategories.length}
         selectedCount={selectedSubcategoriesCount}
@@ -226,24 +203,24 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
         onSortOrderChange={handleSortOrderChange}
       />
 
-      <div className="grid gap-4">
+      <div className="grid">
         {filteredSubcategories.map((subcategory: Subcategory) => (
           <div
             key={subcategory.id}
             className={cn(
-              "p-3 bg-muted/10 border transition-all duration-300 rounded-md transform",
+              "p-3 bg-muted/10 border-b rounded-none",
               subcategory.is_deleted &&
-                "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
+                "opacity-70 border-destructive/30 bg-destructive/10",
               selectedSubcategories.has(subcategory.id) &&
-                "ring-2 ring-primary/30 bg-primary/5",
+                "ring-1 ring-primary/30 bg-primary/5 rounded-md",
               subcategory.is_deleted &&
                 selectedSubcategories.has(subcategory.id) &&
-                "ring-2 ring-destructive/30 bg-destructive/5"
+                "ring-1 ring-destructive/30 bg-destructive/5 rounded-md"
             )}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="transition-transform hover:scale-110">
+                <div>
                   <Checkbox
                     id={`subcategory-${subcategory.id}`}
                     checked={selectedSubcategories.has(subcategory.id)}
@@ -253,95 +230,45 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
                         checked as boolean
                       )
                     }
-                    className="transition-all duration-200 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                 </div>
 
-                <div className="relative group/image">
-                  {subcategory.image_url ? (
-                    <div className="relative overflow-hidden">
-                      <Image
-                        src={subcategory.image_url}
-                        alt={subcategory.name}
-                        width={48}
-                        height={48}
-                        className="object-cover rounded-lg border-2 border-background shadow-sm transition-all duration-300 group-hover/image:scale-105 group-hover/image:shadow-md"
-                      />
-                      {subcategory.is_deleted && (
-                        <div className="absolute inset-0 bg-destructive/30 rounded-lg backdrop-blur-[1px]" />
-                      )}
-                      {selectedSubcategories.has(subcategory.id) && (
-                        <div className="absolute inset-0 bg-primary/20 rounded-lg" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-lg opacity-0 group-hover/image:opacity-100 transition-opacity duration-200" />
-                    </div>
-                  ) : (
-                    <div
-                      className={cn(
-                        "w-12 h-12 rounded-lg border-2 border-dashed flex items-center justify-center transition-all duration-300",
-                        "group-hover/image:border-solid group-hover/image:shadow-sm group-hover/image:scale-105",
-                        subcategory.is_deleted && "border-destructive/30",
-                        selectedSubcategories.has(subcategory.id) &&
-                          "border-primary/60 bg-primary/15",
-                        selectedSubcategories.has(subcategory.id) &&
-                          subcategory.is_deleted &&
-                          "border-destructive/60 bg-destructive/15"
-                      )}
-                    >
-                      <Folder
-                        className={cn(
-                          "w-5 h-5 transition-all duration-300",
-                          subcategory.is_deleted && "text-destructive",
-                          selectedSubcategories.has(subcategory.id) &&
-                            "text-primary/80",
-                          selectedSubcategories.has(subcategory.id) &&
-                            subcategory.is_deleted &&
-                            "text-destructive/80"
-                        )}
-                      />
-                    </div>
-                  )}
+                <div className="relative group/image w-14 h-14">
+                  <Image
+                    src={subcategory.image_url || placeholderImage}
+                    alt={subcategory.name}
+                    fill
+                    className="object-cover rounded-xl"
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <h5
-                    className={cn(
-                      "font-semibold text-lg transition-colors duration-200",
-                      selectedSubcategories.has(subcategory.id) &&
-                        "text-primary",
-                      selectedSubcategories.has(subcategory.id) &&
-                        subcategory.is_deleted &&
-                        "text-destructive"
-                    )}
-                  >
-                    {subcategory.name}
-                  </h5>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 rounded text-xs font-medium">
-                      <Hash className="w-3 h-3" />
-                      <span>{subcategory.slug}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 rounded text-xs font-medium">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDate(subcategory.created_at)}</span>
-                    </div>
-                  </div>
-                </div>
+                <h5
+                  className={cn(
+                    "font-semibold text-lg transition-colors duration-200",
+                    selectedSubcategories.has(subcategory.id) && "text-primary",
+                    selectedSubcategories.has(subcategory.id) &&
+                      subcategory.is_deleted &&
+                      "text-destructive"
+                  )}
+                >
+                  {subcategory.name}
+                </h5>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="transition-transform hover:scale-105">
+                <div className="transition-transform">
                   {subcategory.is_deleted ? (
                     <Badge
                       variant="destructive"
-                      className="px-3 py-1 font-medium shadow-sm hover:shadow-md transition-all"
+                      className="px-3 py-1 font-medium shadow-sm transition-all"
                     >
                       Deleted
                     </Badge>
                   ) : (
                     <Badge
                       variant="default"
-                      className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1 font-medium shadow-sm hover:shadow-md transition-all"
+                      className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1 font-medium shadow-sm transition-all"
                     >
                       Active
                     </Badge>

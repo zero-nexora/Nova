@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { toast } from "sonner";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useCallback } from "react";
 import { useModal } from "@/stores/modal-store";
 import { useConfirm } from "@/stores/confirm-store";
@@ -10,14 +10,7 @@ import { SubcategoryList } from "./subcategory-list";
 import { Category } from "@/stores/admin/categories-store";
 import { CategoryDetailCard } from "./category-detail-card";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
-import {
-  Folder,
-  Image as ImageIcon,
-  Calendar,
-  Hash,
-  Search,
-  Filter,
-} from "lucide-react";
+import { Folder, Hash, Search, Filter } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,10 +91,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
-          description: `Are you absolutely sure you want to permanently delete "${category.name}"? This action CANNOT be undone and will:\n
-- Remove the category forever\n
-- Delete associated images\n
-- Remove all relationships`,
+          description: `Permanently delete "${category.name}"? This cannot be undone.`,
           onConfirm: async () => {
             try {
               if (category.public_id) {
@@ -242,34 +232,26 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
       {/* Enhanced Categories List */}
       <div className="space-y-3">
-        <Accordion type="multiple" className="w-full space-y-3">
+        <Accordion type="multiple" className="w-full">
           {filteredCategories.map((category) => {
             return (
-              <AccordionItem
-                key={category.id}
-                value={category.id}
-                className="border-0 shadow-none"
-              >
+              <AccordionItem key={category.id} value={category.id}>
                 <div
                   className={cn(
-                    "transition-all duration-300 border bg-muted/10 rounded-md hover:bg-muted/15",
+                    "bg-muted/10 rounded-md hover:bg-muted/15",
                     category.is_deleted &&
                       "opacity-70 border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
                     selectedCategories.has(category.id) &&
-                      "ring-2 ring-primary/30 bg-primary/5",
+                      "ring-1 ring-primary/30 bg-primary/5",
                     category.is_deleted &&
                       selectedCategories.has(category.id) &&
-                      "ring-2 ring-destructive/30 bg-destructive/5 border-l-destructive"
+                      "ring-1 ring-destructive/30 bg-destructive/5 border-l-destructive"
                   )}
                 >
-                  <AccordionTrigger className="p-3 hover:no-underline group">
+                  <AccordionTrigger className="p-3 hover:no-underline">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-5">
-                        {/* Enhanced Category Checkbox */}
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="transition-transform group-hover:scale-110"
-                        >
+                        <div onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             id={`category-${category.id}`}
                             checked={selectedCategories.has(category.id)}
@@ -280,7 +262,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                               )
                             }
                             className={cn(
-                              "transition-all duration-200 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                              "data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                             )}
                           />
                         </div>
@@ -292,7 +274,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                               src={category.image_url || placeholderImage}
                               alt={category.name}
                               fill
-                              className="object-cover rounded-xl border-2 border-background"
+                              className="object-cover rounded-xl"
                             />
                             {category.is_deleted && (
                               <div className="absolute inset-0 bg-destructive/30 rounded-xl backdrop-blur-[1px]" />
@@ -308,7 +290,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                         <div className="flex flex-col items-start space-y-2">
                           <h3
                             className={cn(
-                              "font-semibold text-xl transition-all duration-200 text-foreground",
+                              "font-semibold text-xl text-foreground",
                               selectedCategories.has(category.id) &&
                                 "text-primary",
                               selectedCategories.has(category.id) &&
@@ -318,41 +300,33 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                           >
                             {category.name}
                           </h3>
-                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md">
-                              <Calendar className="w-3.5 h-3.5" />
-                              <span className="font-medium">
-                                {formatDate(category.created_at)}
-                              </span>
-                            </div>
-                            <div
-                              className={cn(
-                                "flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md"
-                              )}
-                            >
-                              <Hash className="w-3.5 h-3.5" />
-                              <span className="font-medium">
-                                {category.subcategories.length} subcategories
-                              </span>
-                            </div>
+                          <div
+                            className={cn(
+                              "flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md text-muted-foreground"
+                            )}
+                          >
+                            <Hash className="w-3.5 h-3.5" />
+                            <span className="font-medium">
+                              {category.subcategories.length} subcategories
+                            </span>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-4">
                         {/* Enhanced Status Badge */}
-                        <div className="transition-transform group-hover:scale-105">
+                        <div>
                           {category.is_deleted ? (
                             <Badge
                               variant="destructive"
-                              className="px-3 py-1 font-medium shadow-sm hover:shadow-md transition-all"
+                              className="px-3 py-1 font-medium"
                             >
                               Deleted
                             </Badge>
                           ) : (
                             <Badge
                               variant="default"
-                              className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1 font-medium shadow-sm hover:shadow-md transition-all"
+                              className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1 font-medium transition-all"
                             >
                               Active
                             </Badge>
@@ -360,10 +334,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                         </div>
 
                         {/* Enhanced Action Menu */}
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="transition-transform group-hover:scale-105"
-                        >
+                        <div onClick={(e) => e.stopPropagation()}>
                           <ActionMenu
                             onUpdate={() => handleUpdateCategory(category)}
                             onDelete={() => handleDeleteCategory(category)}

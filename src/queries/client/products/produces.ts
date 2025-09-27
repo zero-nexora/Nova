@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import {
-  adminOrManageProductProcedure,
-  baseProcedure,
-  createTRPCRouter,
-} from "@/trpc/init";
-import { GetInfiniteProductsSchema } from "./types";
+import { baseProcedure, createTRPCRouter } from "@/trpc/init";
+import { GetInfiniteProductsSchema, ProductDetail } from "./types";
 import { buildProductWhereClause } from "./utils";
 
 export const productsRouter = createTRPCRouter({
@@ -132,7 +128,7 @@ export const productsRouter = createTRPCRouter({
       }
     }),
 
-  getByCategory: adminOrManageProductProcedure
+  getByCategory: baseProcedure
     .input(
       z.object({
         categoryId: z.string().uuid("Invalid category id"),
@@ -178,5 +174,126 @@ export const productsRouter = createTRPCRouter({
       });
 
       return products;
+    }),
+  getBySlug: baseProcedure
+    .input(
+      z.object({
+        slug: z.string().min(1, "Slug is required"),
+      })
+    )
+    .query(async ({ ctx, input }): Promise<ProductDetail> => {
+      const { slug } = input;
+
+      const product = await ctx.db.products.findFirst({
+        where: {
+          slug,
+          is_deleted: false,
+        },
+        select: {
+          name: true,
+          slug: true,
+          description: true,
+          updated_at: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          subcategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          variants: {
+            select: {
+              id: true,
+              sku: true,
+              price: true,
+              stock_quantity: true,
+              attributes: {
+                select: {
+                  id: true,
+                  attributeValue: {
+                    select: {
+                      id: true,
+                      value: true,
+                      attribute: {
+                        select: {
+                          id: true,
+                          name: true,
+                          values: {
+                            select: {
+                              id: true,
+                              value: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!product) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Product not found",
+        });
+      }
+
+      const attributeMap: Record<
+        string,
+        {
+          id: string;
+          name: string;
+          values: { id: string; value: string; available: boolean }[];
+        }
+      > = {};
+
+      product.variants.forEach((variant) => {
+        variant.attributes.forEach((attr) => {
+          const attribute = attr.attributeValue.attribute;
+          const attributeId = attribute.id;
+
+          if (!attributeMap[attributeId]) {
+            attributeMap[attributeId] = {
+              id: attributeId,
+              name: attribute.name,
+              values: attribute.values.map((val) => ({
+                id: val.id,
+                value: val.value,
+                available: false,
+              })),
+            };
+          }
+
+          if (variant.stock_quantity > 0) {
+            attributeMap[attributeId].values = attributeMap[
+              attributeId
+            ].values.map((val) =>
+              val.id === attr.attributeValue.id
+                ? { ...val, available: true }
+                : val
+            );
+          }
+        });
+      });
+
+      const attributes = Object.values(attributeMap).filter(
+        (attr) => attr.values.length > 0
+      );
+
+      return {
+        ...product,
+        attributes,
+      };
     }),
 });

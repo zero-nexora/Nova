@@ -12,14 +12,14 @@ interface InfiniteScrollProps {
   skeletonCount?: number;
 }
 
-export const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
+export const InfiniteScroll = ({
   isManual = false,
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
   showSkeleton = true,
-  skeletonCount = 4,
-}) => {
+  skeletonCount = 8,
+}: InfiniteScrollProps) => {
   const { targetRef, isIntersecting } = useIntersectionObserver({
     threshold: 0.5,
     rootMargin: "10px",
@@ -44,8 +44,6 @@ export const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
       )}
 
       <div className="flex flex-col items-center gap-4 p-4">
-        <div ref={targetRef} className="h-1" />
-
         {isManual && hasNextPage && (
           <Button
             variant="secondary"
@@ -61,6 +59,7 @@ export const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
             You have reached the end of the list
           </p>
         )}
+        <div ref={targetRef} className="h-1" />
       </div>
     </div>
   );

@@ -23,6 +23,19 @@ import {
 import { UserButton } from "@clerk/nextjs";
 import ThemeToggle from "@/components/global/theme-toggle";
 
+const products = [
+  "iPhone 15 Pro Max",
+  "Macbook Pro M3",
+  "Samsung Galaxy S24",
+  "AirPods Pro 2",
+  "iPad Air 2024",
+  "Apple Watch Series 9",
+  "Nintendo Switch",
+  "PlayStation 5",
+  "Xbox Series X",
+  "Surface Pro 10",
+];
+
 export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -32,26 +45,13 @@ export function Header() {
 
   const desktopSearchRef = useRef<HTMLDivElement>(null);
 
-  const products = [
-    "iPhone 15 Pro Max",
-    "Macbook Pro M3",
-    "Samsung Galaxy S24",
-    "AirPods Pro 2",
-    "iPad Air 2024",
-    "Apple Watch Series 9",
-    "Nintendo Switch",
-    "PlayStation 5",
-    "Xbox Series X",
-    "Surface Pro 10",
-  ];
-
   // Lọc sản phẩm theo query
   const filtered =
     searchQuery.trim().length > 0
       ? products.filter((p) =>
           p.toLowerCase().includes(searchQuery.toLowerCase())
         )
-      : [];
+      : products;
 
   // Xử lý click outside để ẩn suggestions
   useEffect(() => {
@@ -122,7 +122,7 @@ export function Header() {
           </Link>
 
           <div
-            className="hidden md:flex flex-1 max-w-xl mx-8 relative"
+            className="hidden sm:flex flex-1 max-w-xl mx-8 relative"
             ref={desktopSearchRef}
           >
             <form onSubmit={handleDesktopSearch} className="w-full">
@@ -138,7 +138,6 @@ export function Header() {
                   />
                 </div>
 
-                {/* Desktop Suggestions Dropdown */}
                 {showSuggestions && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
                     {filtered.length > 0 ? (
@@ -153,7 +152,6 @@ export function Header() {
                             className="w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
                           >
                             <div className="flex items-center">
-                              <Search className="mr-2 h-4 w-4 opacity-50" />
                               {item}
                             </div>
                           </button>
@@ -180,7 +178,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-10 w-10"
+              className="sm:hidden h-10 w-10"
               onClick={() => setIsMobileSearchOpen(true)}
             >
               <Search className="h-5 w-5" />
@@ -301,7 +299,6 @@ export function Header() {
                         className="w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
                       >
                         <div className="flex items-center">
-                          <Search className="mr-2 h-4 w-4 opacity-50" />
                           {item}
                         </div>
                       </button>
@@ -341,7 +338,6 @@ export function Header() {
           </SheetHeader>
 
           <div className="space-y-2">
-
             <nav className="space-y-1">
               <Button
                 variant="ghost"

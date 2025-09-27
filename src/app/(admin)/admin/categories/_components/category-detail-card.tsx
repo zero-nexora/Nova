@@ -3,35 +3,29 @@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Category } from "@/stores/admin/categories-store";
-import { Calendar, Hash, Image as ImageIcon, Tag } from "lucide-react";
+import { Calendar, Hash, Tag } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { placeholderImage } from "@/lib/constants";
 
 interface CategoryDetailCardProps {
   category: Category;
 }
 
 export const CategoryDetailCard = ({ category }: CategoryDetailCardProps) => {
-
   return (
     <div className="overflow-hidden rounded-2xl shadow-lg border border-border bg-background hover:shadow-xl transition-shadow duration-300">
       {/* Header with Image */}
       <div className="relative">
-        {category.image_url ? (
-          <div className="relative w-full h-64">
-            <Image
-              src={category.image_url}
-              alt={category.name}
-              fill
-              className="object-cover transition-transform duration-300 hover:scale-105"
-              sizes="(max-width: 768px) 100vw, 600px"
-              priority
-            />
-          </div>
-        ) : (
-          <div className="w-full h-64 flex items-center justify-center bg-muted">
-            <ImageIcon className="w-16 h-16 text-muted-foreground" />
-          </div>
-        )}
+        <div className="relative w-full h-64">
+          <Image
+            src={category.image_url || placeholderImage}
+            alt={category.name}
+            fill
+            className="object-cover transition-transform duration-300 hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 600px"
+            priority
+          />
+        </div>
         <div className="absolute top-4 left-4">
           {category.is_deleted ? (
             <Badge

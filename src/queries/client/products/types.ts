@@ -14,13 +14,13 @@ export interface ProductCounts {
   variants: number;
 }
 
-export interface CategoryBrief {
+export interface Category {
   id: string;
   name: string;
   slug: string;
 }
 
-export interface SubcategoryBrief {
+export interface Subcategory {
   id: string;
   name: string;
   slug: string;
@@ -77,8 +77,8 @@ export interface Product {
   is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
-  category: CategoryBrief;
-  subcategory: SubcategoryBrief | null;
+  category: Category;
+  subcategory: Subcategory | null;
   images: Image[];
   variants: Variant[];
   _count: ProductCounts;
@@ -88,6 +88,30 @@ export interface GetInfiniteProductsResponse {
   products: Product[];
   nextCursor?: string;
   hasMore: boolean;
+}
+
+export interface ProductAttributeValue {
+  id: string;
+  value: string;
+  available: boolean;
+}
+
+export interface ProductAttribute {
+  id: string;
+  name: string;
+  values: ProductAttributeValue[];
+}
+
+export interface ProductDetail {
+  name: string;
+  slug: string;
+  description: string | null;
+  // reviews: any[];
+  updated_at: Date;
+  category: Category;
+  subcategory: Subcategory | null;
+  variants: Variant[];
+  attributes: ProductAttribute[];
 }
 
 export const GetInfiniteProductsSchema = z.object({

@@ -1,40 +1,79 @@
 "use client";
 
-import { Subcategory } from "@/stores/admin/categories-store";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { Subcategory } from "@/stores/admin/categories-store";
 
 export const useSubcategorySelection = (subcategories: Subcategory[]) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [selectedSubcategories, setSelectedSubcategories] = useState<
     Set<string>
   >(new Set());
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("searchSubcategory") ?? ""
+  );
   const [filterDeleted, setFilterDeleted] = useState<
     "all" | "active" | "deleted"
-  >("all");
-  const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at">(
-    "name"
+  >(
+    (searchParams.get("filterSubcategory") as "all" | "active" | "deleted") ??
+      "all"
   );
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at">(
+    (searchParams.get("sortBySubcategory") as
+      | "name"
+      | "created_at"
+      | "updated_at") ?? "name"
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
+    (searchParams.get("sortOrderSubcategory") as "asc" | "desc") ?? "asc"
+  );
 
-  // Filter + Search + Sort
+  useEffect(() => {
+    setSearchTerm(searchParams.get("searchSubcategory") ?? "");
+    setFilterDeleted(
+      (searchParams.get("filterSubcategory") as "all" | "active" | "deleted") ??
+        "all"
+    );
+    setSortBy(
+      (searchParams.get("sortBySubcategory") as
+        | "name"
+        | "created_at"
+        | "updated_at") ?? "name"
+    );
+    setSortOrder(
+      (searchParams.get("sortOrderSubcategory") as "asc" | "desc") ?? "asc"
+    );
+  }, [searchParams]);
+
+  const updateURLParams = useCallback(
+    (params: Record<string, string>) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === "" || value === "all") newParams.delete(key);
+        else newParams.set(key, value);
+      });
+      router.replace(`?${newParams.toString()}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
+
   const filteredSubcategories = useMemo(() => {
-    const filtered = subcategories.filter((subcategory) => {
-      const matchesSearch = subcategory.name
+    const filtered = subcategories.filter((sub) => {
+      const matchesSearch = sub.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-
       const matchesFilter =
         filterDeleted === "all" ||
-        (filterDeleted === "active" && !subcategory.is_deleted) ||
-        (filterDeleted === "deleted" && subcategory.is_deleted);
-
+        (filterDeleted === "active" && !sub.is_deleted) ||
+        (filterDeleted === "deleted" && sub.is_deleted);
       return matchesSearch && matchesFilter;
     });
 
     filtered.sort((a, b) => {
       let aValue: string | number;
       let bValue: string | number;
-
       switch (sortBy) {
         case "name":
           aValue = a.name.toLowerCase();
@@ -52,56 +91,49 @@ export const useSubcategorySelection = (subcategories: Subcategory[]) => {
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
       }
-
       if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
       if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
       return 0;
     });
-
     return filtered;
   }, [subcategories, searchTerm, filterDeleted, sortBy, sortOrder]);
 
-  // Selected subcategories data
-  const selectedSubcategoriesData = useMemo(() => {
-    return subcategories.filter((sub) => selectedSubcategories.has(sub.id));
-  }, [subcategories, selectedSubcategories]);
+  const selectedSubcategoriesData = useMemo(
+    () => subcategories.filter((s) => selectedSubcategories.has(s.id)),
+    [subcategories, selectedSubcategories]
+  );
 
-  const isAllSubcategoriesSelected = useMemo(() => {
-    return (
+  const isAllSubcategoriesSelected = useMemo(
+    () =>
       filteredSubcategories.length > 0 &&
-      filteredSubcategories.every((sub) => selectedSubcategories.has(sub.id))
-    );
-  }, [filteredSubcategories, selectedSubcategories]);
+      filteredSubcategories.every((s) => selectedSubcategories.has(s.id)),
+    [filteredSubcategories, selectedSubcategories]
+  );
 
   const isSubcategoriesIndeterminate = useMemo(() => {
-    const selectedCount = filteredSubcategories.filter((sub) =>
-      selectedSubcategories.has(sub.id)
+    const selectedCount = filteredSubcategories.filter((s) =>
+      selectedSubcategories.has(s.id)
     ).length;
     return selectedCount > 0 && selectedCount < filteredSubcategories.length;
   }, [filteredSubcategories, selectedSubcategories]);
 
-  // Selection handlers
   const handleSelectAllSubcategories = useCallback(
     (checked: boolean) => {
-      if (checked) {
-        setSelectedSubcategories(
-          new Set(filteredSubcategories.map((sub) => sub.id))
-        );
-      } else {
-        setSelectedSubcategories(new Set());
-      }
+      setSelectedSubcategories(
+        checked ? new Set(filteredSubcategories.map((s) => s.id)) : new Set()
+      );
     },
     [filteredSubcategories]
   );
 
   const handleSelectSubcategory = useCallback(
-    (subcategoryId: string, checked: boolean) => {
+    (id: string, checked: boolean) => {
       setSelectedSubcategories((prev) => {
         const newSet = new Set(prev);
         if (checked) {
-          newSet.add(subcategoryId);
+          newSet.add(id);
         } else {
-          newSet.delete(subcategoryId);
+          newSet.delete(id);
         }
         return newSet;
       });
@@ -109,58 +141,36 @@ export const useSubcategorySelection = (subcategories: Subcategory[]) => {
     []
   );
 
-  const clearSubcategorySelection = useCallback(() => {
-    setSelectedSubcategories(new Set());
-  }, []);
-
-  // Search and filter handlers
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term);
-  }, []);
-
-  const handleFilterChange = useCallback(
-    (filter: "all" | "active" | "deleted") => {
-      setFilterDeleted(filter);
-    },
-    []
-  );
-
-  const handleSortChange = useCallback(
-    (sort: "name" | "created_at" | "updated_at") => {
-      setSortBy(sort);
-    },
-    []
-  );
-
-  const handleSortOrderChange = useCallback((order: "asc" | "desc") => {
-    setSortOrder(order);
-  }, []);
-
   return {
-    // State
     selectedSubcategories,
     selectedSubcategoriesData,
     filteredSubcategories,
-
-    // Selection state
     isAllSubcategoriesSelected,
     isSubcategoriesIndeterminate,
     selectedSubcategoriesCount: selectedSubcategories.size,
     hasSubcategorySelection: selectedSubcategories.size > 0,
-
-    // Search & filter state
     searchTerm,
     filterDeleted,
     sortBy,
     sortOrder,
-
-    // Handlers
     handleSelectAllSubcategories,
     handleSelectSubcategory,
-    clearSubcategorySelection,
-    handleSearch,
-    handleFilterChange,
-    handleSortChange,
-    handleSortOrderChange,
+    clearSubcategorySelection: () => setSelectedSubcategories(new Set()),
+    handleSearch: (term: string) => {
+      setSearchTerm(term);
+      updateURLParams({ searchSubcategory: term });
+    },
+    handleFilterChange: (filter: "all" | "active" | "deleted") => {
+      setFilterDeleted(filter);
+      updateURLParams({ filterSubcategory: filter });
+    },
+    handleSortChange: (sort: "name" | "created_at" | "updated_at") => {
+      setSortBy(sort);
+      updateURLParams({ sortBySubcategory: sort });
+    },
+    handleSortOrderChange: (order: "asc" | "desc") => {
+      setSortOrder(order);
+      updateURLParams({ sortOrderSubcategory: order });
+    },
   };
 };
