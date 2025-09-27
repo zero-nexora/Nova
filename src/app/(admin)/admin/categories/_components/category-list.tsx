@@ -36,6 +36,7 @@ import { useToggleCategoryDeleted } from "../hooks/categories/use-toggle-categor
 import { useDeleteImage } from "@/components/uploader/hooks/use-uploader";
 import { useDeleteCategoryMultiple } from "../hooks/categories/use-delete-category-multiple";
 import { useToggleCategoryDeletedMultiple } from "../hooks/categories/use-toggle-category-deleted-multiple";
+import { placeholderImage } from "@/lib/constants";
 
 interface CategoryListProps {
   categories: Category[];
@@ -286,49 +287,21 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
                         {/* Enhanced Category Image */}
                         <div className="relative group/image">
-                          {category.image_url ? (
-                            <div className="relative overflow-hidden">
-                              <Image
-                                src={category.image_url}
-                                alt={category.name}
-                                width={56}
-                                height={56}
-                                className="object-cover rounded-xl border-2 border-background shadow-md transition-all duration-300 group-hover/image:scale-105 group-hover/image:shadow-lg"
-                              />
-                              {category.is_deleted && (
-                                <div className="absolute inset-0 bg-destructive/30 rounded-xl backdrop-blur-[1px]" />
-                              )}
-                              {selectedCategories.has(category.id) && (
-                                <div className="absolute inset-0 bg-primary/20 rounded-xl" />
-                              )}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-xl opacity-0 group-hover/image:opacity-100 transition-opacity duration-200" />
-                            </div>
-                          ) : (
-                            <div
-                              className={cn(
-                                "w-14 h-14 rounded-xl border-2 border-dashed flex items-center justify-center transition-all duration-300",
-                                "group-hover/image:border-solid group-hover/image:shadow-md group-hover/image:scale-105 border-muted-foreground/30 hover:border-muted-foreground/50",
-                                category.is_deleted && "border-destructive/30",
-                                selectedCategories.has(category.id) &&
-                                  "border-primary/60 bg-primary/15",
-                                selectedCategories.has(category.id) &&
-                                  category.is_deleted &&
-                                  "border-destructive/60 bg-destructive/15"
-                              )}
-                            >
-                              <ImageIcon
-                                className={cn(
-                                  "w-6 h-6 transition-all duration-300 text-muted-foreground/60 group-hover/image:text-muted-foreground",
-                                  category.is_deleted && "text-destructive/60",
-                                  selectedCategories.has(category.id) &&
-                                    "text-primary/80",
-                                  selectedCategories.has(category.id) &&
-                                    category.is_deleted &&
-                                    "text-destructive/80"
-                                )}
-                              />
-                            </div>
-                          )}
+                          <div className="w-14 h-14 relative overflow-hidden">
+                            <Image
+                              src={category.image_url || placeholderImage}
+                              alt={category.name}
+                              fill
+                              className="object-cover rounded-xl border-2 border-background"
+                            />
+                            {category.is_deleted && (
+                              <div className="absolute inset-0 bg-destructive/30 rounded-xl backdrop-blur-[1px]" />
+                            )}
+                            {selectedCategories.has(category.id) && (
+                              <div className="absolute inset-0 bg-primary/20 rounded-xl" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-xl opacity-0 group-hover/image:opacity-100 transition-opacity duration-200" />
+                          </div>
                         </div>
 
                         {/* Enhanced Category Info */}

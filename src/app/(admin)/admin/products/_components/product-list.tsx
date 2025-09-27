@@ -27,21 +27,11 @@ import { useDeleteProduct } from "../hooks/products/use-delete-product";
 import { ProductTable } from "./product-table";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 
-// Hàm kiểm tra UUID hợp lệ
-const isValidUUID = (str: string) => {
-  const uuidRegex =
-    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
-  return (
-    uuidRegex.test(str) ||
-    str === "00000000-0000-0000-0000-000000000000" ||
-    str === "ffffffff-ffff-ffff-ffff-ffffffffffff"
-  );
-};
-
 export const ProductList = () => {
   const categories = useCategoriesStore((state) => state.categories);
   const openConfirm = useConfirm((state) => state.open);
   const openModal = useModal((state) => state.open);
+
   const { toggleProductDeletedAsync } = useToggleProductDeleted();
   const { toggleProductDeletedMultipleAsync } =
     useToggleProductDeletedMultiple();
@@ -62,26 +52,24 @@ export const ProductList = () => {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  // Map deletedFilter to boolean/undefined and validate categoryId/subcategoryId
+  // Map deletedFilter to boolean/undefined
   const isDeleted =
     filters.deletedFilter === "all"
       ? undefined
       : filters.deletedFilter === "true";
-  const categoryId =
-    filters.categoryId && isValidUUID(filters.categoryId)
-      ? filters.categoryId
-      : undefined;
-  const subcategoryId =
-    filters.subcategoryId && isValidUUID(filters.subcategoryId)
-      ? filters.subcategoryId
-      : undefined;
 
   const { products, pagination, isFetching, error } = useGetAllProducts({
     page: paginationState.page,
     limit: DEFAULT_LIMIT,
     search: filters.search || undefined,
-    categoryId,
-    subcategoryId,
+    slugCategory:
+      filters.slugCategory && filters.slugCategory !== "all"
+        ? filters.slugCategory
+        : undefined,
+    slugSubcategory:
+      filters.slugSubcategory && filters.slugSubcategory !== "all"
+        ? filters.slugSubcategory
+        : undefined,
     isDeleted,
     priceMin: filters.priceRange.min
       ? parseFloat(filters.priceRange.min)

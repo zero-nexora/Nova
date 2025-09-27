@@ -107,8 +107,8 @@ export interface ProductTable {
 
 export interface ProductFilters {
   search: string;
-  categoryId: string;
-  subcategoryId: string;
+  slugCategory: string;
+  slugSubcategory: string;
   deletedFilter: "true" | "false" | "all";
   priceRange: {
     min: string;

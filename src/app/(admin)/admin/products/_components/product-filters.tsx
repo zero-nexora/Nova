@@ -15,9 +15,9 @@ import { Filter, Search, RefreshCw } from "lucide-react";
 import { ProductFilters } from "../hooks/types";
 
 interface Category {
-  id: string;
+  slug: string;
   name: string;
-  subcategories?: Array<{ id: string; name: string }>;
+  subcategories?: Array<{ slug: string; name: string }>;
 }
 
 interface ProductFiltersProps {
@@ -34,7 +34,8 @@ export const ProductFiltersComponent = ({
   onClearFilters,
 }: ProductFiltersProps) => {
   const subcategories =
-    categories.find((c) => c.id === filters.categoryId)?.subcategories || [];
+    categories.find((c) => c.slug === filters.slugCategory)?.subcategories ||
+    [];
 
   const handleSearchChange = (value: string) => {
     onFiltersChange({ search: value });
@@ -42,13 +43,13 @@ export const ProductFiltersComponent = ({
 
   const handleCategoryChange = (value: string) => {
     onFiltersChange({
-      categoryId: value,
-      subcategoryId: "",
+      slugCategory: value,
+      slugSubcategory: "all", // reset subcategory khi đổi category
     });
   };
 
   const handleSubcategoryChange = (value: string) => {
-    onFiltersChange({ subcategoryId: value });
+    onFiltersChange({ slugSubcategory: value });
   };
 
   const handleDeletedFilterChange = (value: "true" | "false" | "all") => {
@@ -92,18 +93,16 @@ export const ProductFiltersComponent = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Category</label>
             <Select
-              value={filters.categoryId}
+              value={filters.slugCategory}
               onValueChange={handleCategoryChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">
-                  All categories
-                </SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.slug} value={category.slug}>
                     {category.name}
                   </SelectItem>
                 ))}
@@ -115,9 +114,9 @@ export const ProductFiltersComponent = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Subcategory</label>
             <Select
-              value={filters.subcategoryId}
+              value={filters.slugSubcategory}
               onValueChange={handleSubcategoryChange}
-              disabled={!filters.categoryId || subcategories.length === 0}
+              disabled={!filters.slugCategory || subcategories.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All subcategories" />
@@ -125,7 +124,7 @@ export const ProductFiltersComponent = ({
               <SelectContent>
                 <SelectItem value="all">All subcategories</SelectItem>
                 {subcategories.map((subcategory) => (
-                  <SelectItem key={subcategory.id} value={subcategory.id}>
+                  <SelectItem key={subcategory.slug} value={subcategory.slug}>
                     {subcategory.name}
                   </SelectItem>
                 ))}

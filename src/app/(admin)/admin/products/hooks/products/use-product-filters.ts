@@ -9,11 +9,10 @@ export const useProductFilters = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Initialize filters and pagination from URL if available
   const [filters, setFilters] = useState<ProductFilters>({
     search: searchParams.get("search") || "",
-    categoryId: searchParams.get("categoryId") || "all", // Chuyển "" thành "all"
-    subcategoryId: searchParams.get("subcategoryId") || "all", // Chuyển "" thành "all"
+    slugCategory: searchParams.get("slugCategory") || "all",
+    slugSubcategory: searchParams.get("slugSubcategory") || "all",
     deletedFilter:
       (searchParams.get("deletedFilter") as "true" | "false" | "all") ||
       "false",
@@ -31,20 +30,24 @@ export const useProductFilters = () => {
     (newFilters: ProductFilters, newPagination: PaginationState) => {
       const params = new URLSearchParams();
       if (newFilters.search) params.set("search", newFilters.search);
-      if (newFilters.categoryId && newFilters.categoryId !== "all") {
-        params.set("categoryId", newFilters.categoryId);
+
+      if (newFilters.slugCategory && newFilters.slugCategory !== "all") {
+        params.set("slugCategory", newFilters.slugCategory);
       }
-      if (newFilters.subcategoryId && newFilters.subcategoryId !== "all") {
-        params.set("subcategoryId", newFilters.subcategoryId);
+      if (newFilters.slugSubcategory && newFilters.slugSubcategory !== "all") {
+        params.set("slugSubcategory", newFilters.slugSubcategory);
       }
+
       if (newFilters.deletedFilter)
         params.set("deletedFilter", newFilters.deletedFilter);
       if (newFilters.priceRange.min)
         params.set("priceMin", newFilters.priceRange.min);
       if (newFilters.priceRange.max)
         params.set("priceMax", newFilters.priceRange.max);
+
       if (newPagination.page !== 1)
         params.set("page", newPagination.page.toString());
+
       return params.toString();
     },
     []
@@ -56,23 +59,32 @@ export const useProductFilters = () => {
   }, [filters, pagination, pathname, router, createQueryString]);
 
   const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
-    setFilters((prev) => ({
-      ...prev,
-      ...newFilters,
-      subcategoryId: newFilters.categoryId
-        ? newFilters.categoryId === "all" || newFilters.categoryId === ""
-          ? "all"
-          : prev.subcategoryId
-        : prev.subcategoryId,
-    }));
+    setFilters((prev) => {
+      if (newFilters.slugCategory !== undefined) {
+        return {
+          ...prev,
+          ...newFilters,
+          subcategorySlug:
+            newFilters.slugCategory === "all" || newFilters.slugCategory === ""
+              ? "all"
+              : "all",
+        };
+      }
+
+      return {
+        ...prev,
+        ...newFilters,
+      };
+    });
+
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, []);
 
   const clearFilters = useCallback(() => {
     setFilters({
       search: "",
-      categoryId: "all",
-      subcategoryId: "all",
+      slugCategory: "all",
+      slugSubcategory: "all",
       deletedFilter: "false",
       priceRange: { min: "", max: "" },
     });

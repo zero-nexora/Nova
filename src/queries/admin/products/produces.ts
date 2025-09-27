@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { adminOrManageProductProcedure, createTRPCRouter } from "@/trpc/init";
 import {
   CreateProductSchema,
-  GetAllProductsResponse,
   GetAllProductsSchema,
   ImageInput,
   UpdateProductSchema,

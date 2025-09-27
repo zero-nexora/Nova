@@ -88,7 +88,6 @@ export interface GetAllProductsResponse {
   pagination: Pagination;
 }
 
-
 export const CreateProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
@@ -108,8 +107,9 @@ export const CreateProductSchema = z.object({
         sku: z.string().min(1, "SKU is required"),
         price: z.number().positive("Price must be positive"),
         stock_quantity: z.number().int().nonnegative("Stock must be >= 0"),
-        attributeValueIds: z
-          .array(z.string().uuid("Invalid attribute value id"))
+        attributeValueIds: z.array(
+          z.string().uuid("Invalid attribute value id")
+        ),
       })
     )
     .optional(),
@@ -148,8 +148,8 @@ export const GetAllProductsSchema = z.object({
   page: z.number().int().positive().default(1),
   limit: z.number().int().positive().max(100).default(10),
   search: z.string().optional(),
-  categoryId: z.string().uuid().optional(),
-  subcategoryId: z.string().uuid().optional(),
+  slugCategory: z.string().optional(),
+  slugSubcategory: z.string().optional(),
   isDeleted: z.boolean().optional(),
   sortBy: z
     .enum(["price", "name", "created_at", "updated_at"])

@@ -41,19 +41,19 @@ export const generateProductSlug = async (
 
 export function buildProductWhereClause({
   search,
-  categoryId,
-  subcategoryId,
+  slugCategory,
+  slugSubcategory,
   isDeleted,
   priceMin,
   priceMax,
 }: {
   search?: string;
-  categoryId?: string;
-  subcategoryId?: string;
+  slugCategory?: string;
+  slugSubcategory?: string;
   isDeleted?: boolean;
   priceMin?: number;
   priceMax?: number;
-}): Prisma.ProductsWhereInput {
+}) {
   const where: Prisma.ProductsWhereInput = {};
 
   if (search?.trim()) {
@@ -65,19 +65,26 @@ export function buildProductWhereClause({
     ];
   }
 
-  if (categoryId) {
-    where.category_id = categoryId;
+  if (slugCategory) {
+    where.category = {
+      is: {
+        slug: slugCategory,
+      },
+    };
   }
 
-  if (subcategoryId) {
-    where.subcategory_id = subcategoryId;
+  if (slugSubcategory) {
+    where.subcategory = {
+      is: {
+        slug: slugSubcategory,
+      },
+    };
   }
 
   if (typeof isDeleted === "boolean") {
     where.is_deleted = isDeleted;
   }
 
-  // Price filtering through variants
   if (priceMin !== undefined || priceMax !== undefined) {
     const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
 
