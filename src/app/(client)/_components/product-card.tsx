@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/queries/client/products/types";
 import { placeholderImage } from "@/lib/constants";
@@ -8,6 +7,13 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductCardProps {
   product: Product;
@@ -86,10 +92,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               </span>
             </div>
 
-            <Button className="w-full bg-primary text-primary-foreground py-2.5 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200" onClick={(e) => {
-               e.preventDefault()
-               e.stopPropagation()
-            }}>
+            <Button
+              className="w-full bg-primary text-primary-foreground py-2.5 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
               Add to Cart
             </Button>
           </div>
@@ -98,3 +107,30 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     </Link>
   );
 };
+
+export const ProductSkeleton = () => (
+  <Card className="h-full overflow-hidden">
+    <CardHeader className="p-0">
+      <Skeleton className="w-full h-48 sm:h-56" />
+    </CardHeader>
+    <CardContent className="p-4 space-y-3">
+      <Skeleton className="h-6 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-2/3" />
+      <div className="flex gap-2">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+      <Skeleton className="h-5 w-20" />
+    </CardContent>
+    <CardFooter className="p-4 pt-0 space-y-3">
+      <div className="w-full space-y-2">
+        <div className="flex justify-between">
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-4 w-12" />
+        </div>
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </CardFooter>
+  </Card>
+);

@@ -10,7 +10,7 @@ export const useProductFilters = () => {
   const pathname = usePathname();
 
   const [filters, setFilters] = useState<ProductFilters>({
-    search: searchParams.get("search") || "",
+    search: decodeURIComponent(searchParams.get("search") || ""),
     slugCategory: searchParams.get("slugCategory") || "all",
     slugSubcategory: searchParams.get("slugSubcategory") || "all",
     deletedFilter:
@@ -29,7 +29,8 @@ export const useProductFilters = () => {
   const createQueryString = useCallback(
     (newFilters: ProductFilters, newPagination: PaginationState) => {
       const params = new URLSearchParams();
-      if (newFilters.search) params.set("search", newFilters.search);
+      if (newFilters.search)
+        params.set("search", encodeURIComponent(newFilters.search));
 
       if (newFilters.slugCategory && newFilters.slugCategory !== "all") {
         params.set("slugCategory", newFilters.slugCategory);

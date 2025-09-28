@@ -8,46 +8,51 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useGetProductBySlug } from "../hooks/use-get-product-by-slug";
 import {
-  Image,
+  Image as ImageType,
   ProductAttribute,
   ProductAttributeValue,
   Variant,
   VariantAttribute,
 } from "@/queries/client/products/types";
 import { Label } from "@/components/ui/label";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductDetailProps {
   slug: string;
 }
 
 export const ProductDetail = ({ slug }: ProductDetailProps) => {
-  const { product } = useGetProductBySlug(slug);
+  const { product, isPending, error } = useGetProductBySlug(slug);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedAttributes, setSelectedAttributes] = useState<
     Record<string, string>
   >({});
 
+  if (isPending) {
+    return <ProductDetailSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-red-500">Error: {error.message}</div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="space-y-4">
-              <div className="aspect-square rounded-lg"></div>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-12 h-12 rounded-md"></div>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="h-8 rounded w-3/4"></div>
-              <div className="h-6 rounded w-1/2"></div>
-              <div className="h-20 rounded"></div>
-            </div>
-          </div>
-        </div>
+        <div>Product not found</div>
       </div>
     );
   }
@@ -87,7 +92,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
         {/* Left side - Images */}
         <div className="space-y-4">
           {/* Main Image */}
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden mb-5">
             <CardContent className="p-0">
               <div className="aspect-square relative">
                 {product.images && product.images.length > 0 ? (
@@ -105,34 +110,48 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </CardContent>
           </Card>
 
-          {/* Thumbnail Carousel - UI được cải thiện */}
+          {/* Thumbnail Carousel - Using shadcn/ui Carousel */}
           {product.images && product.images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {product.images.map((image: Image, index: number) => (
-                <div
-                  key={image.id}
-                  className={`relative flex-shrink-0 cursor-pointer transition-all duration-200 ease-in-out transform hover:scale-105 ${
-                    selectedImageIndex === index
-                      ? "ring-2 ring-primary ring-offset-2 scale-105"
-                      : "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1"
-                  }`}
-                  onMouseEnter={() => setSelectedImageIndex(index)}
-                  onClick={() => setSelectedImageIndex(index)}
-                >
-                  <div className="w-20 h-20 relative overflow-hidden rounded-lg bg-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <img
-                      src={image.image_url}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-200 hover:scale-110"
-                    />
-                    {/* Overlay khi được chọn */}
-                    {selectedImageIndex === index && (
-                      <div className="absolute inset-0 bg-primary/10 rounded-lg" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Carousel
+              className="w-full max-w-md mx-auto"
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+            >
+              <CarouselContent className="grid grid-cols-4 sm:grid-cols-5 gap-4">
+                {product.images
+                  .slice(0, 10)
+                  .map((image: ImageType, index: number) => (
+                    <CarouselItem
+                      key={image.id}
+                      className="basis-1/4 sm:basis-1/5 md:basis-1/6"
+                    >
+                      <div
+                        className={`relative flex-shrink-0 cursor-pointer transition-all duration-200 ${
+                          selectedImageIndex === index
+                            ? "scale-105"
+                            : "hover:scale-102"
+                        }`}
+                        onMouseEnter={() => setSelectedImageIndex(index)}
+                      >
+                        <div className="w-20 h-20 relative overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <Image
+                            src={image.image_url}
+                            fill
+                            alt={`${product.name} ${index + 1}`}
+                          />
+                          {selectedImageIndex === index && (
+                            <div className="absolute inset-0 bg-primary/10 rounded-lg" />
+                          )}
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
           )}
         </div>
 
@@ -272,6 +291,114 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           <div className="text-sm">
             Updated: {new Date(product.updated_at).toLocaleDateString()}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ProductDetailSkeleton = () => {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Left side - Images */}
+        <div className="space-y-4">
+          {/* Main Image */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <Skeleton className="aspect-square rounded-lg w-full h-full" />
+            </CardContent>
+          </Card>
+          {/* Thumbnail Carousel placeholders */}
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton
+                key={i}
+                className="w-20 h-20 rounded-lg flex-shrink-0"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Right side - Product Info */}
+        <div className="space-y-6">
+          {/* Breadcrumb */}
+          <Skeleton className="h-4 w-1/2" />
+
+          {/* Product Title */}
+          <div>
+            <Skeleton className="h-9 w-3/4 mb-2" />
+            {/* Rating placeholder */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Skeleton key={star} className="w-4 h-4" />
+                ))}
+              </div>
+              <Skeleton className="h-4 w-20" />
+            </div>
+          </div>
+
+          {/* Price */}
+          <Skeleton className="h-9 w-1/4" />
+
+          {/* Stock Status */}
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">
+              <Skeleton className="w-3 h-3 mr-1" />
+              <Skeleton className="h-4 w-16" />
+            </Badge>
+            <Skeleton className="h-4 w-24" />
+          </div>
+
+          <Separator />
+
+          {/* Description */}
+          <div>
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+
+          {/* Attributes Selection */}
+          <div className="space-y-4">
+            {/* Simulate 2 attributes */}
+            {[1, 2].map((attr) => (
+              <div key={attr}>
+                <Label>
+                  <Skeleton className="h-4 w-20 mb-2 block" />
+                </Label>
+                <div className="flex gap-2 flex-wrap">
+                  <Skeleton className="h-10 w-56" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Separator />
+
+          {/* Quantity and Add to Cart */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Label>
+                <Skeleton className="h-4 w-20" />
+              </Label>
+              <div className="flex items-center border rounded-md">
+                <Skeleton className="px-4 py-2 text-center min-w-[10rem] h-8" />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Skeleton className="h-10 w-full" />
+              <Button variant="outline" size="lg" disabled>
+                <Skeleton className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Product Meta */}
+          <Separator />
+          <Skeleton className="h-4 w-40" />
         </div>
       </div>
     </div>

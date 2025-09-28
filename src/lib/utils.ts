@@ -1,5 +1,6 @@
 import { twMerge } from "tailwind-merge";
 import { clsx, type ClassValue } from "clsx";
+import { FormatUSDOptions } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,3 +26,37 @@ export const formatDate = (date: Date) => {
     minute: "2-digit",
   }).format(new Date(date));
 };
+
+export function formatUSD(
+  value: number | string,
+  opts: FormatUSDOptions = {}
+): string {
+  const {
+    locale = "en-US",
+    accounting = false,
+    minimumFractionDigits = 2,
+    maximumFractionDigits = 2,
+  } = opts;
+
+  const num =
+    typeof value === "string" ? Number(value.replace(/,/g, "")) : Number(value);
+
+  if (!isFinite(num)) return String(value);
+
+  const absNum = Math.abs(num);
+
+  const nf = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits,
+    maximumFractionDigits,
+  });
+
+  const formatted = nf.format(absNum);
+
+  if (num < 0) {
+    return accounting ? `(${formatted})` : `-${formatted}`;
+  }
+
+  return formatted;
+}

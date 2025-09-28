@@ -17,6 +17,7 @@ export const productsRouter = createTRPCRouter({
         sortOrder,
         priceMin,
         priceMax,
+        excludeIds,
       } = input;
 
       try {
@@ -57,6 +58,10 @@ export const productsRouter = createTRPCRouter({
             },
           ],
         };
+
+        if (excludeIds && excludeIds.length > 0) {
+          where.id = { notIn: excludeIds };
+        }
 
         if (cursor) {
           const cursorFilter =

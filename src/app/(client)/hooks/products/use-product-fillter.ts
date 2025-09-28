@@ -7,6 +7,7 @@ export interface ProductFilters {
   search?: string;
   priceMin?: number;
   priceMax?: number;
+  excludeIds?: string[];
 }
 
 export const useProductFilters = (filters: ProductFilters) => {

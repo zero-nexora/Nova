@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
-import { ProductGridSkeleton } from "@/app/(client)/_components/product-grid-skeleton";
+import { ProductGridSkeleton } from "@/app/(client)/_components/product-grid";
 
 interface InfiniteScrollProps {
   isManual?: boolean;

@@ -9,9 +9,8 @@ import {
   useProductFilters,
 } from "../hooks/products/use-product-fillter";
 import { ProductSectionHeader } from "./product-section-header";
-import { ProductGridSkeleton } from "./product-grid-skeleton";
 import { ProductEmptyState } from "./product-empty-state";
-import { ProductGrid } from "./product-grid";
+import { ProductGrid, ProductGridSkeleton } from "./product-grid";
 
 interface ProductSectionProps {
   limit?: number;
@@ -24,6 +23,7 @@ interface ProductSectionProps {
   priceMax?: number;
   title?: string;
   description?: string;
+  excludeIds?: string[];
 }
 
 export const ProductSection = ({
@@ -37,6 +37,7 @@ export const ProductSection = ({
   priceMax,
   title,
   description,
+  excludeIds,
 }: ProductSectionProps) => {
   const filters: ProductFilters = useProductFilters({
     limit,
@@ -47,6 +48,7 @@ export const ProductSection = ({
     search,
     priceMin,
     priceMax,
+    excludeIds,
   });
 
   const {

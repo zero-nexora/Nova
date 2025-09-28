@@ -131,4 +131,5 @@ export const GetInfiniteProductsSchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   priceMin: z.number().min(0).optional(),
   priceMax: z.number().min(0).optional(),
+  excludeIds: z.array(z.string().uuid()).optional(),
 });
