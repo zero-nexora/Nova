@@ -125,8 +125,8 @@ export const GetInfiniteProductsSchema = z.object({
     })
     .nullish(),
   search: z.string().optional(),
-  categoryId: z.string().optional(),
-  subcategoryId: z.string().optional(),
+  slugCategory: z.string().optional(),
+  slugSubcategory: z.string().optional(),
   sortBy: z.enum(["name", "created_at", "price"]).default("created_at"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   priceMin: z.number().min(0).optional(),

@@ -2,24 +2,19 @@
 
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useInvalidateProducts } from "./use-invalidate-products";
 
 export function useDeleteProduct() {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const { invalidate } = useInvalidateProducts();
 
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.productsRouter.delete.mutationOptions({
       onSuccess: (data) => {
         toast.success(`Product "${data.data.name}" deleted permanently`);
 
-        queryClient.invalidateQueries(
-          trpc.admin.productsRouter.getAll.queryOptions({
-            limit: DEFAULT_LIMIT,
-            page: DEFAULT_PAGE,
-          })
-        );
+        invalidate();
       },
       onError: (error: any) => {
         toast.error(error?.message || "Failed to delete product");

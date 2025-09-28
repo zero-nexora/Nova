@@ -2,12 +2,12 @@
 
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useInvalidateProducts } from "./use-invalidate-products";
 
 export function useToggleProductDeletedMultiple() {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const { invalidate } = useInvalidateProducts();
 
   const { mutate, mutateAsync, error, isPending } = useMutation(
     trpc.admin.productsRouter.toggleDeletedMultiple.mutationOptions({
@@ -32,12 +32,7 @@ export function useToggleProductDeletedMultiple() {
           toast.error("No products found to update");
         }
 
-        queryClient.invalidateQueries(
-          trpc.admin.productsRouter.getAll.queryOptions({
-            limit: DEFAULT_LIMIT,
-            page: DEFAULT_PAGE,
-          })
-        );
+        invalidate();
       },
       onError: (error: any) => {
         toast.error(error?.message || "Failed to toggle products status");

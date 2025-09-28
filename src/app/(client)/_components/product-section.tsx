@@ -19,9 +19,9 @@ interface ProductSectionProps {
   sortOrder?: "asc" | "desc";
   categoryId?: string;
   subcategoryId?: string;
-  searchQuery?: string;
-  minPrice?: number;
-  maxPrice?: number;
+  search?: string;
+  priceMin?: number;
+  priceMax?: number;
   title?: string;
   description?: string;
 }
@@ -32,9 +32,9 @@ export const ProductSection = ({
   sortOrder = "desc",
   categoryId,
   subcategoryId,
-  searchQuery,
-  minPrice,
-  maxPrice,
+  search,
+  priceMin,
+  priceMax,
   title,
   description,
 }: ProductSectionProps) => {
@@ -44,9 +44,9 @@ export const ProductSection = ({
     sortOrder,
     categoryId,
     subcategoryId,
-    searchQuery,
-    minPrice,
-    maxPrice,
+    search,
+    priceMin,
+    priceMax,
   });
 
   const {

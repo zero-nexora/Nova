@@ -4,9 +4,9 @@ export interface ProductFilters {
   sortOrder?: "asc" | "desc";
   categoryId?: string;
   subcategoryId?: string;
-  searchQuery?: string;
-  minPrice?: number;
-  maxPrice?: number;
+  search?: string;
+  priceMin?: number;
+  priceMax?: number;
 }
 
 export const useProductFilters = (filters: ProductFilters) => {

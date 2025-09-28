@@ -12,8 +12,8 @@ export const productsRouter = createTRPCRouter({
         limit,
         cursor,
         search,
-        categoryId,
-        subcategoryId,
+        slugCategory,
+        slugSubcategory,
         sortOrder,
         priceMin,
         priceMax,
@@ -22,36 +22,69 @@ export const productsRouter = createTRPCRouter({
       try {
         const baseWhere = buildProductWhereClause({
           search,
-          categoryId,
-          subcategoryId,
+          slugCategory,
+          slugSubcategory,
           priceMin,
           priceMax,
         });
 
-        const where = { ...baseWhere, is_deleted: false };
+        const where: any = {
+          ...baseWhere,
+          is_deleted: false,
+          variants: {
+            some: {
+              stock_quantity: { gt: 0 },
+            },
+          },
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { slug: { contains: search, mode: "insensitive" } },
+            {
+              category: {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { slug: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            },
+            {
+              subcategory: {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { slug: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            },
+          ],
+        };
 
         if (cursor) {
-          if (sortOrder === "desc") {
-            where.OR = [
-              { updated_at: { lt: cursor.updatedAt } },
-              {
-                AND: [
-                  { updated_at: cursor.updatedAt },
-                  { id: { lt: cursor.id } },
-                ],
-              },
-            ];
-          } else {
-            where.OR = [
-              { updated_at: { gt: cursor.updatedAt } },
-              {
-                AND: [
-                  { updated_at: cursor.updatedAt },
-                  { id: { gt: cursor.id } },
-                ],
-              },
-            ];
-          }
+          const cursorFilter =
+            sortOrder === "desc"
+              ? {
+                  OR: [
+                    { updated_at: { lt: cursor.updatedAt } },
+                    {
+                      AND: [
+                        { updated_at: cursor.updatedAt },
+                        { id: { lt: cursor.id } },
+                      ],
+                    },
+                  ],
+                }
+              : {
+                  OR: [
+                    { updated_at: { gt: cursor.updatedAt } },
+                    {
+                      AND: [
+                        { updated_at: cursor.updatedAt },
+                        { id: { gt: cursor.id } },
+                      ],
+                    },
+                  ],
+                };
+
+          where.AND = [...(where.AND || []), cursorFilter];
         }
 
         const orderBy = [{ updated_at: sortOrder }, { id: sortOrder }];
@@ -68,12 +101,8 @@ export const productsRouter = createTRPCRouter({
             is_deleted: true,
             created_at: true,
             updated_at: true,
-            category: {
-              select: { id: true, name: true, slug: true },
-            },
-            subcategory: {
-              select: { id: true, name: true, slug: true },
-            },
+            category: { select: { id: true, name: true, slug: true } },
+            subcategory: { select: { id: true, name: true, slug: true } },
             images: {
               select: { id: true, image_url: true, public_id: true },
               take: 1,
@@ -100,9 +129,7 @@ export const productsRouter = createTRPCRouter({
               },
               orderBy: { price: "asc" },
             },
-            _count: {
-              select: { reviews: true, variants: true },
-            },
+            _count: { select: { reviews: true, variants: true } },
           },
         });
 
@@ -131,15 +158,24 @@ export const productsRouter = createTRPCRouter({
   getByCategory: baseProcedure
     .input(
       z.object({
-        categoryId: z.string().uuid("Invalid category id"),
-        includeDeleted: z.boolean().optional().default(false),
+        slugCategory: z.string().min(1, "Category slug is required"),
       })
     )
     .query(async ({ input, ctx }) => {
+      const { slugCategory } = input;
       const products = await ctx.db.products.findMany({
         where: {
-          category_id: input.categoryId,
-          ...(input.includeDeleted ? {} : { is_deleted: false }),
+          category: {
+            slug: slugCategory,
+          },
+          is_deleted: false,
+          variants: {
+            some: {
+              stock_quantity: {
+                gt: 0,
+              },
+            },
+          },
         },
         select: {
           id: true,
@@ -188,6 +224,13 @@ export const productsRouter = createTRPCRouter({
         where: {
           slug,
           is_deleted: false,
+          variants: {
+            some: {
+              stock_quantity: {
+                gt: 0,
+              },
+            },
+          },
         },
         select: {
           id: true,
@@ -303,5 +346,95 @@ export const productsRouter = createTRPCRouter({
         ...product,
         attributes,
       };
+    }),
+
+  getSuggest: baseProcedure
+    .input(
+      z.object({
+        search: z.string().min(0),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { search } = input;
+
+      if (!search.trim()) return [];
+
+      const categories = await ctx.db.categories.findMany({
+        where: {
+          is_deleted: false,
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+              slug: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        },
+        select: {
+          name: true,
+        },
+        take: 5,
+      });
+
+      const subcategories = await ctx.db.subcategories.findMany({
+        where: {
+          is_deleted: false,
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+              slug: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        },
+        select: {
+          name: true,
+        },
+        take: 5,
+      });
+
+      const products = await ctx.db.products.findMany({
+        where: {
+          is_deleted: false,
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+              slug: {
+                contains: search,
+                mode: "insensitive",
+              },
+              description: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        },
+        select: {
+          name: true,
+        },
+        take: 5,
+      });
+
+      const suggestions = [
+        ...categories.map((category) => category.name),
+        ...subcategories.map((subcategory) => subcategory.name),
+        ...products.map((product) => product.name),
+      ];
+
+      return suggestions || [];
     }),
 });

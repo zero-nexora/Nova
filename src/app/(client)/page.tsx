@@ -1,11 +1,9 @@
 import { getQueryClient, trpc } from "@/trpc/server";
-import { CategorySection } from "./_components/category-section";
-import { Header } from "./_components/header";
-import { ProductSection } from "./_components/product-section";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { HomeView } from "./_components/home-view";
 
-const Home = async () => {
+const HomePage = async () => {
   const queryClient = getQueryClient();
 
   await Promise.all([
@@ -22,12 +20,10 @@ const Home = async () => {
   return (
     <div className="flex flex-col min-h-screen">
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <Header />
-        <CategorySection />
-        <ProductSection />
+        <HomeView />
       </HydrationBoundary>
     </div>
   );
 };
 
-export default Home;
+export default HomePage;

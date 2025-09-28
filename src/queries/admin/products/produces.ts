@@ -60,7 +60,6 @@ export const productsRouter = createTRPCRouter({
               image_url: true,
               public_id: true,
             },
-            take: 1,
             orderBy: { created_at: "asc" },
           },
           variants: {
@@ -133,7 +132,6 @@ export const productsRouter = createTRPCRouter({
               id: true,
               image_url: true,
             },
-            take: 1,
             orderBy: { created_at: "asc" },
           },
           variants: {
@@ -143,7 +141,6 @@ export const productsRouter = createTRPCRouter({
               stock_quantity: true,
             },
             orderBy: { price: "asc" },
-            take: 1,
           },
           _count: {
             select: {
