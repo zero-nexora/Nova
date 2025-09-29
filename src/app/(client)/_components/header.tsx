@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, ShoppingCart, Heart, Menu, X } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,29 +25,31 @@ interface HeaderProps {
 }
 
 export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
+  // State management
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  // Refs
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+
+  // Hooks
+  const router = useRouter();
   const searchParams = useSearchParams();
+
   const [inputValue, setInputValue] = useState(
     searchQuery || decodeURIComponent(searchParams.get("search") || "")
   );
   const debouncedSearchQuery = useDebounce(inputValue || "", 200);
 
-  const desktopSearchRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-
   const { suggest, isPending, error } = useGetSuggest({
     search: debouncedSearchQuery,
   });
 
-  useEffect(() => {
-    setInputValue(searchQuery);
-  }, [searchQuery]);
-
+  // Load recent searches from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("recentSearches");
     if (saved) {
@@ -55,15 +57,12 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     }
   }, []);
 
-  const addRecentSearch = (query: string) => {
-    if (!query.trim()) return;
-    setRecentSearches((prev) => {
-      const newList = [query, ...prev.filter((q) => q !== query)].slice(0, 5);
-      localStorage.setItem("recentSearches", JSON.stringify(newList));
-      return newList;
-    });
-  };
+  // Sync inputValue with searchQuery prop
+  useEffect(() => {
+    setInputValue(searchQuery);
+  }, [searchQuery]);
 
+  // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -79,89 +78,142 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent, isMobile: boolean) => {
-    e.preventDefault();
-    addRecentSearch(inputValue);
-    setSearchQuery(inputValue);
-    router.push(`/?search=${encodeURIComponent(inputValue)}`);
+  // Add recent search to localStorage
+  const addRecentSearch = useCallback((query: string) => {
+    if (!query.trim()) return;
+
+    setRecentSearches((prev) => {
+      const newList = [query, ...prev.filter((q) => q !== query)].slice(0, 5);
+      localStorage.setItem("recentSearches", JSON.stringify(newList));
+      return newList;
+    });
+  }, []);
+
+  // Reset search UI state
+  const resetSearchUI = useCallback((closeMobile: boolean = false) => {
     setShowSuggestions(false);
     setIsSearchFocused(false);
     setSelectedIndex(-1);
-    if (isMobile) {
+    if (closeMobile) {
       setIsMobileSearchOpen(false);
     }
-  };
+  }, []);
 
-  const handleSuggestionSelect = (item: string, isMobile: boolean) => {
-    setInputValue(item);
-    addRecentSearch(item);
-    setSearchQuery(item);
-    router.push(`/?search=${encodeURIComponent(item)}`);
-    setShowSuggestions(false);
-    setIsSearchFocused(false);
-    setSelectedIndex(-1);
-    if (isMobile) {
-      setIsMobileSearchOpen(false); // Fix: Close mobile search sheet on suggestion select
-    }
-  };
+  // Handle search submission
+  const handleSearchSubmit = useCallback(
+    (e: React.FormEvent, isMobile: boolean) => {
+      e.preventDefault();
 
-  const handleInputFocus = () => {
+      addRecentSearch(inputValue);
+      setSearchQuery(inputValue);
+      router.push(`/?search=${encodeURIComponent(inputValue)}`);
+      resetSearchUI(isMobile);
+    },
+    [inputValue, addRecentSearch, setSearchQuery, router, resetSearchUI]
+  );
+
+  // Handle suggestion selection - FIXED FOR MOBILE
+  const handleSuggestionSelect = useCallback(
+    (item: string, isMobile: boolean) => {
+      // Use setTimeout to ensure event completes before state changes
+      setTimeout(() => {
+        setInputValue(item);
+        addRecentSearch(item);
+        setSearchQuery(item);
+        router.push(`/?search=${encodeURIComponent(item)}`);
+        resetSearchUI(isMobile);
+      }, 0);
+    },
+    [addRecentSearch, setSearchQuery, router, resetSearchUI]
+  );
+
+  // Handle input focus
+  const handleInputFocus = useCallback(() => {
     setIsSearchFocused(true);
     setShowSuggestions(true);
-  };
+  }, []);
 
-  const handleInputChange = (value: string) => {
-    setInputValue(value);
-    setShowSuggestions(value.length > 0 || isSearchFocused);
-    setSelectedIndex(-1);
-    if (value.trim()) {
-      router.replace(`/?search=${encodeURIComponent(value)}`, {
-        scroll: false,
-      });
-    } else {
-      router.replace("/", { scroll: false });
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const currentSuggestions =
-      debouncedSearchQuery.trim().length > 0 ? suggest : recentSearches;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((prev) =>
-        Math.min(prev + 1, currentSuggestions.length - 1)
-      );
-      if (selectedIndex + 1 < currentSuggestions.length) {
-        setInputValue(currentSuggestions[selectedIndex + 1]);
-      }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((prev) => {
-        const newIndex = Math.max(prev - 1, -1);
-        if (newIndex === -1) {
-          setInputValue(debouncedSearchQuery);
-        } else {
-          setInputValue(currentSuggestions[newIndex]);
-        }
-        return newIndex;
-      });
-    } else if (e.key === "Enter" && selectedIndex >= 0) {
-      e.preventDefault();
-      handleSuggestionSelect(currentSuggestions[selectedIndex], false);
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
+  // Handle input change
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInputValue(value);
+      setShowSuggestions(value.length > 0 || isSearchFocused);
       setSelectedIndex(-1);
-    }
-  };
 
-  const highlightText = (text: string, query: string) => {
+      if (value.trim()) {
+        router.replace(`/?search=${encodeURIComponent(value)}`, {
+          scroll: false,
+        });
+      } else {
+        router.replace("/", { scroll: false });
+      }
+    },
+    [isSearchFocused, router]
+  );
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      const currentSuggestions =
+        debouncedSearchQuery.trim().length > 0 ? suggest : recentSearches;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) => {
+            const newIndex = Math.min(prev + 1, currentSuggestions.length - 1);
+            if (newIndex >= 0) {
+              setInputValue(currentSuggestions[newIndex]);
+            }
+            return newIndex;
+          });
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) => {
+            const newIndex = Math.max(prev - 1, -1);
+            if (newIndex === -1) {
+              setInputValue(debouncedSearchQuery);
+            } else {
+              setInputValue(currentSuggestions[newIndex]);
+            }
+            return newIndex;
+          });
+          break;
+
+        case "Enter":
+          if (selectedIndex >= 0) {
+            e.preventDefault();
+            handleSuggestionSelect(currentSuggestions[selectedIndex], false);
+          }
+          break;
+
+        case "Escape":
+          setShowSuggestions(false);
+          setSelectedIndex(-1);
+          break;
+      }
+    },
+    [
+      debouncedSearchQuery,
+      suggest,
+      recentSearches,
+      selectedIndex,
+      handleSuggestionSelect,
+    ]
+  );
+
+  // Highlight matching text in suggestions
+  const highlightText = useCallback((text: string, query: string) => {
     if (!query) return text;
+
     const regex = new RegExp(
       `(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")})`,
       "gi"
     );
     const parts = text.split(regex);
+
     return parts.map((part, i) =>
       i % 2 === 1 ? (
         <span key={i} className="font-bold">
@@ -173,14 +225,16 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
         </span>
       )
     );
-  };
+  }, []);
 
-  const renderSuggestionDropdown = (isMobile: boolean = false) => {
-    const title =
-      debouncedSearchQuery.trim() === "" ? "Recent Searches" : "Suggestions";
+  // Render suggestion dropdown
+  const renderSuggestionDropdown = useCallback(
+    (isMobile: boolean = false) => {
+      const isSearching = debouncedSearchQuery.trim().length > 0;
+      const title = isSearching ? "Suggestions" : "Recent Searches";
 
-    if (debouncedSearchQuery.trim().length > 0) {
-      if (isPending) {
+      // Loading state
+      if (isSearching && isPending) {
         return (
           <div className="p-2 space-y-2">
             {[...Array(5)].map((_, i) => (
@@ -189,6 +243,8 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
           </div>
         );
       }
+
+      // Error state
       if (error) {
         return (
           <div className="p-4 text-center text-sm text-destructive">
@@ -196,7 +252,9 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
           </div>
         );
       }
-      if (suggest.length > 0) {
+
+      // Suggestions from search
+      if (isSearching && suggest.length > 0) {
         return (
           <div className="p-2">
             <div className="text-xs font-medium text-muted-foreground px-2 py-1">
@@ -204,9 +262,17 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             </div>
             {suggest.map((item, index) => (
               <button
+                type="button"
                 key={item}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevent input blur
+                }}
                 onClick={() => handleSuggestionSelect(item, isMobile)}
-                className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors ${
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleSuggestionSelect(item, isMobile);
+                }}
+                className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors cursor-pointer ${
                   index === selectedIndex
                     ? "bg-accent text-accent-foreground"
                     : ""
@@ -220,12 +286,17 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
           </div>
         );
       }
-      return (
-        <div className="p-4 text-center text-sm text-muted-foreground">
-          No products found for &quot;{debouncedSearchQuery}&quot;
-        </div>
-      );
-    } else {
+
+      // No results from search
+      if (isSearching && suggest.length === 0) {
+        return (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            No products found for &quot;{debouncedSearchQuery}&quot;
+          </div>
+        );
+      }
+
+      // Recent searches
       if (recentSearches.length > 0) {
         return (
           <div className="p-2">
@@ -234,9 +305,17 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             </div>
             {recentSearches.map((item, index) => (
               <button
+                type="button"
                 key={item}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevent input blur
+                }}
                 onClick={() => handleSuggestionSelect(item, isMobile)}
-                className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors ${
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleSuggestionSelect(item, isMobile);
+                }}
+                className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors cursor-pointer ${
                   index === selectedIndex
                     ? "bg-accent text-accent-foreground"
                     : ""
@@ -250,18 +329,31 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
           </div>
         );
       }
+
+      // Empty state
       return (
         <div className="p-4 text-center text-sm text-muted-foreground">
           Start typing to see suggestions
         </div>
       );
-    }
-  };
+    },
+    [
+      debouncedSearchQuery,
+      isPending,
+      error,
+      suggest,
+      recentSearches,
+      selectedIndex,
+      handleSuggestionSelect,
+      highlightText,
+    ]
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b backdrop-blur-md">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
             <div className="w-8 h-8 border rounded-md flex items-center justify-center">
               <span className="font-semibold text-sm">S</span>
@@ -271,6 +363,7 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             </div>
           </Link>
 
+          {/* Desktop Search */}
           <div
             className="hidden sm:flex flex-1 max-w-xl mx-8 relative"
             ref={desktopSearchRef}
@@ -294,14 +387,16 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
 
                 {showSuggestions && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                    {renderSuggestionDropdown()}
+                    {renderSuggestionDropdown(false)}
                   </div>
                 )}
               </div>
             </form>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex items-center space-x-1">
+            {/* Mobile Search Button */}
             <Button
               variant="ghost"
               size="icon"
@@ -312,6 +407,7 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
               <span className="sr-only">Search</span>
             </Button>
 
+            {/* Wishlist */}
             <Button
               variant="ghost"
               size="icon"
@@ -327,6 +423,7 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
               </Link>
             </Button>
 
+            {/* Cart */}
             <Button
               variant="ghost"
               size="icon"
@@ -342,11 +439,13 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
               </Link>
             </Button>
 
+            {/* User & Theme */}
             <div className="flex items-center space-x-2">
               <UserButtonCustom />
               <ThemeToggle />
             </div>
 
+            {/* Mobile Menu Button */}
             <Button
               variant="ghost"
               size="icon"
@@ -360,13 +459,13 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
         </div>
       </div>
 
+      {/* Mobile Search Sheet */}
       <Sheet
         open={isMobileSearchOpen}
         onOpenChange={(open) => {
           setIsMobileSearchOpen(open);
           if (!open) {
-            setShowSuggestions(false);
-            setIsSearchFocused(false);
+            resetSearchUI(false);
           }
         }}
       >
@@ -402,16 +501,17 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
                 autoFocus
               />
             </div>
+
             {showSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
                 {renderSuggestionDropdown(true)}
               </div>
             )}
-
           </form>
         </SheetContent>
       </Sheet>
 
+      {/* Mobile Menu Sheet */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent side="right" className="w-80 border" showX={false}>
           <SheetHeader className="pb-6">
