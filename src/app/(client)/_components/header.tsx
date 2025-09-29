@@ -81,16 +81,14 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
 
   const handleSearchSubmit = (e: React.FormEvent, isMobile: boolean) => {
     e.preventDefault();
-    if (inputValue.trim()) {
-      addRecentSearch(inputValue);
-      setSearchQuery(inputValue);
-      router.push(`/?search=${encodeURIComponent(inputValue)}`);
-      setShowSuggestions(false);
-      setIsSearchFocused(false);
-      setSelectedIndex(-1);
-      if (isMobile) {
-        setIsMobileSearchOpen(false);
-      }
+    addRecentSearch(inputValue);
+    setSearchQuery(inputValue);
+    router.push(`/?search=${encodeURIComponent(inputValue)}`);
+    setShowSuggestions(false);
+    setIsSearchFocused(false);
+    setSelectedIndex(-1);
+    if (isMobile) {
+      setIsMobileSearchOpen(false);
     }
   };
 
@@ -103,7 +101,7 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     setIsSearchFocused(false);
     setSelectedIndex(-1);
     if (isMobile) {
-      setIsMobileSearchOpen(false);
+      setIsMobileSearchOpen(false); // Fix: Close mobile search sheet on suggestion select
     }
   };
 
@@ -117,7 +115,9 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     setShowSuggestions(value.length > 0 || isSearchFocused);
     setSelectedIndex(-1);
     if (value.trim()) {
-      router.replace(`/?search=${encodeURIComponent(value)}`, { scroll: false });
+      router.replace(`/?search=${encodeURIComponent(value)}`, {
+        scroll: false,
+      });
     } else {
       router.replace("/", { scroll: false });
     }
@@ -164,7 +164,9 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     const parts = text.split(regex);
     return parts.map((part, i) =>
       i % 2 === 1 ? (
-        <span key={i}>{part}</span>
+        <span key={i} className="font-bold">
+          {part}
+        </span>
       ) : (
         <span key={i} className="text-muted-foreground">
           {part}
@@ -173,7 +175,7 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     );
   };
 
-  const renderSuggestionDropdown = () => {
+  const renderSuggestionDropdown = (isMobile: boolean = false) => {
     const title =
       debouncedSearchQuery.trim() === "" ? "Recent Searches" : "Suggestions";
 
@@ -203,9 +205,11 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             {suggest.map((item, index) => (
               <button
                 key={item}
-                onClick={() => handleSuggestionSelect(item, false)}
+                onClick={() => handleSuggestionSelect(item, isMobile)}
                 className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors ${
-                  index === selectedIndex ? "bg-accent text-accent-foreground" : ""
+                  index === selectedIndex
+                    ? "bg-accent text-accent-foreground"
+                    : ""
                 }`}
               >
                 <div className="flex items-center">
@@ -231,9 +235,11 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             {recentSearches.map((item, index) => (
               <button
                 key={item}
-                onClick={() => handleSuggestionSelect(item, false)}
+                onClick={() => handleSuggestionSelect(item, isMobile)}
                 className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors ${
-                  index === selectedIndex ? "bg-accent text-accent-foreground" : ""
+                  index === selectedIndex
+                    ? "bg-accent text-accent-foreground"
+                    : ""
                 }`}
               >
                 <div className="flex items-center">
@@ -269,7 +275,10 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             className="hidden sm:flex flex-1 max-w-xl mx-8 relative"
             ref={desktopSearchRef}
           >
-            <form onSubmit={(e) => handleSearchSubmit(e, false)} className="w-full">
+            <form
+              onSubmit={(e) => handleSearchSubmit(e, false)}
+              className="w-full"
+            >
               <div className="relative">
                 <div className="flex items-center border rounded-lg shadow-md bg-background">
                   <Search className="ml-3 mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -376,7 +385,10 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
             </div>
           </SheetHeader>
 
-          <form onSubmit={(e) => handleSearchSubmit(e, true)} className="space-y-4 relative">
+          <form
+            onSubmit={(e) => handleSearchSubmit(e, true)}
+            className="space-y-4 relative"
+          >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -390,12 +402,12 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
                 autoFocus
               />
             </div>
-
             {showSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                {renderSuggestionDropdown()}
+                {renderSuggestionDropdown(true)}
               </div>
             )}
+
           </form>
         </SheetContent>
       </Sheet>

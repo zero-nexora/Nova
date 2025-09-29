@@ -13,10 +13,10 @@ export const HomeView = () => {
   );
 
   return (
-    <div>
+    <>
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       <CategorySection />
       <ProductSection search={searchQuery} />
-    </div>
+    </>
   );
 };

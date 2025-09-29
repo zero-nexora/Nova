@@ -214,9 +214,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             <div className="space-y-4">
               {product.attributes.map((attribute: ProductAttribute) => (
                 <div key={attribute.id}>
-                  <label className="text-sm font-medium mb-2 block">
+                  <Label className="text-sm font-medium mb-2 block">
                     {attribute.name}
-                  </label>
+                  </Label>
                   <div className="flex gap-2 flex-wrap">
                     {attribute.values.map((value: ProductAttributeValue) => (
                       <Button

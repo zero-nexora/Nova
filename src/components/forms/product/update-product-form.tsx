@@ -49,6 +49,7 @@ import {
   useUploadImages,
 } from "@/components/uploader/hooks/use-uploader";
 import { useUpdateProduct } from "@/app/(admin)/admin/products/hooks/products/use-update-product";
+import { Label } from "@/components/ui/label";
 
 // Types
 interface ProductVariant extends VariantInput {
@@ -363,9 +364,9 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
       <div className="space-y-4">
         {filteredExistingImages.length > 0 && (
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <Label className="text-sm font-medium mb-2 block">
               Current Images
-            </label>
+            </Label>
             <ImagesPreview
               previewList={previewList}
               disabled={isSubmitting}
@@ -375,11 +376,11 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         )}
 
         <div>
-          <label className="text-sm font-medium mb-2 block">
+          <Label className="text-sm font-medium mb-2 block">
             {filteredExistingImages.length > 0
               ? "Add More Images"
               : "Upload Images"}
-          </label>
+          </Label>
           <FormControl>
             <ImageUploader
               maxFiles={
@@ -563,10 +564,10 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
               {/* Basic variant info */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                  <Label className="text-sm font-medium flex items-center gap-1 mb-2">
                     <Hash className="h-3 w-3" />
                     SKU *
-                  </label>
+                  </Label>
                   <Input
                     placeholder={
                       form.watch("name")
@@ -582,10 +583,10 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                  <Label className="text-sm font-medium flex items-center gap-1 mb-2">
                     <DollarSign className="h-3 w-3" />
                     Price *
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -603,10 +604,10 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                  <Label className="text-sm font-medium flex items-center gap-1 mb-2">
                     <Warehouse className="h-3 w-3" />
                     Stock *
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     placeholder="0"
@@ -646,9 +647,9 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
 
                         return (
                           <div key={attribute.id}>
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">
+                            <Label className="text-xs font-medium text-gray-600 mb-1 block">
                               {attribute.name}
-                            </label>
+                            </Label>
                             <Select
                               value={selectedValue}
                               onValueChange={(value) =>

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useConfirm } from "@/stores/confirm-store";
+import { Label } from "../ui/label";
 
 interface BulkActionsToolbarProps {
   totalCount: number;
@@ -150,10 +151,10 @@ export const BulkActionsToolbar = ({
               }}
               disabled={isProcessing}
             />
-            <label htmlFor="select-all" className="text-sm font-medium">
+            <Label htmlFor="select-all" className="text-sm font-medium">
               Select All{" "}
               {entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)}
-            </label>
+            </Label>
           </div>
           <div className="text-sm text-muted-foreground">
             {totalCount} {entityLabel} total

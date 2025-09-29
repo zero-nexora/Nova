@@ -14,7 +14,7 @@ import { ProductGrid, ProductGridSkeleton } from "./product-grid";
 
 interface ProductSectionProps {
   limit?: number;
-  sortBy?: "created_at" | "name" | "price";
+  sortBy?: "updated_at" | "name" | "price";
   sortOrder?: "asc" | "desc";
   categoryId?: string;
   subcategoryId?: string;
@@ -23,12 +23,12 @@ interface ProductSectionProps {
   priceMax?: number;
   title?: string;
   description?: string;
-  excludeIds?: string[];
+  excludeSlugs?: string[];
 }
 
 export const ProductSection = ({
   limit = DEFAULT_LIMIT,
-  sortBy = "created_at",
+  sortBy = "updated_at",
   sortOrder = "desc",
   categoryId,
   subcategoryId,
@@ -37,7 +37,7 @@ export const ProductSection = ({
   priceMax,
   title,
   description,
-  excludeIds,
+  excludeSlugs,
 }: ProductSectionProps) => {
   const filters: ProductFilters = useProductFilters({
     limit,
@@ -48,7 +48,7 @@ export const ProductSection = ({
     search,
     priceMin,
     priceMax,
-    excludeIds,
+    excludeSlugs,
   });
 
   const {

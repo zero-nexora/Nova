@@ -2,7 +2,6 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { GetInfiniteProductsSchema, ProductDetail } from "./types";
-import { buildProductWhereClause } from "./utils";
 
 export const productsRouter = createTRPCRouter({
   getAll: baseProcedure
@@ -17,50 +16,73 @@ export const productsRouter = createTRPCRouter({
         sortOrder,
         priceMin,
         priceMax,
-        excludeIds,
+        excludeSlugs,
+        sortBy,
       } = input;
 
       try {
-        const baseWhere = buildProductWhereClause({
-          search,
-          slugCategory,
-          slugSubcategory,
-          priceMin,
-          priceMax,
-        });
-
         const where: any = {
-          ...baseWhere,
           is_deleted: false,
           variants: {
             some: {
               stock_quantity: { gt: 0 },
             },
           },
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { slug: { contains: search, mode: "insensitive" } },
+        };
+
+        if (search?.trim()) {
+          const searchTerm = search.trim();
+          where.OR = [
+            { name: { contains: searchTerm, mode: "insensitive" } },
+            { description: { contains: searchTerm, mode: "insensitive" } },
+            { slug: { contains: searchTerm, mode: "insensitive" } },
             {
               category: {
                 OR: [
-                  { name: { contains: search, mode: "insensitive" } },
-                  { slug: { contains: search, mode: "insensitive" } },
+                  { name: { contains: searchTerm, mode: "insensitive" } },
+                  { slug: { contains: searchTerm, mode: "insensitive" } },
                 ],
               },
             },
             {
               subcategory: {
                 OR: [
-                  { name: { contains: search, mode: "insensitive" } },
-                  { slug: { contains: search, mode: "insensitive" } },
+                  { name: { contains: searchTerm, mode: "insensitive" } },
+                  { slug: { contains: searchTerm, mode: "insensitive" } },
                 ],
               },
             },
-          ],
-        };
+          ];
+        }
 
-        if (excludeIds && excludeIds.length > 0) {
-          where.id = { notIn: excludeIds };
+        if (slugCategory) {
+          where.category = { is: { slug: slugCategory } };
+        }
+
+        if (slugSubcategory) {
+          where.subcategory = { is: { slug: slugSubcategory } };
+        }
+
+        if (priceMin !== undefined || priceMax !== undefined) {
+          const priceFilters: any[] = [];
+          if (priceMin !== undefined && priceMin >= 0) {
+            priceFilters.push({ price: { gte: priceMin } });
+          }
+          if (priceMax !== undefined && priceMax >= 0) {
+            priceFilters.push({ price: { lte: priceMax } });
+          }
+          if (priceFilters.length > 0) {
+            where.variants = {
+              some: {
+                stock_quantity: { gt: 0 },
+                AND: priceFilters,
+              },
+            };
+          }
+        }
+
+        if (excludeSlugs && excludeSlugs.length > 0) {
+          where.slug = { notIn: excludeSlugs };
         }
 
         if (cursor) {
@@ -92,8 +114,24 @@ export const productsRouter = createTRPCRouter({
           where.AND = [...(where.AND || []), cursorFilter];
         }
 
-        const orderBy = [{ updated_at: sortOrder }, { id: sortOrder }];
+        let orderBy: any = {};
+        if (sortBy === "price") {
+          orderBy = {
+            variants: {
+              _min: {
+                price: sortOrder || "asc",
+              },
+            },
+          };
+        } else if (sortBy === "name") {
+          orderBy = { name: sortOrder || "asc" };
+        } else if (sortBy === "updated_at") {
+          orderBy = { updated_at: sortOrder || "desc" };
+        } else {
+          orderBy = { updated_at: "desc" };
+        }
 
+        // query chính
         const products = await ctx.db.products.findMany({
           where,
           take: limit + 1,
@@ -138,10 +176,10 @@ export const productsRouter = createTRPCRouter({
           },
         });
 
+        // phân trang
         const hasMore = products.length > limit;
         const items = hasMore ? products.slice(0, -1) : products;
         const lastItem = items[items.length - 1];
-
         const nextCursor = hasMore
           ? { id: lastItem.id, updatedAt: lastItem.updated_at }
           : null;

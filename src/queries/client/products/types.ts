@@ -127,9 +127,9 @@ export const GetInfiniteProductsSchema = z.object({
   search: z.string().optional(),
   slugCategory: z.string().optional(),
   slugSubcategory: z.string().optional(),
-  sortBy: z.enum(["name", "created_at", "price"]).default("created_at"),
+  sortBy: z.enum(["name", "updated_at", "price"]).default("updated_at"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   priceMin: z.number().min(0).optional(),
   priceMax: z.number().min(0).optional(),
-  excludeIds: z.array(z.string().uuid()).optional(),
+  excludeSlugs: z.array(z.string()).optional(),
 });

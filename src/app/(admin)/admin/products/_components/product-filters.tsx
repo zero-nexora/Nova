@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Filter, Search, RefreshCw } from "lucide-react";
 import { ProductFilters } from "../hooks/types";
+import { Label } from "@/components/ui/label";
 
 interface Category {
   slug: string;
@@ -77,7 +78,7 @@ export const ProductFiltersComponent = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Search</label>
+            <Label className="text-sm font-medium">Search</Label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -91,7 +92,7 @@ export const ProductFiltersComponent = ({
 
           {/* Category */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Category</label>
+            <Label className="text-sm font-medium">Category</Label>
             <Select
               value={filters.slugCategory}
               onValueChange={handleCategoryChange}
@@ -112,7 +113,7 @@ export const ProductFiltersComponent = ({
 
           {/* Subcategory */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Subcategory</label>
+            <Label className="text-sm font-medium">Subcategory</Label>
             <Select
               value={filters.slugSubcategory}
               onValueChange={handleSubcategoryChange}
@@ -134,7 +135,7 @@ export const ProductFiltersComponent = ({
 
           {/* Status */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Status</label>
+            <Label className="text-sm font-medium">Status</Label>
             <Select
               value={filters.deletedFilter}
               onValueChange={handleDeletedFilterChange}
@@ -152,7 +153,7 @@ export const ProductFiltersComponent = ({
 
           {/* Price Range */}
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium">Price Range</label>
+            <Label className="text-sm font-medium">Price Range</Label>
             <div className="flex gap-2">
               <Input
                 type="number"

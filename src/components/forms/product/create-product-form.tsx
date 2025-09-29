@@ -33,6 +33,7 @@ import { Loading } from "@/components/global/loading";
 import { useModal } from "@/stores/modal-store";
 import { useUploadImages } from "@/components/uploader/hooks/use-uploader";
 import { useCreateProduct } from "@/app/(admin)/admin/products/hooks/products/use-create-product";
+import { Label } from "@/components/ui/label";
 
 // Types
 type ProductVariant = {
@@ -384,10 +385,10 @@ export const CreateProductForm = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                  <Label className="text-sm font-medium flex items-center gap-1 mb-2">
                     <Hash className="h-3 w-3" />
                     SKU *
-                  </label>
+                  </Label>
                   <Input
                     placeholder={
                       form.watch("name")
@@ -403,10 +404,10 @@ export const CreateProductForm = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                  <Label className="text-sm font-medium flex items-center gap-1 mb-2">
                     <DollarSign className="h-3 w-3" />
                     Price *
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -424,10 +425,10 @@ export const CreateProductForm = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-1 mb-2">
+                  <Label className="text-sm font-medium flex items-center gap-1 mb-2">
                     <Warehouse className="h-3 w-3" />
                     Stock *
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     placeholder="0"
@@ -452,9 +453,9 @@ export const CreateProductForm = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {productAttributes.map((attribute) => (
                         <div key={attribute.id}>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">
+                          <Label className="text-xs font-medium text-gray-600 mb-1 block">
                             {attribute.name}
-                          </label>
+                          </Label>
                           <Select
                             value={getSelectedAttributeValue(
                               variant.id,

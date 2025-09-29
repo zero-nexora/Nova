@@ -1,13 +1,13 @@
 export interface ProductFilters {
   limit?: number;
-  sortBy?: "created_at" | "name" | "price";
+  sortBy?: "updated_at" | "name" | "price";
   sortOrder?: "asc" | "desc";
   categoryId?: string;
   subcategoryId?: string;
   search?: string;
   priceMin?: number;
   priceMax?: number;
-  excludeIds?: string[];
+  excludeSlugs?: string[];
 }
 
 export const useProductFilters = (filters: ProductFilters) => {

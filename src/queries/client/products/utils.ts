@@ -102,29 +102,6 @@ export function buildProductWhereClause({
   return where;
 }
 
-export function buildProductOrderBy(
-  sortBy: string,
-  sortOrder: "asc" | "desc"
-): Prisma.ProductsOrderByWithRelationInput {
-  const validSortFields = ["name", "created_at", "updated_at", "price"];
-
-  if (!validSortFields.includes(sortBy)) {
-    return { created_at: "desc" };
-  }
-
-  if (sortBy === "price") {
-    return {
-      variants: {
-        _min: {
-          price: sortOrder,
-        },
-      },
-    } as Prisma.ProductsOrderByWithRelationInput;
-  }
-
-  return { [sortBy]: sortOrder } as Prisma.ProductsOrderByWithRelationInput;
-}
-
 export async function validateProductDependencies(
   db: PrismaClient,
   categoryId: string,
