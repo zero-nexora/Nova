@@ -580,46 +580,48 @@ const MobileCategoryAccordion = ({
 const CategorySectionSkeleton = () => (
   <div className="w-full border-b">
     <div className="container mx-auto px-4">
-      {/* Desktop Skeleton */}
-      <div className="hidden lg:flex items-center py-4">
+      {/* Desktop Skeleton (xl and above) */}
+      <div className="hidden xl:flex items-center py-4">
         <div className="flex items-center space-x-2 mr-8">
-          <div className="flex items-center space-x-2 border rounded-md px-3 py-2 bg-background">
-            <Menu className="h-4 w-4 text-muted-foreground" />
-            <Skeleton className="h-4 w-24" />
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
+          <Skeleton className="h-10 w-40" />
         </div>
 
         <div className="flex items-center space-x-4 flex-1">
-          {[...Array(6)].map((_, index) => (
-            <Skeleton key={index} className="h-9 w-20" />
+          {[...Array(8)].map((_, index) => (
+            <Skeleton key={index} className="h-9 w-24" />
           ))}
         </div>
       </div>
 
-      {/* Tablet Skeleton */}
-      <div className="hidden md:flex lg:hidden items-center py-4">
-        <div className="flex items-center space-x-2 mr-4">
-          <div className="flex items-center space-x-2 border rounded-md px-2 py-1 bg-background text-sm">
-            <Menu className="h-4 w-4 text-muted-foreground" />
-            <Skeleton className="h-4 w-16" />
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
+      {/* Laptop Skeleton (lg to xl) */}
+      <div className="hidden lg:flex xl:hidden items-center py-4">
+        <div className="flex items-center space-x-2 mr-8">
+          <Skeleton className="h-10 w-40" />
         </div>
 
-        <div className="flex items-center space-x-1 flex-wrap">
+        <div className="flex items-center space-x-4 flex-1">
+          {[...Array(6)].map((_, index) => (
+            <Skeleton key={index} className="h-9 w-24" />
+          ))}
+        </div>
+      </div>
+
+      {/* Tablet Skeleton (md to lg) */}
+      <div className="hidden md:flex lg:hidden items-center py-4">
+        <div className="flex items-center space-x-2 mr-8">
+          <Skeleton className="h-10 w-40" />
+        </div>
+
+        <div className="flex items-center space-x-2 flex-1">
           {[...Array(4)].map((_, index) => (
-            <Skeleton key={index} className="h-8 w-16 rounded-md" />
+            <Skeleton key={index} className="h-9 w-24" />
           ))}
         </div>
       </div>
 
       {/* Mobile Skeleton */}
       <div className="md:hidden py-4">
-        <div className="w-full flex items-center justify-center space-x-2 border rounded-md px-4 py-2 bg-background">
-          <Menu className="h-4 w-4 text-muted-foreground" />
-          <Skeleton className="h-4 w-32" />
-        </div>
+        <Skeleton className="w-full h-12" />
       </div>
     </div>
   </div>
