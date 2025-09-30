@@ -118,18 +118,40 @@ export interface ProductDetail {
 
 export const GetInfiniteProductsSchema = z.object({
   limit: z.number().min(1).max(100).default(20),
+
   cursor: z
     .object({
       id: z.string().uuid(),
       updatedAt: z.date(),
     })
     .nullish(),
+
   search: z.string().optional(),
+
   slugCategory: z.string().optional(),
   slugSubcategory: z.string().optional(),
-  sortBy: z.enum(["name", "updated_at", "price"]).default("updated_at"),
+
+  sortBy: z
+    .enum([
+      "curated",
+      "trending",
+      "hot_and_new",
+      "price_asc",
+      "price_desc",
+      "name_asc",
+      "name_desc",
+      "newest",
+      "oldest",
+      "stock_high",
+      "stock_low",
+      "rating_high",
+    ])
+    .default("curated"),
+
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
+
   priceMin: z.number().min(0).optional(),
   priceMax: z.number().min(0).optional(),
+
   excludeSlugs: z.array(z.string()).optional(),
 });

@@ -13,20 +13,18 @@ export const productsRouter = createTRPCRouter({
         search,
         slugCategory,
         slugSubcategory,
+        sortBy,
         sortOrder,
         priceMin,
         priceMax,
         excludeSlugs,
-        sortBy,
       } = input;
 
       try {
         const where: any = {
           is_deleted: false,
           variants: {
-            some: {
-              stock_quantity: { gt: 0 },
-            },
+            some: { stock_quantity: { gt: 0 } },
           },
         };
 
@@ -58,7 +56,6 @@ export const productsRouter = createTRPCRouter({
         if (slugCategory) {
           where.category = { is: { slug: slugCategory } };
         }
-
         if (slugSubcategory) {
           where.subcategory = { is: { slug: slugSubcategory } };
         }
@@ -115,23 +112,39 @@ export const productsRouter = createTRPCRouter({
         }
 
         let orderBy: any = {};
-        if (sortBy === "price") {
-          orderBy = {
-            variants: {
-              _min: {
-                price: sortOrder || "asc",
-              },
-            },
-          };
-        } else if (sortBy === "name") {
-          orderBy = { name: sortOrder || "asc" };
-        } else if (sortBy === "updated_at") {
-          orderBy = { updated_at: sortOrder || "desc" };
-        } else {
-          orderBy = { updated_at: "desc" };
+        switch (sortBy) {
+          case "price_asc":
+            orderBy = { variants: { _min: { price: "asc" } } };
+            break;
+          case "price_desc":
+            orderBy = { variants: { _min: { price: "desc" } } };
+            break;
+          case "name_asc":
+            orderBy = { name: "asc" };
+            break;
+          case "name_desc":
+            orderBy = { name: "desc" };
+            break;
+          case "newest":
+            orderBy = { updated_at: "desc" };
+            break;
+          case "oldest":
+            orderBy = { updated_at: "asc" };
+            break;
+          case "stock_high":
+            orderBy = { variants: { _sum: { stock_quantity: "desc" } } };
+            break;
+          case "stock_low":
+            orderBy = { variants: { _sum: { stock_quantity: "asc" } } };
+            break;
+          case "rating_high":
+            orderBy = { reviews: { _avg: { rating: "desc" } } };
+            break;
+          default:
+            orderBy = { updated_at: sortOrder || "desc" };
+            break;
         }
 
-        // query chính
         const products = await ctx.db.products.findMany({
           where,
           take: limit + 1,
@@ -148,8 +161,8 @@ export const productsRouter = createTRPCRouter({
             subcategory: { select: { id: true, name: true, slug: true } },
             images: {
               select: { id: true, image_url: true, public_id: true },
+              orderBy: { updated_at: "asc" },
               take: 1,
-              orderBy: { created_at: "asc" },
             },
             variants: {
               select: {
@@ -176,7 +189,6 @@ export const productsRouter = createTRPCRouter({
           },
         });
 
-        // phân trang
         const hasMore = products.length > limit;
         const items = hasMore ? products.slice(0, -1) : products;
         const lastItem = items[items.length - 1];
@@ -184,11 +196,7 @@ export const productsRouter = createTRPCRouter({
           ? { id: lastItem.id, updatedAt: lastItem.updated_at }
           : null;
 
-        return {
-          products: items,
-          nextCursor,
-          hasMore,
-        };
+        return { products: items, nextCursor, hasMore };
       } catch (error) {
         console.error("Error fetching infinite products:", error);
         throw new TRPCError({

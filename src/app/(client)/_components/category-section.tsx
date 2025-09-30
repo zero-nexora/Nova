@@ -81,6 +81,12 @@ export const CategorySection = () => {
           onSubcategoryClick={handleSubcategoryClick}
         />
 
+        <LaptopNavigation
+          categories={categories}
+          onCategoryClick={handleCategoryClick}
+          onSubcategoryClick={handleSubcategoryClick}
+        />
+
         {/* Tablet Navigation (md to lg) */}
         <TabletNavigation
           categories={categories}
@@ -116,7 +122,7 @@ const DesktopNavigation = ({
   onCategoryClick,
   onSubcategoryClick,
 }: NavigationProps) => (
-  <div className="hidden lg:flex items-center py-4">
+  <div className="hidden xl:flex items-center py-4">
     {/* All Categories Dropdown */}
     <div className="flex items-center space-x-2 mr-8">
       <DropdownMenu>
@@ -167,26 +173,28 @@ const DesktopNavigation = ({
 );
 
 // ============================================================================
-// Tablet Navigation Component
+// Laptop Navigation Component
 // ============================================================================
 
-const TabletNavigation = ({
+interface NavigationProps {
+  categories: Category[];
+  onCategoryClick: (slug: string) => void;
+  onSubcategoryClick: (slug: string) => void;
+}
+
+const LaptopNavigation = ({
   categories,
   onCategoryClick,
   onSubcategoryClick,
 }: NavigationProps) => (
-  <div className="hidden md:flex lg:hidden items-center py-4">
-    {/* Categories Dropdown */}
-    <div className="flex items-center space-x-2 mr-4">
+  <div className="hidden lg:flex xl:hidden items-center py-4">
+    {/* All Categories Dropdown */}
+    <div className="flex items-center space-x-2 mr-8">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
+          <Button variant="outline" className="flex items-center space-x-2">
             <Menu className="h-4 w-4" />
-            <span>Categories</span>
+            <span>All Categories</span>
             <ChevronDown className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -203,19 +211,87 @@ const TabletNavigation = ({
       </DropdownMenu>
     </div>
 
-    {/* Quick Access Buttons */}
-    <div className="flex items-center space-x-1 flex-wrap">
-      {categories.slice(0, 7).map((category) => (
-        <Button
-          key={category.id}
-          variant="ghost"
-          size="sm"
-          onClick={() => onCategoryClick(category.slug)}
-          className="text-xs px-2 py-1 h-8"
-        >
-          {category.name}
-        </Button>
-      ))}
+    {/* Top Categories Navigation Menu */}
+    <div className="flex-1">
+      <NavigationMenu>
+        <NavigationMenuList className="flex-wrap gap-2 justify-start">
+          {categories.slice(0, 6).map((category) => (
+            <NavigationMenuItem key={category.id}>
+              {category.subcategories.length > 0 ? (
+                <CategoryWithSubmenu
+                  category={category}
+                  onCategoryClick={onCategoryClick}
+                  onSubcategoryClick={onSubcategoryClick}
+                />
+              ) : (
+                <CategoryLink
+                  category={category}
+                  onCategoryClick={onCategoryClick}
+                />
+              )}
+            </NavigationMenuItem>
+          ))}
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
+  </div>
+);
+
+// ============================================================================
+// Tablet Navigation Component
+// ============================================================================
+
+const TabletNavigation = ({
+  categories,
+  onCategoryClick,
+  onSubcategoryClick,
+}: NavigationProps) => (
+  <div className="hidden md:flex lg:hidden items-center py-4">
+    {/* Categories Dropdown */}
+    <div className="flex items-center space-x-2 mr-8">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center space-x-2">
+            <Menu className="h-4 w-4" />
+            <span>All Categories</span>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
+          {categories.map((category) => (
+            <CategoryDropdownItem
+              key={category.id}
+              category={category}
+              onCategoryClick={onCategoryClick}
+              onSubcategoryClick={onSubcategoryClick}
+            />
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+
+    {/* Top Categories Navigation Menu */}
+    <div className="flex-1">
+      <NavigationMenu>
+        <NavigationMenuList className="flex-wrap gap-2 justify-start">
+          {categories.slice(0, 4).map((category) => (
+            <NavigationMenuItem key={category.id}>
+              {category.subcategories.length > 0 ? (
+                <CategoryWithSubmenu
+                  category={category}
+                  onCategoryClick={onCategoryClick}
+                  onSubcategoryClick={onSubcategoryClick}
+                />
+              ) : (
+                <CategoryLink
+                  category={category}
+                  onCategoryClick={onCategoryClick}
+                />
+              )}
+            </NavigationMenuItem>
+          ))}
+        </NavigationMenuList>
+      </NavigationMenu>
     </div>
   </div>
 );

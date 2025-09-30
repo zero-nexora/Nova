@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { Heart, ShoppingCart, Star, Minus, Plus, Check } from "lucide-react";
+import {
+  Heart,
+  ShoppingCart,
+  Star,
+  Minus,
+  Plus,
+  Check,
+  SlashIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +32,16 @@ import {
 } from "@/components/ui/carousel";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatUSD } from "@/lib/utils";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import Link from "next/link";
 
 interface ProductDetailProps {
   slug: string;
@@ -58,22 +76,72 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   }
 
   const handleAttributeChange = (attributeId: string, valueId: string) => {
-    setSelectedAttributes((prev) => ({
-      ...prev,
-      [attributeId]: valueId,
-    }));
+    setSelectedAttributes((prev) => {
+      // Nếu click vào value đang được chọn, thì bỏ chọn
+      if (prev[attributeId] === valueId) {
+        const newAttributes = { ...prev };
+        delete newAttributes[attributeId];
+        return newAttributes;
+      }
+
+      // Nếu không, chọn value mới
+      return {
+        ...prev,
+        [attributeId]: valueId,
+      };
+    });
   };
 
-  const currentVariant =
-    product.variants.find((variant: Variant) =>
+  // Lấy danh sách các attribute values có thể chọn dựa trên selections hiện tại
+  const getAvailableValues = (attributeId: string): Set<string> => {
+    const availableValueIds = new Set<string>();
+
+    // Lọc các variants phù hợp với các attributes đã chọn (ngoại trừ attribute hiện tại)
+    const matchingVariants = product.variants.filter((variant: Variant) =>
       variant.attributes.every((variantAttr: VariantAttribute) => {
-        const selectedValue =
-          selectedAttributes[variantAttr.attributeValue.attribute.id];
+        const attrId = variantAttr.attributeValue.attribute.id;
+
+        // Bỏ qua attribute hiện tại đang xét
+        if (attrId === attributeId) return true;
+
+        // Kiểm tra các attributes khác đã được chọn
+        const selectedValue = selectedAttributes[attrId];
         return (
           !selectedValue || selectedValue === variantAttr.attributeValue.id
         );
       })
-    ) || product.variants[0];
+    );
+
+    // Thu thập tất cả values có thể chọn từ các variants phù hợp
+    matchingVariants.forEach((variant: Variant) => {
+      variant.attributes.forEach((variantAttr: VariantAttribute) => {
+        if (variantAttr.attributeValue.attribute.id === attributeId) {
+          availableValueIds.add(variantAttr.attributeValue.id);
+        }
+      });
+    });
+
+    return availableValueIds;
+  };
+
+  // Kiểm tra xem đã chọn đủ tất cả attributes chưa
+  const allAttributesSelected =
+    product.attributes &&
+    product.attributes.length > 0 &&
+    product.attributes.every(
+      (attr: ProductAttribute) => selectedAttributes[attr.id]
+    );
+
+  // Tìm variant phù hợp với các attributes đã chọn
+  const currentVariant = allAttributesSelected
+    ? product.variants.find((variant: Variant) =>
+        variant.attributes.every((variantAttr: VariantAttribute) => {
+          const selectedValue =
+            selectedAttributes[variantAttr.attributeValue.attribute.id];
+          return selectedValue === variantAttr.attributeValue.id;
+        })
+      )
+    : null;
 
   const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
   const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
@@ -85,6 +153,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
       setQuantity((prev) => prev - 1);
     }
   };
+
+  const canAddToCart =
+    allAttributesSelected && currentVariant && currentStock > 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -159,13 +230,57 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
         <div className="space-y-6">
           {/* Breadcrumb */}
           <div className="text-sm">
-            <span>{product.category.name}</span>
-            {product.subcategory && (
-              <>
-                <span className="mx-2">/</span>
-                <span>{product.subcategory.name}</span>
-              </>
-            )}
+            <Breadcrumb>
+              <BreadcrumbList>
+                {/* Home */}
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/">Home</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+
+                <BreadcrumbSeparator>
+                  <SlashIcon />
+                </BreadcrumbSeparator>
+
+                {/* Category */}
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href={`/category/${product.category.slug}`}>
+                      {product.category.name}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+
+                {product.subcategory && (
+                  <>
+                    <BreadcrumbSeparator>
+                      <SlashIcon />
+                    </BreadcrumbSeparator>
+
+                    {/* Subcategory */}
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link
+                          href={`/category/${product.category.slug}/${product.subcategory.slug}`}
+                        >
+                          {product.subcategory.name}
+                        </Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                  </>
+                )}
+
+                <BreadcrumbSeparator>
+                  <SlashIcon />
+                </BreadcrumbSeparator>
+
+                {/* Current Product */}
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{product.name}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
 
           {/* Product Title */}
@@ -183,21 +298,35 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           </div>
 
-          {/* Price */}
-          <div className="text-3xl font-bold">${currentPrice.toFixed(2)}</div>
+          {/* Price & Stock Status - fixed height để tránh nhảy layout */}
+          <div className="min-h-[5rem] space-y-3">
+            <div className="flex items-center">
+              {allAttributesSelected && currentVariant ? (
+                <div className="text-3xl font-bold">
+                  {formatUSD(currentPrice)}
+                </div>
+              ) : (
+                <div className="text-lg text-muted-foreground">
+                  Please select all options to see price
+                </div>
+              )}
+            </div>
 
-          {/* Stock Status */}
-          <div className="flex items-center gap-2">
-            {currentStock > 0 ? (
-              <>
-                <Badge variant="outline">
-                  <Check className="w-3 h-3 mr-1" />
-                  In Stock
-                </Badge>
-                <span className="text-sm">{currentStock} available</span>
-              </>
-            ) : (
-              <Badge variant="outline">Out of Stock</Badge>
+            {/* Stock Status - chỉ hiển thị khi đã chọn variant */}
+            {allAttributesSelected && currentVariant && (
+              <div className="flex items-center gap-2">
+                {currentStock > 0 ? (
+                  <>
+                    <Badge variant="outline">
+                      <Check className="w-3 h-3 mr-1" />
+                      In Stock
+                    </Badge>
+                    <span className="text-sm">{currentStock} available</span>
+                  </>
+                ) : (
+                  <Badge variant="outline">Out of Stock</Badge>
+                )}
+              </div>
             )}
           </div>
 
@@ -212,33 +341,39 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           {/* Attributes Selection */}
           {product.attributes && product.attributes.length > 0 && (
             <div className="space-y-4">
-              {product.attributes.map((attribute: ProductAttribute) => (
-                <div key={attribute.id}>
-                  <Label className="text-sm font-medium mb-2 block">
-                    {attribute.name}
-                  </Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {attribute.values.map((value: ProductAttributeValue) => (
-                      <Button
-                        key={value.id}
-                        variant={
-                          selectedAttributes[attribute.id] === value.id
-                            ? "default"
-                            : "outline"
-                        }
-                        size="sm"
-                        disabled={!value.available}
-                        onClick={() =>
-                          handleAttributeChange(attribute.id, value.id)
-                        }
-                        className="min-w-fit"
-                      >
-                        {value.value}
-                      </Button>
-                    ))}
+              {product.attributes.map((attribute: ProductAttribute) => {
+                const availableValues = getAvailableValues(attribute.id);
+
+                return (
+                  <div key={attribute.id}>
+                    <Label className="text-sm font-medium mb-2 block">
+                      {attribute.name}
+                    </Label>
+                    <div className="flex gap-2 flex-wrap">
+                      {attribute.values.map((value: ProductAttributeValue) => {
+                        const isAvailable = availableValues.has(value.id);
+                        const isSelected =
+                          selectedAttributes[attribute.id] === value.id;
+
+                        return (
+                          <Button
+                            key={value.id}
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            disabled={!isAvailable}
+                            onClick={() =>
+                              handleAttributeChange(attribute.id, value.id)
+                            }
+                            className="min-w-fit"
+                          >
+                            {value.value}
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -253,7 +388,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleQuantityChange("decrement")}
-                  disabled={quantity <= 1}
+                  disabled={!canAddToCart || quantity <= 1}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
@@ -264,7 +399,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleQuantityChange("increment")}
-                  disabled={quantity >= currentStock}
+                  disabled={!canAddToCart || quantity >= currentStock}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -272,13 +407,13 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
 
             <div className="flex gap-3">
-              <Button
-                size="lg"
-                className="flex-1"
-                disabled={currentStock === 0}
-              >
+              <Button size="lg" className="flex-1" disabled={!canAddToCart}>
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                Add to Cart
+                {!allAttributesSelected
+                  ? "Select Options"
+                  : currentStock === 0
+                  ? "Out of Stock"
+                  : "Add to Cart"}
               </Button>
               <Button variant="outline" size="lg">
                 <Heart className="w-4 h-4" />

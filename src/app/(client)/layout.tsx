@@ -1,13 +1,19 @@
-"use client";
-
 import { StoreClientProvider } from "@/providers/store-client-provider";
+import { CategorySection } from "./_components/category-section";
+import { Header } from "./_components/header";
 
-interface LayoutClientProps {
+interface LayoutHomeProps {
   children: React.ReactNode;
 }
 
-const LayoutClient = ({ children }: LayoutClientProps) => {
-  return <StoreClientProvider>{children}</StoreClientProvider>;
-};
-
-export default LayoutClient;
+export default function LayoutClient({ children }: LayoutHomeProps) {
+  return (
+    <StoreClientProvider>
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <CategorySection />
+        <main className="flex-1">{children}</main>
+      </div>
+    </StoreClientProvider>
+  );
+}

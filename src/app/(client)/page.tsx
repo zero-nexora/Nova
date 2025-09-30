@@ -1,26 +1,31 @@
 import { getQueryClient, trpc } from "@/trpc/server";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { HomeView } from "./_components/home-view";
+import { ProductSection } from "./_components/product-section";
+import { loaderProductFilters } from "./hooks/products/product-filters";
+import type { SearchParams } from "nuqs/server";
+import { normalizeFilters } from "@/lib/utils";
 
-const HomePage = async () => {
+interface HomePageProps {
+  searchParams: Promise<SearchParams>;
+}
+
+const HomePage = async ({ searchParams }: HomePageProps) => {
   const queryClient = getQueryClient();
+  const filters = await loaderProductFilters(searchParams);
+  const normalizedFilters = normalizeFilters(filters);
 
-  await Promise.all([
-    queryClient.prefetchInfiniteQuery(
-      trpc.client.productsRouterClient.getAll.infiniteQueryOptions({
-        limit: DEFAULT_LIMIT,
-      })
-    ),
-    queryClient.prefetchQuery(
-      trpc.client.categoriesRouterClient.getAll.queryOptions()
-    ),
-  ]);
+  await queryClient.prefetchInfiniteQuery(
+    trpc.client.productsRouterClient.getAll.infiniteQueryOptions({
+      ...normalizedFilters,
+      limit: DEFAULT_LIMIT,
+    })
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <HomeView />
+        <ProductSection />
       </HydrationBoundary>
     </div>
   );

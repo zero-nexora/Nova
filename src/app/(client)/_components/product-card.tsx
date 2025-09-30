@@ -14,6 +14,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatUSD } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -84,8 +85,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             <div className="flex items-end justify-between">
               <div className="font-bold text-xl">
                 {minPrice === maxPrice
-                  ? `$${minPrice}`
-                  : `$${minPrice} - $${maxPrice}`}
+                  ? formatUSD(minPrice)
+                  : `${formatUSD(minPrice)} - ${formatUSD(maxPrice)}`}
               </div>
               <span className="text-sm text-muted-foreground">
                 {stock} in stock

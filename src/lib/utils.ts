@@ -1,6 +1,7 @@
 import { twMerge } from "tailwind-merge";
 import { clsx, type ClassValue } from "clsx";
 import { FormatUSDOptions } from "./types";
+import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillter";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -59,4 +60,19 @@ export function formatUSD(
   }
 
   return formatted;
+}
+
+export function normalizeFilters(params: ProductFilters): ProductFilters {
+  return {
+    ...params,
+    search: params.search?.trim() === "" ? undefined : params.search,
+    slugCategory:
+      params.slugCategory?.trim() === "" ? undefined : params.slugCategory,
+    slugSubcategory:
+      params.slugSubcategory?.trim() === ""
+        ? undefined
+        : params.slugSubcategory,
+    priceMin: params.priceMin === 0 ? undefined : params.priceMin,
+    priceMax: params.priceMax === 0 ? undefined : params.priceMax,
+  };
 }

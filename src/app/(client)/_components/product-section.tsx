@@ -1,55 +1,25 @@
 "use client";
 
 import React from "react";
-import { DEFAULT_LIMIT } from "@/lib/constants";
 import { useInfiniteProducts } from "../hooks/products/use-infinity-products";
 import { InfiniteScroll } from "@/components/global/infinite-scroll";
-import {
-  ProductFilters,
-  useProductFilters,
-} from "../hooks/products/use-product-fillter";
 import { ProductSectionHeader } from "./product-section-header";
 import { ProductEmptyState } from "./product-empty-state";
 import { ProductGrid, ProductGridSkeleton } from "./product-grid";
+import { useProductFilters } from "../hooks/products/use-product-fillter";
 
 interface ProductSectionProps {
-  limit?: number;
-  sortBy?: "updated_at" | "name" | "price";
-  sortOrder?: "asc" | "desc";
-  categoryId?: string;
-  subcategoryId?: string;
-  search?: string;
-  priceMin?: number;
-  priceMax?: number;
   title?: string;
   description?: string;
   excludeSlugs?: string[];
 }
 
 export const ProductSection = ({
-  limit = DEFAULT_LIMIT,
-  sortBy = "updated_at",
-  sortOrder = "desc",
-  categoryId,
-  subcategoryId,
-  search,
-  priceMin,
-  priceMax,
   title,
   description,
   excludeSlugs,
 }: ProductSectionProps) => {
-  const filters: ProductFilters = useProductFilters({
-    limit,
-    sortBy,
-    sortOrder,
-    categoryId,
-    subcategoryId,
-    search,
-    priceMin,
-    priceMax,
-    excludeSlugs,
-  });
+  const [filters] = useProductFilters();
 
   const {
     products,
@@ -58,7 +28,10 @@ export const ProductSection = ({
     isFetchingNextPage,
     isPending,
     error,
-  } = useInfiniteProducts(filters);
+  } = useInfiniteProducts({
+    ...filters,
+    excludeSlugs,
+  });
 
   if (isPending) {
     return (

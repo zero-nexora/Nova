@@ -1,47 +1,13 @@
-import { DEFAULT_LIMIT } from "@/lib/constants";
-import { GetInfiniteProductsSchema } from "@/queries/client/products/types";
 import {
-  useQueryStates,
+  createLoader,
   parseAsString,
   parseAsArrayOf,
   parseAsStringLiteral,
   parseAsInteger,
-} from "nuqs";
-import z from "zod";
+} from "nuqs/server";
+import { DEFAULT_LIMIT } from "@/lib/constants";
 
-export type ProductFilters = z.infer<typeof GetInfiniteProductsSchema>;
-
-// export interface ProductFilters {
-//   search?: string;
-
-//   sortBy?:
-//     | "curated"
-//     | "trending"
-//     | "hot_and_new"
-//     | "price_asc"
-//     | "price_desc"
-//     | "name_asc"
-//     | "name_desc"
-//     | "newest"
-//     | "oldest"
-//     | "stock_high"
-//     | "stock_low"
-//     | "rating_high";
-
-//   sortOrder?: "asc" | "desc";
-
-//   priceMin?: number;
-//   priceMax?: number;
-
-//   slugCategory?: string;
-//   slugSubcategory?: string;
-
-//   excludeSlugs?: string[];
-
-//   limit?: number;
-// }
-
-const sortValues = [
+export const sortValues = [
   "curated",
   "trending",
   "hot_and_new",
@@ -55,7 +21,8 @@ const sortValues = [
   "stock_low",
   "rating_high",
 ] as const;
-const sortOrderValues = ["asc", "desc"] as const;
+
+export const sortOrderValues = ["asc", "desc"] as const;
 
 export const params = {
   search: parseAsString.withOptions({ clearOnDefault: true }).withDefault(""),
@@ -80,6 +47,4 @@ export const params = {
   limit: parseAsInteger.withDefault(DEFAULT_LIMIT),
 };
 
-export const useProductFilters = () => {
-  return useQueryStates(params);
-};
+export const loaderProductFilters = createLoader(params);

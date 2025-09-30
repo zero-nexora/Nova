@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Search, ShoppingCart, Heart, Menu, X } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -18,14 +17,10 @@ import ThemeToggle from "@/components/global/theme-toggle";
 import { useDebounce } from "@/hooks/use-debounce";
 import { UserButtonCustom } from "@/components/global/user-button-custom";
 import { useGetSuggest } from "../hooks/products/use-get-suggest";
+import { useProductFilters } from "../hooks/products/use-product-fillter";
 
-interface HeaderProps {
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-}
-
-export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
-  // State management
+export function Header() {
+  const [filters, setFilters] = useProductFilters();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -36,13 +31,7 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
   // Refs
   const desktopSearchRef = useRef<HTMLDivElement>(null);
 
-  // Hooks
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [inputValue, setInputValue] = useState(
-    searchQuery || decodeURIComponent(searchParams.get("search") || "")
-  );
+  const [inputValue, setInputValue] = useState(filters.search || "");
   const debouncedSearchQuery = useDebounce(inputValue || "", 200);
 
   const { suggest, isPending, error } = useGetSuggest({
@@ -57,10 +46,9 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
     }
   }, []);
 
-  // Sync inputValue with searchQuery prop
   useEffect(() => {
-    setInputValue(searchQuery);
-  }, [searchQuery]);
+    setInputValue(filters.search || "");
+  }, [filters.search]);
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -105,11 +93,10 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
       e.preventDefault();
 
       addRecentSearch(inputValue);
-      setSearchQuery(inputValue);
-      router.push(`/?search=${encodeURIComponent(inputValue)}`);
+      setFilters({ ...filters, search: inputValue });
       resetSearchUI(isMobile);
     },
-    [inputValue, addRecentSearch, setSearchQuery, router, resetSearchUI]
+    [inputValue, addRecentSearch, setFilters, resetSearchUI]
   );
 
   // Handle suggestion selection - FIXED FOR MOBILE
@@ -119,12 +106,11 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
       setTimeout(() => {
         setInputValue(item);
         addRecentSearch(item);
-        setSearchQuery(item);
-        router.push(`/?search=${encodeURIComponent(item)}`);
+        setFilters({ ...filters, search: item });
         resetSearchUI(isMobile);
       }, 0);
     },
-    [addRecentSearch, setSearchQuery, router, resetSearchUI]
+    [addRecentSearch, setFilters, resetSearchUI]
   );
 
   // Handle input focus
@@ -139,16 +125,8 @@ export function Header({ searchQuery = "", setSearchQuery }: HeaderProps) {
       setInputValue(value);
       setShowSuggestions(value.length > 0 || isSearchFocused);
       setSelectedIndex(-1);
-
-      if (value.trim()) {
-        router.replace(`/?search=${encodeURIComponent(value)}`, {
-          scroll: false,
-        });
-      } else {
-        router.replace("/", { scroll: false });
-      }
     },
-    [isSearchFocused, router]
+    [isSearchFocused]
   );
 
   // Handle keyboard navigation
