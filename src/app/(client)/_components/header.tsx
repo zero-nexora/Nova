@@ -18,6 +18,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { UserButtonCustom } from "@/components/global/user-button-custom";
 import { useGetSuggest } from "../hooks/products/use-get-suggest";
 import { useProductFilters } from "../hooks/products/use-product-fillter";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 
 export function Header() {
   const [filters, setFilters] = useProductFilters();
@@ -30,9 +31,11 @@ export function Header() {
 
   // Refs
   const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
 
   const [inputValue, setInputValue] = useState(filters.search || "");
-  const debouncedSearchQuery = useDebounce(inputValue || "", 200);
+  const [previewValue, setPreviewValue] = useState("");
+  const debouncedSearchQuery = useDebounce(inputValue, 200);
 
   const { suggest, isPending, error } = useGetSuggest({
     search: debouncedSearchQuery,
@@ -82,35 +85,41 @@ export function Header() {
     setShowSuggestions(false);
     setIsSearchFocused(false);
     setSelectedIndex(-1);
+    setPreviewValue("");
     if (closeMobile) {
       setIsMobileSearchOpen(false);
     }
   }, []);
 
+  // Execute search - only place that sets filters
+  const executeSearch = useCallback(
+    (searchQuery: string, isMobile: boolean) => {
+      if (!searchQuery.trim()) return;
+
+      addRecentSearch(searchQuery);
+      setFilters({ ...filters, search: searchQuery });
+      setInputValue(searchQuery);
+      resetSearchUI(isMobile);
+    },
+    [filters, addRecentSearch, setFilters, resetSearchUI]
+  );
+
   // Handle search submission
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent, isMobile: boolean) => {
       e.preventDefault();
-
-      addRecentSearch(inputValue);
-      setFilters({ ...filters, search: inputValue });
-      resetSearchUI(isMobile);
+      const query = previewValue || inputValue;
+      executeSearch(query, isMobile);
     },
-    [inputValue, addRecentSearch, setFilters, resetSearchUI]
+    [inputValue, previewValue, executeSearch]
   );
 
-  // Handle suggestion selection - FIXED FOR MOBILE
-  const handleSuggestionSelect = useCallback(
+  // Handle suggestion selection (click)
+  const handleSuggestionClick = useCallback(
     (item: string, isMobile: boolean) => {
-      // Use setTimeout to ensure event completes before state changes
-      setTimeout(() => {
-        setInputValue(item);
-        addRecentSearch(item);
-        setFilters({ ...filters, search: item });
-        resetSearchUI(isMobile);
-      }, 0);
+      executeSearch(item, isMobile);
     },
-    [addRecentSearch, setFilters, resetSearchUI]
+    [executeSearch]
   );
 
   // Handle input focus
@@ -123,11 +132,27 @@ export function Header() {
   const handleInputChange = useCallback(
     (value: string) => {
       setInputValue(value);
+      setPreviewValue("");
       setShowSuggestions(value.length > 0 || isSearchFocused);
       setSelectedIndex(-1);
     },
     [isSearchFocused]
   );
+
+  // Handle mouse enter on suggestion (preview only)
+  const handleSuggestionMouseEnter = useCallback(
+    (item: string, index: number) => {
+      setPreviewValue(item);
+      setSelectedIndex(index);
+    },
+    []
+  );
+
+  // Handle mouse leave from suggestion area (restore original)
+  const handleSuggestionMouseLeave = useCallback(() => {
+    setPreviewValue("");
+    setSelectedIndex(-1);
+  }, []);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -141,7 +166,7 @@ export function Header() {
           setSelectedIndex((prev) => {
             const newIndex = Math.min(prev + 1, currentSuggestions.length - 1);
             if (newIndex >= 0) {
-              setInputValue(currentSuggestions[newIndex]);
+              setPreviewValue(currentSuggestions[newIndex]);
             }
             return newIndex;
           });
@@ -152,24 +177,27 @@ export function Header() {
           setSelectedIndex((prev) => {
             const newIndex = Math.max(prev - 1, -1);
             if (newIndex === -1) {
-              setInputValue(debouncedSearchQuery);
+              setPreviewValue("");
             } else {
-              setInputValue(currentSuggestions[newIndex]);
+              setPreviewValue(currentSuggestions[newIndex]);
             }
             return newIndex;
           });
           break;
 
         case "Enter":
+          e.preventDefault();
           if (selectedIndex >= 0) {
-            e.preventDefault();
-            handleSuggestionSelect(currentSuggestions[selectedIndex], false);
+            executeSearch(currentSuggestions[selectedIndex], false);
+          } else {
+            executeSearch(inputValue, false);
           }
           break;
 
         case "Escape":
           setShowSuggestions(false);
           setSelectedIndex(-1);
+          setPreviewValue("");
           break;
       }
     },
@@ -178,7 +206,8 @@ export function Header() {
       suggest,
       recentSearches,
       selectedIndex,
-      handleSuggestionSelect,
+      inputValue,
+      executeSearch,
     ]
   );
 
@@ -216,7 +245,7 @@ export function Header() {
         return (
           <div className="p-2 space-y-2">
             {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full rounded-md" />
+              <Skeleton key={i} className="h-6 w-full rounded-md" />
             ))}
           </div>
         );
@@ -234,7 +263,7 @@ export function Header() {
       // Suggestions from search
       if (isSearching && suggest.length > 0) {
         return (
-          <div className="p-2">
+          <div className="p-2" onMouseLeave={handleSuggestionMouseLeave}>
             <div className="text-xs font-medium text-muted-foreground px-2 py-1">
               {title}
             </div>
@@ -242,14 +271,8 @@ export function Header() {
               <button
                 type="button"
                 key={item}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // Prevent input blur
-                }}
-                onClick={() => handleSuggestionSelect(item, isMobile)}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  handleSuggestionSelect(item, isMobile);
-                }}
+                onClick={() => handleSuggestionClick(item, isMobile)}
+                onMouseEnter={() => handleSuggestionMouseEnter(item, index)}
                 className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors cursor-pointer ${
                   index === selectedIndex
                     ? "bg-accent text-accent-foreground"
@@ -277,7 +300,7 @@ export function Header() {
       // Recent searches
       if (recentSearches.length > 0) {
         return (
-          <div className="p-2">
+          <div className="p-2" onMouseLeave={handleSuggestionMouseLeave}>
             <div className="text-xs font-medium text-muted-foreground px-2 py-1">
               {title}
             </div>
@@ -285,14 +308,8 @@ export function Header() {
               <button
                 type="button"
                 key={item}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // Prevent input blur
-                }}
-                onClick={() => handleSuggestionSelect(item, isMobile)}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  handleSuggestionSelect(item, isMobile);
-                }}
+                onClick={() => handleSuggestionClick(item, isMobile)}
+                onMouseEnter={() => handleSuggestionMouseEnter(item, index)}
                 className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent hover:text-accent-foreground text-sm transition-colors cursor-pointer ${
                   index === selectedIndex
                     ? "bg-accent text-accent-foreground"
@@ -322,7 +339,9 @@ export function Header() {
       suggest,
       recentSearches,
       selectedIndex,
-      handleSuggestionSelect,
+      handleSuggestionClick,
+      handleSuggestionMouseEnter,
+      handleSuggestionMouseLeave,
       highlightText,
     ]
   );
@@ -355,7 +374,7 @@ export function Header() {
                   <Search className="ml-3 mr-2 h-4 w-4 shrink-0 opacity-50" />
                   <Input
                     placeholder="Search products..."
-                    value={inputValue}
+                    value={previewValue || inputValue}
                     onChange={(e) => handleInputChange(e.target.value)}
                     onFocus={handleInputFocus}
                     onKeyDown={handleKeyDown}
@@ -373,7 +392,7 @@ export function Header() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-2">
             {/* Mobile Search Button */}
             <Button
               variant="ghost"
@@ -419,9 +438,21 @@ export function Header() {
 
             {/* User & Theme */}
             <div className="flex items-center space-x-2">
-              <UserButtonCustom />
-              <ThemeToggle />
+              <SignedIn>
+                <UserButtonCustom />
+              </SignedIn>
+              <SignedOut>
+                <div className="flex items-center space-x-2">
+                  <Button size="sm" asChild>
+                    <Link href="/sign-up">Sign Up</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/sign-in">Login</Link>
+                  </Button>
+                </div>
+              </SignedOut>
             </div>
+            <ThemeToggle />
 
             {/* Mobile Menu Button */}
             <Button
@@ -462,30 +493,32 @@ export function Header() {
             </div>
           </SheetHeader>
 
-          <form
-            onSubmit={(e) => handleSearchSubmit(e, true)}
-            className="space-y-4 relative"
-          >
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onFocus={handleInputFocus}
-                onKeyDown={handleKeyDown}
-                className="pl-10 h-12 text-base border-0 focus-visible:ring-1"
-                autoFocus
-              />
-            </div>
-
-            {showSuggestions && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                {renderSuggestionDropdown(true)}
+          <div ref={mobileSearchRef}>
+            <form
+              onSubmit={(e) => handleSearchSubmit(e, true)}
+              className="space-y-4 relative"
+            >
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={previewValue || inputValue}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onFocus={handleInputFocus}
+                  onKeyDown={handleKeyDown}
+                  className="pl-10 h-12 text-base border-0 focus-visible:ring-1"
+                  autoFocus
+                />
               </div>
-            )}
-          </form>
+
+              {showSuggestions && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {renderSuggestionDropdown(true)}
+                </div>
+              )}
+            </form>
+          </div>
         </SheetContent>
       </Sheet>
 

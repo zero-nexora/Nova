@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
 import { ArrowUpDown } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatUSD } from "@/lib/utils";
 import { ProductTable } from "../hooks/types";
 import { Product } from "@/queries/admin/products/types";
 import Image from "next/image";
@@ -125,10 +125,9 @@ export const createProductColumns = ({
         <div className="text-sm space-y-1">
           <div className="font-medium">{variants.length} variant(s)</div>
           <div className="text-muted-foreground">
-            $
             {minPrice === maxPrice
-              ? minPrice.toFixed(2)
-              : `${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)}`}
+              ? formatUSD(minPrice)
+              : `${formatUSD(minPrice)} - ${formatUSD(maxPrice)}`}
           </div>
           <div className="text-muted-foreground">Stock: {totalStock}</div>
         </div>

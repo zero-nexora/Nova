@@ -419,6 +419,8 @@ export const productsRouter = createTRPCRouter({
                 contains: search,
                 mode: "insensitive",
               },
+            },
+            {
               slug: {
                 contains: search,
                 mode: "insensitive",
@@ -441,6 +443,8 @@ export const productsRouter = createTRPCRouter({
                 contains: search,
                 mode: "insensitive",
               },
+            },
+            {
               slug: {
                 contains: search,
                 mode: "insensitive",
@@ -463,10 +467,14 @@ export const productsRouter = createTRPCRouter({
                 contains: search,
                 mode: "insensitive",
               },
+            },
+            {
               slug: {
                 contains: search,
                 mode: "insensitive",
               },
+            },
+            {
               description: {
                 contains: search,
                 mode: "insensitive",

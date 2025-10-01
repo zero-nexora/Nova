@@ -16,21 +16,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useGetProductBySlug } from "../hooks/use-get-product-by-slug";
 import {
-  Image as ImageType,
   ProductAttribute,
   ProductAttributeValue,
   Variant,
   VariantAttribute,
 } from "@/queries/client/products/types";
 import { Label } from "@/components/ui/label";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatUSD } from "@/lib/utils";
 import {
@@ -38,10 +29,10 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
+import { ImageCarousel } from "./image-carousel";
 
 interface ProductDetailProps {
   slug: string;
@@ -54,6 +45,8 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const [selectedAttributes, setSelectedAttributes] = useState<
     Record<string, string>
   >({});
+
+  console.log(product);
 
   if (isPending) {
     return <ProductDetailSkeleton />;
@@ -75,44 +68,25 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     );
   }
 
-  const handleAttributeChange = (attributeId: string, valueId: string) => {
-    setSelectedAttributes((prev) => {
-      // Nếu click vào value đang được chọn, thì bỏ chọn
-      if (prev[attributeId] === valueId) {
-        const newAttributes = { ...prev };
-        delete newAttributes[attributeId];
-        return newAttributes;
-      }
-
-      // Nếu không, chọn value mới
-      return {
-        ...prev,
-        [attributeId]: valueId,
-      };
-    });
-  };
-
-  // Lấy danh sách các attribute values có thể chọn dựa trên selections hiện tại
-  const getAvailableValues = (attributeId: string): Set<string> => {
+  // Tính available values với selections tạm thời
+  const getAvailableValues = (
+    attributeId: string,
+    tempSelections: Record<string, string>
+  ): Set<string> => {
     const availableValueIds = new Set<string>();
 
-    // Lọc các variants phù hợp với các attributes đã chọn (ngoại trừ attribute hiện tại)
     const matchingVariants = product.variants.filter((variant: Variant) =>
       variant.attributes.every((variantAttr: VariantAttribute) => {
         const attrId = variantAttr.attributeValue.attribute.id;
-
-        // Bỏ qua attribute hiện tại đang xét
         if (attrId === attributeId) return true;
 
-        // Kiểm tra các attributes khác đã được chọn
-        const selectedValue = selectedAttributes[attrId];
+        const selectedValue = tempSelections[attrId];
         return (
           !selectedValue || selectedValue === variantAttr.attributeValue.id
         );
       })
     );
 
-    // Thu thập tất cả values có thể chọn từ các variants phù hợp
     matchingVariants.forEach((variant: Variant) => {
       variant.attributes.forEach((variantAttr: VariantAttribute) => {
         if (variantAttr.attributeValue.attribute.id === attributeId) {
@@ -124,36 +98,58 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     return availableValueIds;
   };
 
-  // Kiểm tra xem đã chọn đủ tất cả attributes chưa
-  const allAttributesSelected =
-    product.attributes &&
-    product.attributes.length > 0 &&
-    product.attributes.every(
-      (attr: ProductAttribute) => selectedAttributes[attr.id]
-    );
+  // Xử lý thay đổi attribute
+  const handleAttributeChange = (attributeId: string, valueId: string) => {
+    setSelectedAttributes((prev) => {
+      // Toggle: Bỏ chọn nếu click vào value đang được chọn
+      if (prev[attributeId] === valueId) {
+        const newAttributes = { ...prev };
+        delete newAttributes[attributeId];
+        return newAttributes;
+      }
 
-  // Tìm variant phù hợp với các attributes đã chọn
-  const currentVariant = allAttributesSelected
-    ? product.variants.find((variant: Variant) =>
-        variant.attributes.every((variantAttr: VariantAttribute) => {
-          const selectedValue =
-            selectedAttributes[variantAttr.attributeValue.attribute.id];
-          return selectedValue === variantAttr.attributeValue.id;
-        })
-      )
-    : null;
+      // Chọn value mới
+      const newAttributes = {
+        ...prev,
+        [attributeId]: valueId,
+      };
 
-  const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
-  const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
+      // Xóa các attribute values không còn khả dụng
+      Object.keys(newAttributes).forEach((attrId) => {
+        if (attrId !== attributeId) {
+          const availableValues = getAvailableValues(attrId, newAttributes);
+          if (!availableValues.has(newAttributes[attrId])) {
+            delete newAttributes[attrId];
+          }
+        }
+      });
 
+      return newAttributes;
+    });
+  };
+
+  // Xử lý thay đổi số lượng
   const handleQuantityChange = (type: "increment" | "decrement") => {
-    if (type === "increment" && quantity < currentStock) {
+    if (type === "increment" && currentVariant && quantity < currentStock) {
       setQuantity((prev) => prev + 1);
     } else if (type === "decrement" && quantity > 1) {
       setQuantity((prev) => prev - 1);
     }
   };
 
+  const currentVariant = product.variants.find((variant: Variant) =>
+    variant.attributes.every((variantAttr: VariantAttribute) => {
+      const selectedValue =
+        selectedAttributes[variantAttr.attributeValue.attribute.id];
+      return selectedValue === variantAttr.attributeValue.id;
+    })
+  );
+
+  const allAttributesSelected =
+    Object.keys(selectedAttributes).length === product.attributes.length;
+
+  const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
+  const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
   const canAddToCart =
     allAttributesSelected && currentVariant && currentStock > 0;
 
@@ -173,7 +169,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
                     No Image Available
                   </div>
                 )}
@@ -181,48 +177,12 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </CardContent>
           </Card>
 
-          {/* Thumbnail Carousel - Using shadcn/ui Carousel */}
+          {/* Thumbnail Carousel */}
           {product.images && product.images.length > 1 && (
-            <Carousel
-              className="w-full max-w-md mx-auto"
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-            >
-              <CarouselContent className="grid grid-cols-4 sm:grid-cols-5 gap-4">
-                {product.images
-                  .slice(0, 10)
-                  .map((image: ImageType, index: number) => (
-                    <CarouselItem
-                      key={image.id}
-                      className="basis-1/4 sm:basis-1/5 md:basis-1/6"
-                    >
-                      <div
-                        className={`relative flex-shrink-0 cursor-pointer transition-all duration-200 ${
-                          selectedImageIndex === index
-                            ? "scale-105"
-                            : "hover:scale-102"
-                        }`}
-                        onMouseEnter={() => setSelectedImageIndex(index)}
-                      >
-                        <div className="w-20 h-20 relative overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                          <Image
-                            src={image.image_url}
-                            fill
-                            alt={`${product.name} ${index + 1}`}
-                          />
-                          {selectedImageIndex === index && (
-                            <div className="absolute inset-0 bg-primary/10 rounded-lg" />
-                          )}
-                        </div>
-                      </div>
-                    </CarouselItem>
-                  ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
+            <ImageCarousel
+              images={product.images}
+              onSelect={setSelectedImageIndex}
+            />
           )}
         </div>
 
@@ -232,18 +192,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           <div className="text-sm">
             <Breadcrumb>
               <BreadcrumbList>
-                {/* Home */}
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/">Home</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-
-                <BreadcrumbSeparator>
-                  <SlashIcon />
-                </BreadcrumbSeparator>
-
-                {/* Category */}
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href={`/category/${product.category.slug}`}>
@@ -257,8 +205,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     <BreadcrumbSeparator>
                       <SlashIcon />
                     </BreadcrumbSeparator>
-
-                    {/* Subcategory */}
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link
@@ -270,15 +216,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     </BreadcrumbItem>
                   </>
                 )}
-
-                <BreadcrumbSeparator>
-                  <SlashIcon />
-                </BreadcrumbSeparator>
-
-                {/* Current Product */}
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{product.name}</BreadcrumbPage>
-                </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
@@ -287,18 +224,21 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           <div>
             <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
-            {/* Rating placeholder */}
+            {/* Rating */}
             <div className="flex items-center gap-2 mb-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="w-4 h-4" />
+                  <Star
+                    key={star}
+                    className="w-4 h-4 fill-muted stroke-muted-foreground"
+                  />
                 ))}
               </div>
-              <span className="text-sm">(0 reviews)</span>
+              <span className="text-sm text-muted-foreground">(0 reviews)</span>
             </div>
           </div>
 
-          {/* Price & Stock Status - fixed height để tránh nhảy layout */}
+          {/* Price & Stock Status */}
           <div className="min-h-[5rem] space-y-3">
             <div className="flex items-center">
               {allAttributesSelected && currentVariant ? (
@@ -312,19 +252,28 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
               )}
             </div>
 
-            {/* Stock Status - chỉ hiển thị khi đã chọn variant */}
             {allAttributesSelected && currentVariant && (
               <div className="flex items-center gap-2">
                 {currentStock > 0 ? (
                   <>
-                    <Badge variant="outline">
+                    <Badge
+                      variant="outline"
+                      className="text-green-600 border-green-600"
+                    >
                       <Check className="w-3 h-3 mr-1" />
                       In Stock
                     </Badge>
-                    <span className="text-sm">{currentStock} available</span>
+                    <span className="text-sm text-muted-foreground">
+                      {currentStock} available
+                    </span>
                   </>
                 ) : (
-                  <Badge variant="outline">Out of Stock</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-red-600 border-red-600"
+                  >
+                    Out of Stock
+                  </Badge>
                 )}
               </div>
             )}
@@ -332,9 +281,12 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
+          {/* Description */}
           {product.description && (
             <div>
-              <p className="leading-relaxed">{product.description}</p>
+              <p className="text-muted-foreground leading-relaxed">
+                {product.description}
+              </p>
             </div>
           )}
 
@@ -342,18 +294,29 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           {product.attributes && product.attributes.length > 0 && (
             <div className="space-y-4">
               {product.attributes.map((attribute: ProductAttribute) => {
-                const availableValues = getAvailableValues(attribute.id);
+                const availableValues = getAvailableValues(
+                  attribute.id,
+                  selectedAttributes
+                );
+                const selectedValue = selectedAttributes[attribute.id];
+                const selectedLabel = selectedValue
+                  ? attribute.values.find((v) => v.id === selectedValue)?.value
+                  : null;
 
                 return (
                   <div key={attribute.id}>
                     <Label className="text-sm font-medium mb-2 block">
                       {attribute.name}
+                      {selectedLabel && (
+                        <span className="text-muted-foreground font-normal ml-2">
+                          ({selectedLabel})
+                        </span>
+                      )}
                     </Label>
                     <div className="flex gap-2 flex-wrap">
                       {attribute.values.map((value: ProductAttributeValue) => {
                         const isAvailable = availableValues.has(value.id);
-                        const isSelected =
-                          selectedAttributes[attribute.id] === value.id;
+                        const isSelected = selectedValue === value.id;
 
                         return (
                           <Button
@@ -388,7 +351,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleQuantityChange("decrement")}
-                  disabled={!canAddToCart || quantity <= 1}
+                  disabled={quantity <= 1}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
@@ -399,7 +362,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleQuantityChange("increment")}
-                  disabled={!canAddToCart || quantity >= currentStock}
+                  disabled={!currentVariant || quantity >= currentStock}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -411,9 +374,11 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 {!allAttributesSelected
                   ? "Select Options"
-                  : currentStock === 0
-                  ? "Out of Stock"
-                  : "Add to Cart"}
+                  : currentVariant
+                  ? currentStock === 0
+                    ? "Out of Stock"
+                    : "Add to Cart"
+                  : "Invalid Selection"}
               </Button>
               <Button variant="outline" size="lg">
                 <Heart className="w-4 h-4" />
@@ -423,7 +388,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           {/* Product Meta */}
           <Separator />
-          <div className="text-sm">
+          <div className="text-sm text-muted-foreground">
             Updated: {new Date(product.updated_at).toLocaleDateString()}
           </div>
         </div>
@@ -438,32 +403,20 @@ export const ProductDetailSkeleton = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left side - Images */}
         <div className="space-y-4">
-          {/* Main Image */}
           <Card className="overflow-hidden">
             <CardContent className="p-0">
               <Skeleton className="aspect-square rounded-lg w-full h-full" />
             </CardContent>
           </Card>
-          {/* Thumbnail Carousel placeholders */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton
-                key={i}
-                className="w-20 h-20 rounded-lg flex-shrink-0"
-              />
-            ))}
-          </div>
+          <ImageCarousel isLoading />
         </div>
 
         {/* Right side - Product Info */}
         <div className="space-y-6">
-          {/* Breadcrumb */}
           <Skeleton className="h-4 w-1/2" />
 
-          {/* Product Title */}
           <div>
             <Skeleton className="h-9 w-3/4 mb-2" />
-            {/* Rating placeholder */}
             <div className="flex items-center gap-2 mb-4">
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -474,37 +427,29 @@ export const ProductDetailSkeleton = () => {
             </div>
           </div>
 
-          {/* Price */}
           <Skeleton className="h-9 w-1/4" />
 
-          {/* Stock Status */}
           <div className="flex items-center gap-2">
-            <Badge variant="outline">
-              <Skeleton className="w-3 h-3 mr-1" />
-              <Skeleton className="h-4 w-16" />
-            </Badge>
+            <Skeleton className="h-6 w-24" />
             <Skeleton className="h-4 w-24" />
           </div>
 
           <Separator />
 
-          {/* Description */}
           <div>
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-3/4" />
           </div>
 
-          {/* Attributes Selection */}
           <div className="space-y-4">
-            {/* Simulate 2 attributes */}
             {[1, 2].map((attr) => (
               <div key={attr}>
-                <Label>
-                  <Skeleton className="h-4 w-20 mb-2 block" />
-                </Label>
+                <Skeleton className="h-4 w-20 mb-2" />
                 <div className="flex gap-2 flex-wrap">
-                  <Skeleton className="h-10 w-56" />
+                  {[1, 2, 3, 4].map((val) => (
+                    <Skeleton key={val} className="h-9 w-20" />
+                  ))}
                 </div>
               </div>
             ))}
@@ -512,26 +457,18 @@ export const ProductDetailSkeleton = () => {
 
           <Separator />
 
-          {/* Quantity and Add to Cart */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <Label>
-                <Skeleton className="h-4 w-20" />
-              </Label>
-              <div className="flex items-center border rounded-md">
-                <Skeleton className="px-4 py-2 text-center min-w-[10rem] h-8" />
-              </div>
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-32" />
             </div>
 
             <div className="flex gap-3">
-              <Skeleton className="h-10 w-full" />
-              <Button variant="outline" size="lg" disabled>
-                <Skeleton className="w-4 h-4" />
-              </Button>
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-10" />
             </div>
           </div>
 
-          {/* Product Meta */}
           <Separator />
           <Skeleton className="h-4 w-40" />
         </div>

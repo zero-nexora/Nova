@@ -1,0 +1,102 @@
+"use client";
+
+import {
+  Carousel,
+  CarouselApi,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
+
+interface ImageCarouselProps {
+  images?: {
+    id: string;
+    image_url: string;
+    public_id: string;
+  }[];
+  isLoading?: boolean;
+  onSelect?: (index: number) => void;
+}
+
+export const ImageCarousel = ({
+  images,
+  isLoading,
+  onSelect,
+}: ImageCarouselProps) => {
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
+
+  return (
+    <div className="relative w-full">
+      {/* gradient trái */}
+      <div
+        className={cn(
+          "absolute left-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-white/50 to-transparent pointer-events-none",
+          current === 1 && "hidden"
+        )}
+      />
+      <Carousel
+        setApi={setApi}
+        opts={{
+          align: "start",
+          dragFree: true,
+        }}
+        className="w-full px-12"
+      >
+        <CarouselContent className="-ml-3">
+          {isLoading &&
+            Array.from({ length: 6 }).map((_, index) => (
+              <CarouselItem key={index} className="pl-3 basis-auto">
+                <Skeleton className="w-[120px] h-[80px] rounded-lg" />
+              </CarouselItem>
+            ))}
+
+          {!isLoading &&
+            images?.map((img, index) => (
+              <CarouselItem
+                key={img.id}
+                className="pl-3 basis-auto cursor-pointer"
+                onClick={() => onSelect?.(index)}
+                onMouseEnter={() => onSelect?.(index)}
+              >
+                <div className="relative w-[120px] h-[80px] rounded-lg overflow-hidden border">
+                  <Image
+                    src={img.image_url}
+                    alt={img.public_id}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+        </CarouselContent>
+        <CarouselPrevious className="left-0 z-20" />
+        <CarouselNext className="right-0 z-20" />
+      </Carousel>
+
+      <div
+        className={cn(
+          "absolute right-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-white/50 to-transparent pointer-events-none",
+          current === count && "hidden"
+        )}
+      />
+    </div>
+  );
+};

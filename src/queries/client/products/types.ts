@@ -1,3 +1,4 @@
+import { DEFAULT_LIMIT } from "@/lib/constants";
 import z from "zod";
 
 export interface Pagination {
@@ -117,7 +118,7 @@ export interface ProductDetail {
 }
 
 export const GetInfiniteProductsSchema = z.object({
-  limit: z.number().min(1).max(100).default(20),
+  limit: z.number().min(1).max(100).default(DEFAULT_LIMIT),
 
   cursor: z
     .object({

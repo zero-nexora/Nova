@@ -11,36 +11,6 @@ import z from "zod";
 
 export type ProductFilters = z.infer<typeof GetInfiniteProductsSchema>;
 
-// export interface ProductFilters {
-//   search?: string;
-
-//   sortBy?:
-//     | "curated"
-//     | "trending"
-//     | "hot_and_new"
-//     | "price_asc"
-//     | "price_desc"
-//     | "name_asc"
-//     | "name_desc"
-//     | "newest"
-//     | "oldest"
-//     | "stock_high"
-//     | "stock_low"
-//     | "rating_high";
-
-//   sortOrder?: "asc" | "desc";
-
-//   priceMin?: number;
-//   priceMax?: number;
-
-//   slugCategory?: string;
-//   slugSubcategory?: string;
-
-//   excludeSlugs?: string[];
-
-//   limit?: number;
-// }
-
 const sortValues = [
   "curated",
   "trending",

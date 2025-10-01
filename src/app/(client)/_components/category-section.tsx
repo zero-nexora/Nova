@@ -42,6 +42,35 @@ import { cn } from "@/lib/utils";
 import { placeholderImage } from "@/lib/constants";
 
 // ============================================================================
+// Types
+// ============================================================================
+
+interface NavigationProps {
+  categories: Category[];
+  onCategoryClick: (slug: string) => void;
+  onSubcategoryClick: (categorySlug: string, subcategorySlug: string) => void;
+}
+
+interface CategoryItemProps extends NavigationProps {
+  category: Category;
+}
+
+interface MobileNavigationProps extends NavigationProps {
+  isSheetOpen: boolean;
+  setIsSheetOpen: (open: boolean) => void;
+}
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const CATEGORY_LIMITS = {
+  DESKTOP: 8,
+  LAPTOP: 6,
+  TABLET: 4,
+} as const;
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -50,7 +79,6 @@ export const CategorySection = () => {
   const { categories, loading: isLoading } = useCategoriesStore();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // Navigation handlers
   const handleCategoryClick = useCallback(
     (categorySlug: string) => {
       router.push(`/categories/${categorySlug}`);
@@ -60,8 +88,10 @@ export const CategorySection = () => {
   );
 
   const handleSubcategoryClick = useCallback(
-    (subcategorySlug: string) => {
-      router.push(`/subcategories/${subcategorySlug}`);
+    (categorySlug: string, subcategorySlug: string) => {
+      router.push(
+        `/categories/${categorySlug}/subcategories/${subcategorySlug}`
+      );
       setIsSheetOpen(false);
     },
     [router]
@@ -71,36 +101,22 @@ export const CategorySection = () => {
     return <CategorySectionSkeleton />;
   }
 
+  const navigationProps = {
+    categories,
+    onCategoryClick: handleCategoryClick,
+    onSubcategoryClick: handleSubcategoryClick,
+  };
+
   return (
     <div className="w-full border-b">
       <div className="container mx-auto px-4">
-        {/* Desktop Navigation (lg and above) */}
-        <DesktopNavigation
-          categories={categories}
-          onCategoryClick={handleCategoryClick}
-          onSubcategoryClick={handleSubcategoryClick}
-        />
-
-        <LaptopNavigation
-          categories={categories}
-          onCategoryClick={handleCategoryClick}
-          onSubcategoryClick={handleSubcategoryClick}
-        />
-
-        {/* Tablet Navigation (md to lg) */}
-        <TabletNavigation
-          categories={categories}
-          onCategoryClick={handleCategoryClick}
-          onSubcategoryClick={handleSubcategoryClick}
-        />
-
-        {/* Mobile Navigation */}
+        <DesktopNavigation {...navigationProps} />
+        <LaptopNavigation {...navigationProps} />
+        <TabletNavigation {...navigationProps} />
         <MobileNavigation
-          categories={categories}
+          {...navigationProps}
           isSheetOpen={isSheetOpen}
           setIsSheetOpen={setIsSheetOpen}
-          onCategoryClick={handleCategoryClick}
-          onSubcategoryClick={handleSubcategoryClick}
         />
       </div>
     </div>
@@ -108,60 +124,77 @@ export const CategorySection = () => {
 };
 
 // ============================================================================
-// Desktop Navigation Component
+// Responsive Navigation Components
 // ============================================================================
 
-interface NavigationProps {
-  categories: Category[];
-  onCategoryClick: (slug: string) => void;
-  onSubcategoryClick: (slug: string) => void;
+const DesktopNavigation = ({ categories, ...handlers }: NavigationProps) => (
+  <ResponsiveNavigation
+    categories={categories}
+    limit={CATEGORY_LIMITS.DESKTOP}
+    className="hidden xl:flex"
+    {...handlers}
+  />
+);
+
+const LaptopNavigation = ({ categories, ...handlers }: NavigationProps) => (
+  <ResponsiveNavigation
+    categories={categories}
+    limit={CATEGORY_LIMITS.LAPTOP}
+    className="hidden lg:flex xl:hidden"
+    {...handlers}
+  />
+);
+
+const TabletNavigation = ({ categories, ...handlers }: NavigationProps) => (
+  <ResponsiveNavigation
+    categories={categories}
+    limit={CATEGORY_LIMITS.TABLET}
+    className="hidden md:flex lg:hidden"
+    {...handlers}
+  />
+);
+
+// ============================================================================
+// Shared Responsive Navigation
+// ============================================================================
+
+interface ResponsiveNavigationProps extends NavigationProps {
+  limit: number;
+  className?: string;
 }
 
-const DesktopNavigation = ({
+const ResponsiveNavigation = ({
   categories,
+  limit,
+  className,
   onCategoryClick,
   onSubcategoryClick,
-}: NavigationProps) => (
-  <div className="hidden xl:flex items-center py-4">
-    {/* All Categories Dropdown */}
-    <div className="flex items-center space-x-2 mr-8">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Menu className="h-4 w-4" />
-            <span>All Categories</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
-          {categories.map((category) => (
-            <CategoryDropdownItem
-              key={category.id}
-              category={category}
-              onCategoryClick={onCategoryClick}
-              onSubcategoryClick={onSubcategoryClick}
-            />
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+}: ResponsiveNavigationProps) => (
+  <div className={cn("items-center py-4", className)}>
+    <AllCategoriesDropdown
+      categories={categories}
+      onCategoryClick={onCategoryClick}
+      onSubcategoryClick={onSubcategoryClick}
+    />
 
-    {/* Top Categories Navigation Menu */}
     <div className="flex-1">
       <NavigationMenu>
         <NavigationMenuList className="flex-wrap gap-2 justify-start">
-          {categories.slice(0, 8).map((category) => (
+          {categories.slice(0, limit).map((category) => (
             <NavigationMenuItem key={category.id}>
               {category.subcategories.length > 0 ? (
                 <CategoryWithSubmenu
                   category={category}
+                  categories={categories}
                   onCategoryClick={onCategoryClick}
                   onSubcategoryClick={onSubcategoryClick}
                 />
               ) : (
                 <CategoryLink
                   category={category}
+                  categories={categories}
                   onCategoryClick={onCategoryClick}
+                  onSubcategoryClick={onSubcategoryClick}
                 />
               )}
             </NavigationMenuItem>
@@ -173,137 +206,143 @@ const DesktopNavigation = ({
 );
 
 // ============================================================================
-// Laptop Navigation Component
+// All Categories Dropdown
 // ============================================================================
 
-interface NavigationProps {
-  categories: Category[];
-  onCategoryClick: (slug: string) => void;
-  onSubcategoryClick: (slug: string) => void;
-}
-
-const LaptopNavigation = ({
+const AllCategoriesDropdown = ({
   categories,
   onCategoryClick,
   onSubcategoryClick,
 }: NavigationProps) => (
-  <div className="hidden lg:flex xl:hidden items-center py-4">
-    {/* All Categories Dropdown */}
-    <div className="flex items-center space-x-2 mr-8">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Menu className="h-4 w-4" />
-            <span>All Categories</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
-          {categories.map((category) => (
-            <CategoryDropdownItem
-              key={category.id}
-              category={category}
-              onCategoryClick={onCategoryClick}
-              onSubcategoryClick={onSubcategoryClick}
-            />
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-
-    {/* Top Categories Navigation Menu */}
-    <div className="flex-1">
-      <NavigationMenu>
-        <NavigationMenuList className="flex-wrap gap-2 justify-start">
-          {categories.slice(0, 6).map((category) => (
-            <NavigationMenuItem key={category.id}>
-              {category.subcategories.length > 0 ? (
-                <CategoryWithSubmenu
-                  category={category}
-                  onCategoryClick={onCategoryClick}
-                  onSubcategoryClick={onSubcategoryClick}
-                />
-              ) : (
-                <CategoryLink
-                  category={category}
-                  onCategoryClick={onCategoryClick}
-                />
-              )}
-            </NavigationMenuItem>
-          ))}
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
+  <div className="flex items-center space-x-2 mr-8">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="flex items-center space-x-2">
+          <Menu className="h-4 w-4" />
+          <span>All Categories</span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
+        {categories.map((category) => (
+          <CategoryDropdownItem
+            key={category.id}
+            category={category}
+            categories={categories}
+            onCategoryClick={onCategoryClick}
+            onSubcategoryClick={onSubcategoryClick}
+          />
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   </div>
 );
 
 // ============================================================================
-// Tablet Navigation Component
+// Category Navigation Menu Items
 // ============================================================================
 
-const TabletNavigation = ({
-  categories,
+const CategoryWithSubmenu = ({
+  category,
   onCategoryClick,
   onSubcategoryClick,
-}: NavigationProps) => (
-  <div className="hidden md:flex lg:hidden items-center py-4">
-    {/* Categories Dropdown */}
-    <div className="flex items-center space-x-2 mr-8">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Menu className="h-4 w-4" />
-            <span>All Categories</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
-          {categories.map((category) => (
-            <CategoryDropdownItem
-              key={category.id}
-              category={category}
-              onCategoryClick={onCategoryClick}
-              onSubcategoryClick={onSubcategoryClick}
-            />
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+}: CategoryItemProps) => (
+  <>
+    <NavigationMenuTrigger className="h-auto px-3 py-2 text-sm font-medium">
+      {category.name}
+    </NavigationMenuTrigger>
+    <NavigationMenuContent className="min-w-[200px] p-0">
+      <div className="grid gap-0">
+        <NavigationMenuLink
+          onClick={() => onCategoryClick(category.slug)}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none",
+            "transition-colors hover:bg-accent focus:bg-accent focus:text-accent-foreground",
+            "cursor-pointer border-b"
+          )}
+        >
+          <div className="text-sm font-medium leading-none">
+            View All {category.name}
+          </div>
+        </NavigationMenuLink>
 
-    {/* Top Categories Navigation Menu */}
-    <div className="flex-1">
-      <NavigationMenu>
-        <NavigationMenuList className="flex-wrap gap-2 justify-start">
-          {categories.slice(0, 4).map((category) => (
-            <NavigationMenuItem key={category.id}>
-              {category.subcategories.length > 0 ? (
-                <CategoryWithSubmenu
-                  category={category}
-                  onCategoryClick={onCategoryClick}
-                  onSubcategoryClick={onSubcategoryClick}
-                />
-              ) : (
-                <CategoryLink
-                  category={category}
-                  onCategoryClick={onCategoryClick}
-                />
-              )}
-            </NavigationMenuItem>
-          ))}
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
+        {category.subcategories.map((subcategory) => (
+          <NavigationMenuLink
+            key={subcategory.id}
+            onClick={() => onSubcategoryClick(category.slug, subcategory.slug)}
+            className={cn(
+              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none",
+              "transition-colors hover:bg-accent focus:bg-accent focus:text-accent-foreground",
+              "cursor-pointer"
+            )}
+          >
+            <div className="text-sm leading-none text-muted-foreground">
+              {subcategory.name}
+            </div>
+          </NavigationMenuLink>
+        ))}
+      </div>
+    </NavigationMenuContent>
+  </>
+);
+
+const CategoryLink = ({ category, onCategoryClick }: CategoryItemProps) => (
+  <NavigationMenuLink
+    onClick={() => onCategoryClick(category.slug)}
+    className={cn(
+      "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background",
+      "px-3 py-2 text-sm font-medium transition-colors",
+      "hover:bg-accent hover:text-accent-foreground",
+      "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+      "disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+    )}
+  >
+    {category.name}
+  </NavigationMenuLink>
+);
+
+// ============================================================================
+// Dropdown Menu Items
+// ============================================================================
+
+const CategoryDropdownItem = ({
+  category,
+  onCategoryClick,
+  onSubcategoryClick,
+}: CategoryItemProps) => (
+  <div>
+    <DropdownMenuItem asChild>
+      <button
+        onClick={() => onCategoryClick(category.slug)}
+        className="w-full text-left cursor-pointer"
+      >
+        <div className="flex items-center justify-between w-full">
+          <span className="font-medium">{category.name}</span>
+          {category.subcategories.length > 0 && (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </div>
+      </button>
+    </DropdownMenuItem>
+
+    {category.subcategories.map((subcategory) => (
+      <DropdownMenuItem key={subcategory.id} asChild>
+        <button
+          onClick={() => onSubcategoryClick(category.slug, subcategory.slug)}
+          className="w-full text-left cursor-pointer"
+        >
+          <span className="pl-4 text-sm text-muted-foreground">
+            {subcategory.name}
+          </span>
+        </button>
+      </DropdownMenuItem>
+    ))}
   </div>
 );
 
 // ============================================================================
-// Mobile Navigation Component
+// Mobile Navigation
 // ============================================================================
-
-interface MobileNavigationProps extends NavigationProps {
-  isSheetOpen: boolean;
-  setIsSheetOpen: (open: boolean) => void;
-}
 
 const MobileNavigation = ({
   categories,
@@ -323,7 +362,11 @@ const MobileNavigation = ({
         <SheetTrigger asChild>
           <Button
             variant="outline"
-            className="w-full flex items-center justify-center space-x-2 h-12 border-2 border-dashed hover:border-solid hover:bg-accent/10 transition-all duration-200 group"
+            className={cn(
+              "w-full flex items-center justify-center space-x-2 h-12",
+              "border-2 border-dashed hover:border-solid hover:bg-accent/10",
+              "transition-all duration-200 group"
+            )}
           >
             <span className="font-medium">Browse Categories</span>
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -331,10 +374,8 @@ const MobileNavigation = ({
         </SheetTrigger>
 
         <SheetContent side="left" className="w-80 sm:w-96 p-0">
-          {/* Header */}
           <MobileSheetHeader />
 
-          {/* Categories List */}
           <div className="overflow-auto p-2">
             <ScrollArea>
               <div>
@@ -349,6 +390,7 @@ const MobileNavigation = ({
                     <MobileCategoryAccordion
                       key={category.id}
                       category={category}
+                      categories={categories}
                       onCategoryClick={onCategoryClick}
                       onSubcategoryClick={onSubcategoryClick}
                     />
@@ -358,7 +400,6 @@ const MobileNavigation = ({
             </ScrollArea>
           </div>
 
-          {/* Footer */}
           <div className="border-t bg-muted/10 p-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Total: {totalSubcategories} subcategories</span>
@@ -369,117 +410,6 @@ const MobileNavigation = ({
     </div>
   );
 };
-
-// ============================================================================
-// Category Navigation Components
-// ============================================================================
-
-interface CategoryItemProps {
-  category: Category;
-  onCategoryClick: (slug: string) => void;
-  onSubcategoryClick: (slug: string) => void;
-}
-
-const CategoryWithSubmenu = ({
-  category,
-  onCategoryClick,
-  onSubcategoryClick,
-}: CategoryItemProps) => (
-  <>
-    <NavigationMenuTrigger className="h-auto px-3 py-2 text-sm font-medium">
-      {category.name}
-    </NavigationMenuTrigger>
-    <NavigationMenuContent className="min-w-[200px] p-0">
-      <div className="grid gap-0">
-        {/* View All Link */}
-        <NavigationMenuLink
-          onClick={() => onCategoryClick(category.slug)}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent focus:text-accent-foreground cursor-pointer border-b"
-          )}
-        >
-          <div className="text-sm font-medium leading-none">
-            View All {category.name}
-          </div>
-        </NavigationMenuLink>
-
-        {/* Subcategories */}
-        {category.subcategories.map((subcategory) => (
-          <NavigationMenuLink
-            key={subcategory.id}
-            onClick={() => onSubcategoryClick(subcategory.slug)}
-            className={cn(
-              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent focus:text-accent-foreground cursor-pointer"
-            )}
-          >
-            <div className="text-sm leading-none text-muted-foreground">
-              {subcategory.name}
-            </div>
-          </NavigationMenuLink>
-        ))}
-      </div>
-    </NavigationMenuContent>
-  </>
-);
-
-const CategoryLink = ({
-  category,
-  onCategoryClick,
-}: Omit<CategoryItemProps, "onSubcategoryClick">) => (
-  <NavigationMenuLink
-    onClick={() => onCategoryClick(category.slug)}
-    className={cn(
-      "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
-    )}
-  >
-    {category.name}
-  </NavigationMenuLink>
-);
-
-// ============================================================================
-// Dropdown Menu Components
-// ============================================================================
-
-const CategoryDropdownItem = ({
-  category,
-  onCategoryClick,
-  onSubcategoryClick,
-}: CategoryItemProps) => (
-  <div>
-    {/* Main Category */}
-    <DropdownMenuItem asChild>
-      <button
-        onClick={() => onCategoryClick(category.slug)}
-        className="w-full text-left cursor-pointer"
-      >
-        <div className="flex items-center justify-between w-full">
-          <span className="font-medium">{category.name}</span>
-          {category.subcategories.length > 0 && (
-            <ChevronRight className="h-3 w-3" />
-          )}
-        </div>
-      </button>
-    </DropdownMenuItem>
-
-    {/* Subcategories */}
-    {category.subcategories.map((subcategory) => (
-      <DropdownMenuItem key={subcategory.id} asChild>
-        <button
-          onClick={() => onSubcategoryClick(subcategory.slug)}
-          className="w-full text-left cursor-pointer"
-        >
-          <span className="pl-4 text-sm text-muted-foreground">
-            {subcategory.name}
-          </span>
-        </button>
-      </DropdownMenuItem>
-    ))}
-  </div>
-);
-
-// ============================================================================
-// Mobile Sheet Components
-// ============================================================================
 
 const MobileSheetHeader = () => (
   <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
@@ -510,17 +440,12 @@ const MobileCategoryAccordion = ({
     <AccordionTrigger className="hover:no-underline hover:bg-accent/30 p-3">
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center space-x-3">
-          {/* Category Image */}
-          <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-            <Image
-              src={category.image_url || placeholderImage}
-              alt={category.name}
-              className="object-cover"
-              fill
-            />
-          </div>
+          <CategoryImage
+            src={category.image_url}
+            alt={category.name}
+            size="lg"
+          />
 
-          {/* Category Info */}
           <div className="text-left">
             <span
               className="font-semibold text-base hover:text-primary cursor-pointer transition-colors"
@@ -544,21 +469,19 @@ const MobileCategoryAccordion = ({
         {category.subcategories.map((subcategory) => (
           <button
             key={subcategory.id}
-            onClick={() => onSubcategoryClick(subcategory.slug)}
-            className="w-full group flex items-center justify-between p-3 text-left rounded-lg transition-all duration-200 border border-transparent hover:bg-accent/30"
+            onClick={() => onSubcategoryClick(category.slug, subcategory.slug)}
+            className={cn(
+              "w-full group flex items-center justify-between p-3 text-left rounded-lg",
+              "transition-all duration-200 border border-transparent hover:bg-accent/30"
+            )}
           >
             <div className="flex items-center space-x-3">
-              {/* Subcategory Image */}
-              <div className="relative w-8 h-8 rounded-md overflow-hidden bg-muted/50 flex items-center justify-center flex-shrink-0">
-                <Image
-                  src={subcategory.image_url || placeholderImage}
-                  alt={subcategory.name}
-                  className="object-cover"
-                  fill
-                />
-              </div>
+              <CategoryImage
+                src={subcategory.image_url}
+                alt={subcategory.name}
+                size="sm"
+              />
 
-              {/* Subcategory Info */}
               <div>
                 <span className="text-sm font-medium group-hover:text-primary transition-colors">
                   {subcategory.name}
@@ -574,55 +497,86 @@ const MobileCategoryAccordion = ({
 );
 
 // ============================================================================
-// Loading Skeleton Component
+// Shared Components
+// ============================================================================
+
+interface CategoryImageProps {
+  src: string | null;
+  alt: string;
+  size: "sm" | "lg";
+}
+
+const CategoryImage = ({ src, alt, size }: CategoryImageProps) => {
+  const sizeClasses = {
+    sm: "w-8 h-8 rounded-md",
+    lg: "w-10 h-10 rounded-lg",
+  };
+
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden bg-muted flex items-center justify-center flex-shrink-0",
+        sizeClasses[size]
+      )}
+    >
+      <Image
+        src={src || placeholderImage}
+        alt={alt}
+        className="object-cover"
+        fill
+      />
+    </div>
+  );
+};
+
+// ============================================================================
+// Loading Skeleton
 // ============================================================================
 
 const CategorySectionSkeleton = () => (
   <div className="w-full border-b">
     <div className="container mx-auto px-4">
-      {/* Desktop Skeleton (xl and above) */}
-      <div className="hidden xl:flex items-center py-4">
-        <div className="flex items-center space-x-2 mr-8">
-          <Skeleton className="h-10 w-40" />
-        </div>
+      {/* Desktop */}
+      <SkeletonNavigation
+        count={CATEGORY_LIMITS.DESKTOP}
+        className="hidden xl:flex"
+      />
 
-        <div className="flex items-center space-x-4 flex-1">
-          {[...Array(8)].map((_, index) => (
-            <Skeleton key={index} className="h-9 w-24" />
-          ))}
-        </div>
-      </div>
+      {/* Laptop */}
+      <SkeletonNavigation
+        count={CATEGORY_LIMITS.LAPTOP}
+        className="hidden lg:flex xl:hidden"
+      />
 
-      {/* Laptop Skeleton (lg to xl) */}
-      <div className="hidden lg:flex xl:hidden items-center py-4">
-        <div className="flex items-center space-x-2 mr-8">
-          <Skeleton className="h-10 w-40" />
-        </div>
+      {/* Tablet */}
+      <SkeletonNavigation
+        count={CATEGORY_LIMITS.TABLET}
+        className="hidden md:flex lg:hidden"
+      />
 
-        <div className="flex items-center space-x-4 flex-1">
-          {[...Array(6)].map((_, index) => (
-            <Skeleton key={index} className="h-9 w-24" />
-          ))}
-        </div>
-      </div>
-
-      {/* Tablet Skeleton (md to lg) */}
-      <div className="hidden md:flex lg:hidden items-center py-4">
-        <div className="flex items-center space-x-2 mr-8">
-          <Skeleton className="h-10 w-40" />
-        </div>
-
-        <div className="flex items-center space-x-2 flex-1">
-          {[...Array(4)].map((_, index) => (
-            <Skeleton key={index} className="h-9 w-24" />
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile Skeleton */}
+      {/* Mobile */}
       <div className="md:hidden py-4">
         <Skeleton className="w-full h-12" />
       </div>
+    </div>
+  </div>
+);
+
+interface SkeletonNavigationProps {
+  count: number;
+  className?: string;
+}
+
+const SkeletonNavigation = ({ count, className }: SkeletonNavigationProps) => (
+  <div className={cn("items-center py-4", className)}>
+    <div className="flex items-center space-x-2 mr-8">
+      <Skeleton className="h-10 w-40" />
+    </div>
+
+    <div className="flex items-center space-x-4 flex-1">
+      {Array.from({ length: count }).map((_, i) => (
+        <Skeleton key={i} className="h-9 w-24" />
+      ))}
     </div>
   </div>
 );

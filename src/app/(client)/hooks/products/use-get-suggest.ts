@@ -3,7 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 
-export function useGetSuggest({ search = "" }: { search: string }) {
+export function useGetSuggest({ search }: { search: string }) {
   const trpc = useTRPC();
 
   const { data, isPending, error } = useQuery(

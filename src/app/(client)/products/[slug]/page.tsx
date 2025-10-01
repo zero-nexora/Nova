@@ -16,7 +16,7 @@ const ProductDetailPage = async ({ params }: ProductDetailPageProps) => {
   );
 
   return (
-    <div className="min-h-screen">
+    <div>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ProductDetail slug={slug} />
         <ProductSection
