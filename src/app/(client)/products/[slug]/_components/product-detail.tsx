@@ -242,7 +242,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/category/${product.category.slug}`}>
+                    <Link href={`/categoríes/${product.category.slug}`}>
                       {product.category.name}
                     </Link>
                   </BreadcrumbLink>
@@ -256,7 +256,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link
-                          href={`/category/${product.category.slug}/${product.subcategory.slug}`}
+                          href={`/categoríes/${product.category.slug}/subcategories/${product.subcategory.slug}`}
                         >
                           {product.subcategory.name}
                         </Link>
