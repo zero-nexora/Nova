@@ -94,7 +94,6 @@ export interface GetInfiniteProductsResponse {
 export interface ProductAttributeValue {
   id: string;
   value: string;
-  available: boolean;
 }
 
 export interface ProductAttribute {

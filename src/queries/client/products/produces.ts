@@ -206,62 +206,6 @@ export const productsRouter = createTRPCRouter({
       }
     }),
 
-  getByCategory: baseProcedure
-    .input(
-      z.object({
-        slugCategory: z.string().min(1, "Category slug is required"),
-      })
-    )
-    .query(async ({ input, ctx }) => {
-      const { slugCategory } = input;
-      const products = await ctx.db.products.findMany({
-        where: {
-          category: {
-            slug: slugCategory,
-          },
-          is_deleted: false,
-          variants: {
-            some: {
-              stock_quantity: {
-                gt: 0,
-              },
-            },
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          is_deleted: true,
-          created_at: true,
-          images: {
-            select: {
-              id: true,
-              image_url: true,
-            },
-            take: 1,
-            orderBy: { created_at: "asc" },
-          },
-          variants: {
-            select: {
-              id: true,
-              price: true,
-              stock_quantity: true,
-            },
-            orderBy: { price: "asc" },
-            take: 1,
-          },
-          _count: {
-            select: {
-              variants: true,
-            },
-          },
-        },
-        orderBy: { created_at: "desc" },
-      });
-
-      return products;
-    }),
   getBySlug: baseProcedure
     .input(
       z.object({
@@ -327,12 +271,6 @@ export const productsRouter = createTRPCRouter({
                         select: {
                           id: true,
                           name: true,
-                          values: {
-                            select: {
-                              id: true,
-                              value: true,
-                            },
-                          },
                         },
                       },
                     },
@@ -351,53 +289,64 @@ export const productsRouter = createTRPCRouter({
         });
       }
 
+      // Build attribute map from variants that have stock
       const attributeMap: Record<
         string,
         {
           id: string;
           name: string;
-          values: { id: string; value: string; available: boolean }[];
+          values: Set<string>; // Set of value IDs
+          valueDetails: Map<string, { id: string; value: string }>; // Map of value ID to details
         }
       > = {};
 
-      product.variants.forEach((variant) => {
+      // Only process variants with stock > 0
+      const variantsWithStock = product.variants.filter(
+        (v) => v.stock_quantity > 0
+      );
+
+      variantsWithStock.forEach((variant) => {
         variant.attributes.forEach((attr) => {
           const attribute = attr.attributeValue.attribute;
           const attributeId = attribute.id;
+          const valueId = attr.attributeValue.id;
 
           if (!attributeMap[attributeId]) {
             attributeMap[attributeId] = {
               id: attributeId,
               name: attribute.name,
-              values: attribute.values.map((val) => ({
-                id: val.id,
-                value: val.value,
-                available: false,
-              })),
+              values: new Set(),
+              valueDetails: new Map(),
             };
           }
 
-          if (variant.stock_quantity > 0) {
-            attributeMap[attributeId].values = attributeMap[
-              attributeId
-            ].values.map((val) =>
-              val.id === attr.attributeValue.id
-                ? { ...val, available: true }
-                : val
-            );
+          // Add value ID to the set
+          attributeMap[attributeId].values.add(valueId);
+
+          // Store value details
+          if (!attributeMap[attributeId].valueDetails.has(valueId)) {
+            attributeMap[attributeId].valueDetails.set(valueId, {
+              id: valueId,
+              value: attr.attributeValue.value,
+            });
           }
         });
       });
 
-      const attributes = Object.values(attributeMap).filter(
-        (attr) => attr.values.length > 0
-      );
+      // Convert to array format with only available values
+      const attributes = Object.values(attributeMap).map((attr) => ({
+        id: attr.id,
+        name: attr.name,
+        values: Array.from(attr.valueDetails.values()),
+      }));
 
       return {
         ...product,
         attributes,
       };
     }),
+
+  // nó bị bug nếu có 1 variant có 3 attribute thì nó bắt phải chọn 3 attribute cho tất cả variant mới add to cart đc mà các attribute khác disable rồi, khoong chọn đc, nhưng tôi muốn nếu variant chỉ có 1 attribute thì chỉ cần chọn value của attribute đó là có thể add to cart, add to cart theo từng variant, logic khác còn lại của code tôi gửi thì giữ nguyên, code đầy đủ lại Ui và server theo ý tưởng mô tả trên
 
   getSuggest: baseProcedure
     .input(

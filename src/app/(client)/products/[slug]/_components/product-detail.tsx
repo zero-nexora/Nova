@@ -8,7 +8,7 @@ import {
   Minus,
   Plus,
   Check,
-  SlashIcon,
+  Slash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,8 +46,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     Record<string, string>
   >({});
 
-  console.log(product);
-
   if (isPending) {
     return <ProductDetailSkeleton />;
   }
@@ -68,25 +66,67 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     );
   }
 
-  // Tính available values với selections tạm thời
+  // Tìm variant phù hợp với selections hiện tại
+  const findMatchingVariant = (
+    selections: Record<string, string>
+  ): Variant | undefined => {
+    return product.variants.find((variant: Variant) => {
+      // Lấy tất cả attribute IDs của variant này
+      const variantAttributeIds = new Set(
+        variant.attributes.map((attr) => attr.attributeValue.attribute.id)
+      );
+
+      // Lấy các selections liên quan đến variant này
+      const relevantSelections = Object.entries(selections).filter(([attrId]) =>
+        variantAttributeIds.has(attrId)
+      );
+
+      // Kiểm tra xem số lượng selections có khớp với số attribute của variant không
+      if (relevantSelections.length !== variantAttributeIds.size) {
+        return false;
+      }
+
+      // Kiểm tra xem tất cả selections có khớp với variant không
+      return relevantSelections.every(([attrId, valueId]) => {
+        return variant.attributes.some(
+          (variantAttr) =>
+            variantAttr.attributeValue.attribute.id === attrId &&
+            variantAttr.attributeValue.id === valueId
+        );
+      });
+    });
+  };
+
+  // Lấy các giá trị có sẵn cho một attribute
   const getAvailableValues = (
     attributeId: string,
     tempSelections: Record<string, string>
   ): Set<string> => {
     const availableValueIds = new Set<string>();
 
-    const matchingVariants = product.variants.filter((variant: Variant) =>
-      variant.attributes.every((variantAttr: VariantAttribute) => {
+    // Tìm tất cả variants có thể match với selections hiện tại
+    const matchingVariants = product.variants.filter((variant: Variant) => {
+      // Kiểm tra variant có attribute này không
+      const hasThisAttribute = variant.attributes.some(
+        (attr) => attr.attributeValue.attribute.id === attributeId
+      );
+      if (!hasThisAttribute) return false;
+
+      // Kiểm tra variant có match với các selections khác không (trừ attribute đang xét)
+      return variant.attributes.every((variantAttr: VariantAttribute) => {
         const attrId = variantAttr.attributeValue.attribute.id;
         if (attrId === attributeId) return true;
 
         const selectedValue = tempSelections[attrId];
+        // Nếu chưa có selection cho attribute này, cho phép
+        // Nếu có selection, phải khớp với variant
         return (
           !selectedValue || selectedValue === variantAttr.attributeValue.id
         );
-      })
-    );
+      });
+    });
 
+    // Collect các giá trị có sẵn cho attribute này
     matchingVariants.forEach((variant: Variant) => {
       variant.attributes.forEach((variantAttr: VariantAttribute) => {
         if (variantAttr.attributeValue.attribute.id === attributeId) {
@@ -137,16 +177,24 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     }
   };
 
-  const currentVariant = product.variants.find((variant: Variant) =>
-    variant.attributes.every((variantAttr: VariantAttribute) => {
-      const selectedValue =
-        selectedAttributes[variantAttr.attributeValue.attribute.id];
-      return selectedValue === variantAttr.attributeValue.id;
-    })
-  );
+  const currentVariant = findMatchingVariant(selectedAttributes);
 
-  const allAttributesSelected =
-    Object.keys(selectedAttributes).length === product.attributes.length;
+  // Kiểm tra xem có đủ attributes được chọn để xác định một variant không
+  const hasEnoughSelections = (): boolean => {
+    if (!currentVariant) return false;
+
+    // Lấy tất cả attribute IDs mà variant hiện tại yêu cầu
+    const requiredAttributeIds = new Set(
+      currentVariant.attributes.map((attr) => attr.attributeValue.attribute.id)
+    );
+
+    // Kiểm tra xem tất cả required attributes đã được chọn chưa
+    return Array.from(requiredAttributeIds).every(
+      (attrId) => selectedAttributes[attrId]
+    );
+  };
+
+  const allAttributesSelected = hasEnoughSelections();
 
   const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
   const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
@@ -203,7 +251,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 {product.subcategory && (
                   <>
                     <BreadcrumbSeparator>
-                      <SlashIcon />
+                      <Slash />
                     </BreadcrumbSeparator>
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
