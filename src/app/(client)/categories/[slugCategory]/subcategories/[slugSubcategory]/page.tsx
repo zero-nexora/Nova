@@ -5,6 +5,7 @@ import { normalizeFilters } from "@/lib/utils";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 import { loaderProductFilters } from "@/app/(client)/hooks/products/product-filters";
 import { ProductSection } from "@/app/(client)/_components/product-section";
+import { SubcategoryBanner } from "./_components/subcategory-banner";
 
 interface CategoriesPageProps {
   params: Promise<{ slugCategory: string; slugSubcategory: string }>;
@@ -34,6 +35,7 @@ const CategoriesPage = async ({
 
   return (
     <div>
+      <SubcategoryBanner slugCategory={slugCategory} slugSubcategory={slugSubcategory} />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ProductSection
           title="Our Products"

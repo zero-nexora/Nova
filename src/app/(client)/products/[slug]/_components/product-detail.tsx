@@ -81,7 +81,17 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
         variantAttributeIds.has(attrId)
       );
 
-      // Kiểm tra xem số lượng selections có khớp với số attribute của variant không
+      // Nếu variant chỉ có 1 attribute và 1 value, chỉ cần kiểm tra xem selection có khớp không
+      if (variant.attributes.length === 1) {
+        const variantAttr = variant.attributes[0];
+        return relevantSelections.some(
+          ([attrId, valueId]) =>
+            attrId === variantAttr.attributeValue.attribute.id &&
+            valueId === variantAttr.attributeValue.id
+        );
+      }
+
+      // Trường hợp thông thường: kiểm tra xem số lượng selections có khớp với số attribute của variant không
       if (relevantSelections.length !== variantAttributeIds.size) {
         return false;
       }
@@ -103,6 +113,25 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     tempSelections: Record<string, string>
   ): Set<string> => {
     const availableValueIds = new Set<string>();
+
+    // Nếu đã chọn một value cho một variant chỉ có 1 attribute, chỉ giữ lại value đó
+    const selectedSingleAttrVariant = product.variants.find(
+      (variant: Variant) =>
+        variant.attributes.length === 1 &&
+        tempSelections[variant.attributes[0].attributeValue.attribute.id] ===
+          variant.attributes[0].attributeValue.id
+    );
+
+    if (selectedSingleAttrVariant) {
+      // Nếu attribute này thuộc variant đã chọn, chỉ cho phép value của nó
+      const variantAttr = selectedSingleAttrVariant.attributes[0];
+      if (variantAttr.attributeValue.attribute.id === attributeId) {
+        availableValueIds.add(variantAttr.attributeValue.id);
+        return availableValueIds;
+      }
+      // Nếu attribute không thuộc variant đã chọn, không có value nào khả dụng
+      return availableValueIds;
+    }
 
     // Tìm tất cả variants có thể match với selections hiện tại
     const matchingVariants = product.variants.filter((variant: Variant) => {
@@ -126,7 +155,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
       });
     });
 
-    // Collect các giá trị có sẵn cho attribute này
+    // Collect các giá trị có sẵn cho attribute này từ các variant tương thích
     matchingVariants.forEach((variant: Variant) => {
       variant.attributes.forEach((variantAttr: VariantAttribute) => {
         if (variantAttr.attributeValue.attribute.id === attributeId) {
@@ -188,7 +217,14 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
       currentVariant.attributes.map((attr) => attr.attributeValue.attribute.id)
     );
 
-    // Kiểm tra xem tất cả required attributes đã được chọn chưa
+    // Nếu variant chỉ có 1 attribute, chỉ cần kiểm tra xem attribute đó đã được chọn chưa
+    if (currentVariant.attributes.length === 1) {
+      return !!selectedAttributes[
+        currentVariant.attributes[0].attributeValue.attribute.id
+      ];
+    }
+
+    // Trường hợp thông thường: kiểm tra xem tất cả required attributes đã được chọn chưa
     return Array.from(requiredAttributeIds).every(
       (attrId) => selectedAttributes[attrId]
     );
@@ -242,7 +278,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/categoríes/${product.category.slug}`}>
+                    <Link href={`/categories/${product.category.slug}`}>
                       {product.category.name}
                     </Link>
                   </BreadcrumbLink>
@@ -256,7 +292,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link
-                          href={`/categoríes/${product.category.slug}/subcategories/${product.subcategory.slug}`}
+                          href={`/categories/${product.category.slug}/subcategories/${product.subcategory.slug}`}
                         >
                           {product.subcategory.name}
                         </Link>
@@ -318,7 +354,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 ) : (
                   <Badge
                     variant="outline"
-                    className="text-red-600 border-red-600"
+                    className="text-red-600 border-red-red"
                   >
                     Out of Stock
                   </Badge>
@@ -475,11 +511,12 @@ export const ProductDetailSkeleton = () => {
             </div>
           </div>
 
-          <Skeleton className="h-9 w-1/4" />
-
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-4 w-24" />
+          <div className="min-h-[5rem] space-y-3">
+            <Skeleton className="h-9 w-1/4" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-4 w-24" />
+            </div>
           </div>
 
           <Separator />

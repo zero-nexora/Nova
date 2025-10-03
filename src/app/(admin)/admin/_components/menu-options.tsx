@@ -24,6 +24,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Logo } from "@/components/global/logo";
 
 interface MenuOptionsProps {
   defaultOpen: boolean;
@@ -74,9 +75,9 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
         )}
       >
         {/* Header */}
-        <SheetHeader className="pb-4 border-b">
+        <SheetHeader className="pb-4 border-b flex items-center">
           <SheetTitle className="text-xl font-bold tracking-tight">
-            Dashboard
+            <Logo />
           </SheetTitle>
         </SheetHeader>
 

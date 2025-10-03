@@ -50,15 +50,21 @@ interface NavigationProps {
   categories: Category[];
   onCategoryClick: (slug: string) => void;
   onSubcategoryClick: (categorySlug: string, subcategorySlug: string) => void;
+  isFilterSheetOpen: boolean;
+  setIsFilterSheetOpen: (open: boolean) => void;
+  onFilterClose: () => void;
 }
 
-interface CategoryItemProps extends NavigationProps {
+interface CategoryItemProps {
   category: Category;
+  categories: Category[];
+  onCategoryClick: (slug: string) => void;
+  onSubcategoryClick: (categorySlug: string, subcategorySlug: string) => void;
 }
 
 interface MobileNavigationProps extends NavigationProps {
-  isSheetOpen: boolean;
-  setIsSheetOpen: (open: boolean) => void;
+  isCategorySheetOpen: boolean;
+  setIsCategorySheetOpen: (open: boolean) => void;
 }
 
 // ============================================================================
@@ -79,13 +85,13 @@ export const CategorySection = () => {
   const router = useRouter();
   const { categories, loading: isLoading } = useCategoriesStore();
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // State for filter sheet
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const handleCategoryClick = useCallback(
     (categorySlug: string) => {
       router.push(`/categories/${categorySlug}`);
       setIsCategorySheetOpen(false);
-      setIsFilterSheetOpen(false); // Close filter sheet when navigating
+      setIsFilterSheetOpen(false);
     },
     [router]
   );
@@ -96,19 +102,26 @@ export const CategorySection = () => {
         `/categories/${categorySlug}/subcategories/${subcategorySlug}`
       );
       setIsCategorySheetOpen(false);
-      setIsFilterSheetOpen(false); // Close filter sheet when navigating
+      setIsFilterSheetOpen(false);
     },
     [router]
   );
+
+  const handleFilterClose = useCallback(() => {
+    setIsFilterSheetOpen(false);
+  }, []);
 
   if (isLoading) {
     return <CategorySectionSkeleton />;
   }
 
-  const navigationProps = {
+  const navigationProps: NavigationProps = {
     categories,
     onCategoryClick: handleCategoryClick,
     onSubcategoryClick: handleSubcategoryClick,
+    isFilterSheetOpen,
+    setIsFilterSheetOpen,
+    onFilterClose: handleFilterClose,
   };
 
   return (
@@ -119,46 +132,9 @@ export const CategorySection = () => {
         <TabletNavigation {...navigationProps} />
         <MobileNavigation
           {...navigationProps}
-          isSheetOpen={isCategorySheetOpen}
-          setIsSheetOpen={setIsCategorySheetOpen}
+          isCategorySheetOpen={isCategorySheetOpen}
+          setIsCategorySheetOpen={setIsCategorySheetOpen}
         />
-        {/* <div className="flex items-center space-x-2 py-4">
-          <AllCategoriesDropdown
-            categories={categories}
-            onCategoryClick={handleCategoryClick}
-            onSubcategoryClick={handleSubcategoryClick}
-          />
-          <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Filter className="h-4 w-4" />
-                <span>Filter Products</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-80 sm:w-96 p-0">
-              <SheetHeader className="p-6 pb-4 border-b">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Filter className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <SheetTitle className="text-xl font-bold">
-                      Product Filters
-                    </SheetTitle>
-                    <SheetDescription className="text-sm">
-                      Refine your product search
-                    </SheetDescription>
-                  </div>
-                </div>
-              </SheetHeader>
-              <ScrollArea className="h-[calc(100vh-120px)]">
-                <div className="p-4">
-                  <ProductFilter />
-                </div>
-              </ScrollArea>
-            </SheetContent>
-          </Sheet>
-        </div> */}
       </div>
     </div>
   );
@@ -168,30 +144,27 @@ export const CategorySection = () => {
 // Responsive Navigation Components
 // ============================================================================
 
-const DesktopNavigation = ({ categories, ...handlers }: NavigationProps) => (
+const DesktopNavigation = (props: NavigationProps) => (
   <ResponsiveNavigation
-    categories={categories}
+    {...props}
     limit={CATEGORY_LIMITS.DESKTOP}
     className="hidden xl:flex"
-    {...handlers}
   />
 );
 
-const LaptopNavigation = ({ categories, ...handlers }: NavigationProps) => (
+const LaptopNavigation = (props: NavigationProps) => (
   <ResponsiveNavigation
-    categories={categories}
+    {...props}
     limit={CATEGORY_LIMITS.LAPTOP}
     className="hidden lg:flex xl:hidden"
-    {...handlers}
   />
 );
 
-const TabletNavigation = ({ categories, ...handlers }: NavigationProps) => (
+const TabletNavigation = (props: NavigationProps) => (
   <ResponsiveNavigation
-    categories={categories}
+    {...props}
     limit={CATEGORY_LIMITS.TABLET}
     className="hidden md:flex lg:hidden"
-    {...handlers}
   />
 );
 
@@ -210,12 +183,18 @@ const ResponsiveNavigation = ({
   className,
   onCategoryClick,
   onSubcategoryClick,
+  isFilterSheetOpen,
+  setIsFilterSheetOpen,
+  onFilterClose,
 }: ResponsiveNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
     <div className="flex items-center space-y-2 mr-8 flex-col">
-      <Sheet>
+      <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className="flex items-center space-x-2 w-full">
+          <Button
+            variant="outline"
+            className="flex items-center space-x-2 w-full"
+          >
             <Filter className="h-4 w-4" />
             <span>Filter Products</span>
           </Button>
@@ -238,7 +217,7 @@ const ResponsiveNavigation = ({
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-120px)]">
             <div className="p-4">
-              <ProductFilter />
+              <ProductFilter onClose={onFilterClose} />
             </div>
           </ScrollArea>
         </SheetContent>
@@ -286,26 +265,30 @@ const AllCategoriesDropdown = ({
   categories,
   onCategoryClick,
   onSubcategoryClick,
-}: NavigationProps) => (
+}: Pick<
+  NavigationProps,
+  "categories" | "onCategoryClick" | "onSubcategoryClick"
+>) => (
   <div className="flex items-center space-x-2">
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center space-x-2">
           <Menu className="h-4 w-4" />
           <span>All Categories</span>
-          <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
-        {categories.map((category) => (
-          <CategoryDropdownItem
-            key={category.id}
-            category={category}
-            categories={categories}
-            onCategoryClick={onCategoryClick}
-            onSubcategoryClick={onSubcategoryClick}
-          />
-        ))}
+      <DropdownMenuContent className="w-64 h-72">
+        <ScrollArea className="h-full">
+          {categories.map((category) => (
+            <CategoryDropdownItem
+              key={category.id}
+              category={category}
+              categories={categories}
+              onCategoryClick={onCategoryClick}
+              onSubcategoryClick={onSubcategoryClick}
+            />
+          ))}
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   </div>
@@ -419,10 +402,13 @@ const CategoryDropdownItem = ({
 
 const MobileNavigation = ({
   categories,
-  isSheetOpen,
-  setIsSheetOpen,
+  isCategorySheetOpen,
+  setIsCategorySheetOpen,
+  isFilterSheetOpen,
+  setIsFilterSheetOpen,
   onCategoryClick,
   onSubcategoryClick,
+  onFilterClose,
 }: MobileNavigationProps) => {
   const totalSubcategories = categories.reduce(
     (acc, cat) => acc + cat.subcategories.length,
@@ -430,16 +416,46 @@ const MobileNavigation = ({
   );
 
   return (
-    <div className="md:hidden py-4">
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+    <div className="md:hidden py-4 flex flex-col gap-4">
+      <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
         <SheetTrigger asChild>
           <Button
             variant="outline"
-            className={cn(
-              "w-full flex items-center justify-center space-x-2 h-12",
-              "border-2 border-dashed hover:border-solid hover:bg-accent/10",
-              "transition-all duration-200 group"
-            )}
+            className="w-full flex items-center justify-center space-x-2 h-12"
+          >
+            <Filter className="h-4 w-4" />
+            <span>Filter Products</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-80 sm:w-96 p-0">
+          <SheetHeader className="p-6 pb-4 border-b">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Filter className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <SheetTitle className="text-xl font-bold">
+                  Product Filters
+                </SheetTitle>
+                <SheetDescription className="text-sm">
+                  Refine your product search
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-120px)]">
+            <div className="p-4">
+              <ProductFilter onClose={onFilterClose} />
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={isCategorySheetOpen} onOpenChange={setIsCategorySheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center space-x-2 h-12"
           >
             <span className="font-medium">Browse Categories</span>
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -450,7 +466,7 @@ const MobileNavigation = ({
           <MobileSheetHeader />
 
           <div className="overflow-auto p-2">
-            <ScrollArea>
+            <ScrollArea className="h-full">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
                   <span className="text-sm font-medium text-muted-foreground">
@@ -609,25 +625,21 @@ const CategoryImage = ({ src, alt, size }: CategoryImageProps) => {
 const CategorySectionSkeleton = () => (
   <div className="w-full border-b">
     <div className="container mx-auto px-4">
-      {/* Desktop */}
       <SkeletonNavigation
         count={CATEGORY_LIMITS.DESKTOP}
         className="hidden xl:flex"
       />
 
-      {/* Laptop */}
       <SkeletonNavigation
         count={CATEGORY_LIMITS.LAPTOP}
         className="hidden lg:flex xl:hidden"
       />
 
-      {/* Tablet */}
       <SkeletonNavigation
         count={CATEGORY_LIMITS.TABLET}
         className="hidden md:flex lg:hidden"
       />
 
-      {/* Mobile */}
       <div className="md:hidden py-4">
         <Skeleton className="w-full h-12" />
       </div>
@@ -642,7 +654,7 @@ interface SkeletonNavigationProps {
 
 const SkeletonNavigation = ({ count, className }: SkeletonNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
-    <div className="flex items-center space-x-2 mr-8">
+    <div className="flex flex-col items-center space-y-2 mr-8">
       <Skeleton className="h-10 w-40" />
       <Skeleton className="h-10 w-40" />
     </div>

@@ -13,8 +13,18 @@ import { Button } from "@/components/ui/button";
 import { useProductFilters } from "../hooks/products/use-product-fillter";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Cập nhật priceRanges với id duy nhất
-const priceRanges = [
+interface ProductFilterProps {
+  onClose?: () => void;
+}
+
+interface PriceRange {
+  id: string;
+  label: string;
+  min: number;
+  max: number;
+}
+
+const PRICE_RANGES: PriceRange[] = [
   { id: "all", label: "All Prices", min: 0, max: 0 },
   { id: "0-10", label: "0 - 10$", min: 0, max: 10 },
   { id: "11-20", label: "11 - 20$", min: 11, max: 20 },
@@ -23,7 +33,7 @@ const priceRanges = [
   { id: "101+", label: "> 100$", min: 101, max: 999999 },
 ];
 
-const sortValues = [
+const SORT_VALUES = [
   "curated",
   "trending",
   "hot_and_new",
@@ -38,13 +48,15 @@ const sortValues = [
   "rating_high",
 ] as const;
 
-const sortOrderValues = ["asc", "desc"] as const;
+const SORT_ORDER_VALUES = ["asc", "desc"] as const;
 
-export default function ProductFilter() {
+type SortValue = (typeof SORT_VALUES)[number];
+type SortOrderValue = (typeof SORT_ORDER_VALUES)[number];
+
+export default function ProductFilter({ onClose }: ProductFilterProps) {
   const { filters, setFilters, resetFilters } = useProductFilters();
   const { categories, loading: isLoading } = useCategoriesStore();
 
-  // State nội bộ để theo dõi các thay đổi tạm thời
   const [tempFilters, setTempFilters] = useState({
     sortBy: filters.sortBy,
     sortOrder: filters.sortOrder,
@@ -54,9 +66,8 @@ export default function ProductFilter() {
     slugSubcategories: filters.slugSubcategories || [],
   });
 
-  // Xử lý thay đổi giá
   const handlePriceChange = (value: string) => {
-    const selectedRange = priceRanges.find((range) => range.id === value);
+    const selectedRange = PRICE_RANGES.find((range) => range.id === value);
     if (selectedRange) {
       setTempFilters((prev) => ({
         ...prev,
@@ -66,36 +77,32 @@ export default function ProductFilter() {
     }
   };
 
-  // Xử lý toggle slug cho categories và subcategories
-  const toggleTempSlug = (
+  const toggleSlug = (
     key: "slugCategories" | "slugSubcategories",
     slug: string
   ) => {
     setTempFilters((prev) => {
       const currentSlugs = prev[key] || [];
-      if (currentSlugs.includes(slug)) {
-        return { ...prev, [key]: currentSlugs.filter((s) => s !== slug) };
-      }
-      return { ...prev, [key]: [...currentSlugs, slug] };
+      const newSlugs = currentSlugs.includes(slug)
+        ? currentSlugs.filter((s) => s !== slug)
+        : [...currentSlugs, slug];
+      return { ...prev, [key]: newSlugs };
     });
   };
 
-  // Xử lý khi nhấn Apply
   const applyFilters = async () => {
     try {
-      // Cập nhật toàn bộ filters qua setFilters
       await setFilters({
         ...tempFilters,
         limit: filters.limit,
         excludeSlugs: filters.excludeSlugs,
       });
-      console.log("Applying filters:", tempFilters);
+      onClose?.();
     } catch (error) {
       console.error("Error applying filters:", error);
     }
   };
 
-  // Xử lý khi nhấn Clear
   const handleClearFilters = () => {
     resetFilters();
     setTempFilters({
@@ -108,14 +115,12 @@ export default function ProductFilter() {
     });
   };
 
-  // Tìm range hiện tại để hiển thị trong Select
-  const currentPriceRange =
-    priceRanges.find(
+  const currentPriceRangeId =
+    PRICE_RANGES.find(
       (range) =>
         range.min === tempFilters.priceMin && range.max === tempFilters.priceMax
     )?.id || "all";
 
-  // Hàm kiểm tra xem subcategory có thuộc category đã chọn không
   const isSubcategoryDisabled = (subcategorySlug: string) => {
     return categories.some(
       (category: { slug: string; subcategories: { slug: string }[] }) =>
@@ -124,91 +129,105 @@ export default function ProductFilter() {
     );
   };
 
+  if (isLoading) {
+    return <ProductFilterSkeleton />;
+  }
+
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Sort By Select */}
-        <div>
-          <Label htmlFor="sortBy" className="text-sm font-medium">
-            Sort By
-          </Label>
-          <Select
-            value={tempFilters.sortBy}
-            onValueChange={(value) =>
-              setTempFilters((prev) => ({
-                ...prev,
-                sortBy: value as (typeof sortValues)[number],
-              }))
-            }
-          >
-            <SelectTrigger id="sortBy" className="mt-1 w-full">
-              <SelectValue placeholder="Select sort option" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortValues.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value.replace("_", " ").toUpperCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Sort Order Select */}
-        <div>
-          <Label htmlFor="sortOrder" className="text-sm font-medium">
-            Sort Order
-          </Label>
-          <Select
-            value={tempFilters.sortOrder}
-            onValueChange={(value) =>
-              setTempFilters((prev) => ({
-                ...prev,
-                sortOrder: value as (typeof sortOrderValues)[number],
-              }))
-            }
-          >
-            <SelectTrigger id="sortOrder" className="mt-1 w-full">
-              <SelectValue placeholder="Select order" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOrderValues.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value.toUpperCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Price Range Select */}
-        <div>
-          <Label htmlFor="priceRange" className="text-sm font-medium">
-            Price Range
-          </Label>
-          <Select value={currentPriceRange} onValueChange={handlePriceChange}>
-            <SelectTrigger id="priceRange" className="mt-1 w-full">
-              <SelectValue placeholder="Select price range" />
-            </SelectTrigger>
-            <SelectContent>
-              {priceRanges.map((range) => (
-                <SelectItem key={range.id} value={range.id}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="flex flex-col h-full">
+      <div className="border-b pb-4 mb-6 flex flex-col sm:flex-row gap-3">
+        <Button onClick={applyFilters} className="w-full sm:flex-1">
+          Apply Filters
+        </Button>
+        <Button
+          onClick={handleClearFilters}
+          variant="outline"
+          className="w-full sm:flex-1"
+        >
+          Clear Filters
+        </Button>
       </div>
 
-      {isLoading ? (
-        <ProductFilterSkeleton />
-      ) : (
-        <>
-          {/* Categories Checkboxes */}
-          <div className="mt-4">
-            <h3 className="text-sm font-medium">Categories</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+      <div className="flex-1">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="sortBy" className="text-sm font-medium">
+                Sort By
+              </Label>
+              <Select
+                value={tempFilters.sortBy}
+                onValueChange={(value) =>
+                  setTempFilters((prev) => ({
+                    ...prev,
+                    sortBy: value as SortValue,
+                  }))
+                }
+              >
+                <SelectTrigger id="sortBy" className="mt-1 w-full">
+                  <SelectValue placeholder="Select sort option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value.replace("_", " ").toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="sortOrder" className="text-sm font-medium">
+                Sort Order
+              </Label>
+              <Select
+                value={tempFilters.sortOrder}
+                onValueChange={(value) =>
+                  setTempFilters((prev) => ({
+                    ...prev,
+                    sortOrder: value as SortOrderValue,
+                  }))
+                }
+              >
+                <SelectTrigger id="sortOrder" className="mt-1 w-full">
+                  <SelectValue placeholder="Select order" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_ORDER_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value.toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="sm:col-span-2">
+              <Label htmlFor="priceRange" className="text-sm font-medium">
+                Price Range
+              </Label>
+              <Select
+                value={currentPriceRangeId}
+                onValueChange={handlePriceChange}
+              >
+                <SelectTrigger id="priceRange" className="mt-1 w-full">
+                  <SelectValue placeholder="Select price range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRICE_RANGES.map((range) => (
+                    <SelectItem key={range.id} value={range.id}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium mb-3">Categories</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {categories.map((category: { slug: string; name: string }) => (
                 <div
                   key={category.slug}
@@ -218,12 +237,12 @@ export default function ProductFilter() {
                     id={`category-${category.slug}`}
                     checked={tempFilters.slugCategories.includes(category.slug)}
                     onCheckedChange={() =>
-                      toggleTempSlug("slugCategories", category.slug)
+                      toggleSlug("slugCategories", category.slug)
                     }
                   />
                   <Label
                     htmlFor={`category-${category.slug}`}
-                    className="text-sm"
+                    className="text-sm cursor-pointer"
                   >
                     {category.name}
                   </Label>
@@ -232,56 +251,46 @@ export default function ProductFilter() {
             </div>
           </div>
 
-          {/* Subcategories Checkboxes */}
-          <div className="mt-4">
-            <h3 className="text-sm font-medium">Subcategories</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+          <div>
+            <h3 className="text-sm font-medium mb-3">Subcategories</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {categories.flatMap(
                 (category: {
                   slug: string;
                   subcategories: { slug: string; name: string }[];
                 }) =>
-                  category.subcategories?.map((subcategory) => (
-                    <div
-                      key={subcategory.slug}
-                      className="flex items-center space-x-2"
-                    >
-                      <Checkbox
-                        id={`subcategory-${subcategory.slug}`}
-                        checked={tempFilters.slugSubcategories.includes(
-                          subcategory.slug
-                        )}
-                        onCheckedChange={() =>
-                          toggleTempSlug("slugSubcategories", subcategory.slug)
-                        }
-                        disabled={isSubcategoryDisabled(subcategory.slug)}
-                      />
-                      <Label
-                        htmlFor={`subcategory-${subcategory.slug}`}
-                        className={`text-sm ${
-                          isSubcategoryDisabled(subcategory.slug)
-                            ? "text-muted-foreground"
-                            : ""
-                        }`}
+                  category.subcategories?.map((subcategory) => {
+                    const isDisabled = isSubcategoryDisabled(subcategory.slug);
+                    return (
+                      <div
+                        key={subcategory.slug}
+                        className="flex items-center space-x-2"
                       >
-                        {subcategory.name}
-                      </Label>
-                    </div>
-                  ))
+                        <Checkbox
+                          id={`subcategory-${subcategory.slug}`}
+                          checked={tempFilters.slugSubcategories.includes(
+                            subcategory.slug
+                          )}
+                          onCheckedChange={() =>
+                            toggleSlug("slugSubcategories", subcategory.slug)
+                          }
+                          disabled={isDisabled}
+                        />
+                        <Label
+                          htmlFor={`subcategory-${subcategory.slug}`}
+                          className={`text-sm cursor-pointer ${
+                            isDisabled ? "text-muted-foreground" : ""
+                          }`}
+                        >
+                          {subcategory.name}
+                        </Label>
+                      </div>
+                    );
+                  })
               )}
             </div>
           </div>
-        </>
-      )}
-
-      {/* Apply and Clear Buttons */}
-      <div className="mt-4 flex flex-col sm:flex-row gap-2">
-        <Button onClick={applyFilters} className="w-full sm:w-auto">
-          Apply Filters
-        </Button>
-        <Button onClick={handleClearFilters} className="w-full sm:w-auto">
-          Clear Filters
-        </Button>
+        </div>
       </div>
     </div>
   );
@@ -289,11 +298,19 @@ export default function ProductFilter() {
 
 export function ProductFilterSkeleton() {
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Categories Checkboxes Skeleton */}
-      <div className="mt-4">
-        <Skeleton className="h-5 w-24 mb-2" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[...Array(3)].map((_, index) => (
+          <div key={index}>
+            <Skeleton className="h-4 w-20 mb-2" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <Skeleton className="h-5 w-24 mb-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[...Array(8)].map((_, index) => (
             <div key={index} className="flex items-center space-x-2">
               <Skeleton className="h-5 w-5" />
@@ -303,10 +320,9 @@ export function ProductFilterSkeleton() {
         </div>
       </div>
 
-      {/* Subcategories Checkboxes Skeleton */}
-      <div className="mt-4">
-        <Skeleton className="h-5 w-24 mb-2" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+      <div>
+        <Skeleton className="h-5 w-24 mb-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[...Array(12)].map((_, index) => (
             <div key={index} className="flex items-center space-x-2">
               <Skeleton className="h-5 w-5" />
@@ -316,10 +332,9 @@ export function ProductFilterSkeleton() {
         </div>
       </div>
 
-      {/* Apply and Clear Buttons Skeleton */}
-      <div className="mt-4 flex flex-col sm:flex-row gap-2">
-        <Skeleton className="h-10 w-full sm:w-32" />
-        <Skeleton className="h-10 w-full sm:w-32" />
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+        <Skeleton className="h-10 w-full sm:flex-1" />
+        <Skeleton className="h-10 w-full sm:flex-1" />
       </div>
     </div>
   );

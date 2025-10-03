@@ -5,6 +5,7 @@ import { loaderProductFilters } from "../../hooks/products/product-filters";
 import type { SearchParams } from "nuqs/server";
 import { normalizeFilters } from "@/lib/utils";
 import { DEFAULT_LIMIT } from "@/lib/constants";
+import { CategoryBanner } from "./_components/category-banner";
 
 interface CategoriesPageProps {
   params: Promise<{ slugCategory: string }>;
@@ -33,6 +34,7 @@ const CategoriesPage = async ({
 
   return (
     <div>
+      <CategoryBanner slugCategory={slugCategory} />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ProductSection
           title="Our Products"
