@@ -76,6 +76,12 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
         variant.attributes.map((attr) => attr.attributeValue.attribute.id)
       );
 
+      // Kiểm tra nếu tất cả selections đều được bao phủ bởi variant's attributes
+      const allSelectionsCovered = Object.keys(selections).every((key) =>
+        variantAttributeIds.has(key)
+      );
+      if (!allSelectionsCovered) return false;
+
       // Lấy các selections liên quan đến variant này
       const relevantSelections = Object.entries(selections).filter(([attrId]) =>
         variantAttributeIds.has(attrId)
@@ -142,17 +148,31 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
       if (!hasThisAttribute) return false;
 
       // Kiểm tra variant có match với các selections khác không (trừ attribute đang xét)
-      return variant.attributes.every((variantAttr: VariantAttribute) => {
-        const attrId = variantAttr.attributeValue.attribute.id;
-        if (attrId === attributeId) return true;
+      const matchesSelections = variant.attributes.every(
+        (variantAttr: VariantAttribute) => {
+          const attrId = variantAttr.attributeValue.attribute.id;
+          if (attrId === attributeId) return true;
 
-        const selectedValue = tempSelections[attrId];
-        // Nếu chưa có selection cho attribute này, cho phép
-        // Nếu có selection, phải khớp với variant
-        return (
-          !selectedValue || selectedValue === variantAttr.attributeValue.id
-        );
-      });
+          const selectedValue = tempSelections[attrId];
+          // Nếu chưa có selection cho attribute này, cho phép
+          // Nếu có selection, phải khớp với variant
+          return (
+            !selectedValue || selectedValue === variantAttr.attributeValue.id
+          );
+        }
+      );
+
+      // Thêm kiểm tra: tất cả selected attributes (trừ current) phải tồn tại trong variant
+      const allSelectedAttrsCovered = Object.keys(tempSelections).every(
+        (key) => {
+          if (key === attributeId) return true;
+          return variant.attributes.some(
+            (attr) => attr.attributeValue.attribute.id === key
+          );
+        }
+      );
+
+      return matchesSelections && allSelectedAttrsCovered;
     });
 
     // Collect các giá trị có sẵn cho attribute này từ các variant tương thích
@@ -239,6 +259,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {JSON.stringify(product, null, 2)}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left side - Images */}
         <div className="space-y-4">

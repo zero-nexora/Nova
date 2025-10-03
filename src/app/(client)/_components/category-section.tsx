@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Menu, ChevronDown, ChevronRight, Grid3X3, Filter } from "lucide-react";
+import { Menu, ChevronRight, Grid3X3, Filter } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
