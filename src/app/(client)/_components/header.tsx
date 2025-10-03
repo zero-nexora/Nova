@@ -19,9 +19,10 @@ import { UserButtonCustom } from "@/components/global/user-button-custom";
 import { useGetSuggest } from "../hooks/products/use-get-suggest";
 import { useProductFilters } from "../hooks/products/use-product-fillter";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { Logo } from "@/components/global/logo";
 
 export function Header() {
-  const [filters, setFilters] = useProductFilters();
+  const { filters, setFilters } = useProductFilters();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -94,7 +95,7 @@ export function Header() {
   // Execute search - only place that sets filters
   const executeSearch = useCallback(
     (searchQuery: string, isMobile: boolean) => {
-      if (!searchQuery.trim()) return;
+      // if (!searchQuery.trim()) return;
 
       addRecentSearch(searchQuery);
       setFilters({ ...filters, search: searchQuery });
@@ -352,12 +353,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
-            <div className="w-8 h-8 border rounded-md flex items-center justify-center">
-              <span className="font-semibold text-sm">S</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-lg font-semibold">Shop</span>
-            </div>
+            <Logo />
           </Link>
 
           {/* Desktop Search */}

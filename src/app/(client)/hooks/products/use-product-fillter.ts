@@ -1,5 +1,3 @@
-import { DEFAULT_LIMIT } from "@/lib/constants";
-import { GetInfiniteProductsSchema } from "@/queries/client/products/types";
 import {
   useQueryStates,
   parseAsString,
@@ -7,7 +5,9 @@ import {
   parseAsStringLiteral,
   parseAsInteger,
 } from "nuqs";
-import z from "zod";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import { z } from "zod";
+import { GetInfiniteProductsSchema } from "@/queries/client/products/types";
 
 export type ProductFilters = z.infer<typeof GetInfiniteProductsSchema>;
 
@@ -25,31 +25,94 @@ const sortValues = [
   "stock_low",
   "rating_high",
 ] as const;
+
 const sortOrderValues = ["asc", "desc"] as const;
 
-export const params = {
+type SortBy = (typeof sortValues)[number];
+type SortOrder = (typeof sortOrderValues)[number];
+
+interface ProductFilterParams {
+  search?: string;
+  sortBy: SortBy;
+  sortOrder: SortOrder;
+  priceMin?: number;
+  priceMax?: number;
+  slugCategories?: string[];
+  slugSubcategories?: string[];
+  excludeSlugs?: string[];
+  limit: number;
+}
+
+const params = {
   search: parseAsString.withOptions({ clearOnDefault: true }).withDefault(""),
-
-  sortBy: parseAsStringLiteral(sortValues).withDefault("curated"),
-  sortOrder: parseAsStringLiteral(sortOrderValues).withDefault("desc"),
-
+  sortBy: parseAsStringLiteral(sortValues).withDefault("curated" as SortBy),
+  sortOrder: parseAsStringLiteral(sortOrderValues).withDefault(
+    "desc" as SortOrder
+  ),
   priceMin: parseAsInteger.withOptions({ clearOnDefault: true }).withDefault(0),
   priceMax: parseAsInteger.withOptions({ clearOnDefault: true }).withDefault(0),
-
-  slugCategory: parseAsString
+  slugCategories: parseAsArrayOf(parseAsString)
     .withOptions({ clearOnDefault: true })
-    .withDefault(""),
-  slugSubcategory: parseAsString
+    .withDefault([]),
+  slugSubcategories: parseAsArrayOf(parseAsString)
     .withOptions({ clearOnDefault: true })
-    .withDefault(""),
-
+    .withDefault([]),
   excludeSlugs: parseAsArrayOf(parseAsString)
     .withOptions({ clearOnDefault: true })
     .withDefault([]),
-
   limit: parseAsInteger.withDefault(DEFAULT_LIMIT),
 };
 
 export const useProductFilters = () => {
-  return useQueryStates(params);
+  const [filters, setFilters] = useQueryStates(params, {
+    shallow: true,
+  });
+
+  const resetFilters = () => {
+    setFilters({
+      search: "",
+      sortBy: "curated",
+      sortOrder: "desc",
+      priceMin: 0,
+      priceMax: 0,
+      slugCategories: [],
+      slugSubcategories: [],
+      excludeSlugs: [],
+      limit: DEFAULT_LIMIT,
+    });
+  };
+
+  const updateFilter = <K extends keyof ProductFilterParams>(
+    key: K,
+    value: ProductFilterParams[K]
+  ) => {
+    setFilters({ [key]: value });
+  };
+
+  const toggleSlug = (
+    key: "slugCategories" | "slugSubcategories" | "excludeSlugs",
+    slug: string
+  ) => {
+    setFilters((prev) => {
+      const currentSlugs = prev[key] || [];
+      if (currentSlugs.includes(slug)) {
+        return {
+          ...prev,
+          [key]: currentSlugs.filter((s) => s !== slug),
+        };
+      }
+      return {
+        ...prev,
+        [key]: [...currentSlugs, slug],
+      };
+    });
+  };
+
+  return {
+    filters: filters as ProductFilterParams,
+    setFilters,
+    resetFilters,
+    updateFilter,
+    toggleSlug,
+  };
 };

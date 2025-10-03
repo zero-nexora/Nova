@@ -33,12 +33,12 @@ export const params = {
   priceMin: parseAsInteger.withOptions({ clearOnDefault: true }).withDefault(0),
   priceMax: parseAsInteger.withOptions({ clearOnDefault: true }).withDefault(0),
 
-  slugCategory: parseAsString
+  slugCategories: parseAsArrayOf(parseAsString)
     .withOptions({ clearOnDefault: true })
-    .withDefault(""),
-  slugSubcategory: parseAsString
+    .withDefault([]),
+  slugSubcategories: parseAsArrayOf(parseAsString)
     .withOptions({ clearOnDefault: true })
-    .withDefault(""),
+    .withDefault([]),
 
   excludeSlugs: parseAsArrayOf(parseAsString)
     .withOptions({ clearOnDefault: true })

@@ -66,12 +66,12 @@ export function normalizeFilters(params: ProductFilters): ProductFilters {
   return {
     ...params,
     search: params.search?.trim() === "" ? undefined : params.search,
-    slugCategory:
-      params.slugCategory?.trim() === "" ? undefined : params.slugCategory,
-    slugSubcategory:
-      params.slugSubcategory?.trim() === ""
+    slugCategories:
+      params.slugCategories?.length === 0 ? undefined : params.slugCategories,
+    slugSubcategories:
+      params.slugSubcategories?.length === 0
         ? undefined
-        : params.slugSubcategory,
+        : params.slugSubcategories,
     priceMin: params.priceMin === 0 ? undefined : params.priceMin,
     priceMax: params.priceMax === 0 ? undefined : params.priceMax,
   };

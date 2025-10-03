@@ -128,8 +128,8 @@ export const GetInfiniteProductsSchema = z.object({
 
   search: z.string().optional(),
 
-  slugCategory: z.string().optional(),
-  slugSubcategory: z.string().optional(),
+  slugCategories: z.array(z.string()).optional(),
+  slugSubcategories: z.array(z.string()).optional(),
 
   sortBy: z
     .enum([
@@ -150,8 +150,8 @@ export const GetInfiniteProductsSchema = z.object({
 
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 
-  priceMin: z.number().min(0).optional(),
-  priceMax: z.number().min(0).optional(),
+  priceMin: z.number().min(1).optional(),
+  priceMax: z.number().min(1).optional(),
 
   excludeSlugs: z.array(z.string()).optional(),
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Menu, ChevronDown, ChevronRight, Grid3X3 } from "lucide-react";
+import { Menu, ChevronDown, ChevronRight, Grid3X3, Filter } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -40,6 +40,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Category, useCategoriesStore } from "@/stores/client/categories-store";
 import { cn } from "@/lib/utils";
 import { placeholderImage } from "@/lib/constants";
+import ProductFilter from "./product-filter";
 
 // ============================================================================
 // Types
@@ -77,12 +78,14 @@ const CATEGORY_LIMITS = {
 export const CategorySection = () => {
   const router = useRouter();
   const { categories, loading: isLoading } = useCategoriesStore();
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // State for filter sheet
 
   const handleCategoryClick = useCallback(
     (categorySlug: string) => {
       router.push(`/categories/${categorySlug}`);
-      setIsSheetOpen(false);
+      setIsCategorySheetOpen(false);
+      setIsFilterSheetOpen(false); // Close filter sheet when navigating
     },
     [router]
   );
@@ -92,7 +95,8 @@ export const CategorySection = () => {
       router.push(
         `/categories/${categorySlug}/subcategories/${subcategorySlug}`
       );
-      setIsSheetOpen(false);
+      setIsCategorySheetOpen(false);
+      setIsFilterSheetOpen(false); // Close filter sheet when navigating
     },
     [router]
   );
@@ -115,9 +119,46 @@ export const CategorySection = () => {
         <TabletNavigation {...navigationProps} />
         <MobileNavigation
           {...navigationProps}
-          isSheetOpen={isSheetOpen}
-          setIsSheetOpen={setIsSheetOpen}
+          isSheetOpen={isCategorySheetOpen}
+          setIsSheetOpen={setIsCategorySheetOpen}
         />
+        {/* <div className="flex items-center space-x-2 py-4">
+          <AllCategoriesDropdown
+            categories={categories}
+            onCategoryClick={handleCategoryClick}
+            onSubcategoryClick={handleSubcategoryClick}
+          />
+          <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Filter className="h-4 w-4" />
+                <span>Filter Products</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80 sm:w-96 p-0">
+              <SheetHeader className="p-6 pb-4 border-b">
+                <div className="flex items-center space-x-2">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Filter className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <SheetTitle className="text-xl font-bold">
+                      Product Filters
+                    </SheetTitle>
+                    <SheetDescription className="text-sm">
+                      Refine your product search
+                    </SheetDescription>
+                  </div>
+                </div>
+              </SheetHeader>
+              <ScrollArea className="h-[calc(100vh-120px)]">
+                <div className="p-4">
+                  <ProductFilter />
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+        </div> */}
       </div>
     </div>
   );
@@ -171,11 +212,43 @@ const ResponsiveNavigation = ({
   onSubcategoryClick,
 }: ResponsiveNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
-    <AllCategoriesDropdown
-      categories={categories}
-      onCategoryClick={onCategoryClick}
-      onSubcategoryClick={onSubcategoryClick}
-    />
+    <div className="flex items-center space-y-2 mr-8 flex-col">
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" className="flex items-center space-x-2 w-full">
+            <Filter className="h-4 w-4" />
+            <span>Filter Products</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-80 sm:w-96 p-0">
+          <SheetHeader className="p-6 pb-4 border-b">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Filter className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <SheetTitle className="text-xl font-bold">
+                  Product Filters
+                </SheetTitle>
+                <SheetDescription className="text-sm">
+                  Refine your product search
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-120px)]">
+            <div className="p-4">
+              <ProductFilter />
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+      <AllCategoriesDropdown
+        categories={categories}
+        onCategoryClick={onCategoryClick}
+        onSubcategoryClick={onSubcategoryClick}
+      />
+    </div>
 
     <div className="flex-1">
       <NavigationMenu>
@@ -214,7 +287,7 @@ const AllCategoriesDropdown = ({
   onCategoryClick,
   onSubcategoryClick,
 }: NavigationProps) => (
-  <div className="flex items-center space-x-2 mr-8">
+  <div className="flex items-center space-x-2">
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center space-x-2">
@@ -570,6 +643,7 @@ interface SkeletonNavigationProps {
 const SkeletonNavigation = ({ count, className }: SkeletonNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
     <div className="flex items-center space-x-2 mr-8">
+      <Skeleton className="h-10 w-40" />
       <Skeleton className="h-10 w-40" />
     </div>
 

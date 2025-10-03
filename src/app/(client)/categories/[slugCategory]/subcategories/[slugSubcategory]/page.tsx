@@ -21,8 +21,8 @@ const CategoriesPage = async ({
   const filters = await loaderProductFilters(searchParams);
   const normalizedFilters = normalizeFilters({
     ...filters,
-    slugCategory,
-    slugSubcategory,
+    slugCategories: [...filters.slugCategories, slugCategory],
+    slugSubcategories: [slugSubcategory],
   });
 
   await queryClient.prefetchInfiniteQuery(
@@ -38,8 +38,8 @@ const CategoriesPage = async ({
         <ProductSection
           title="Our Products"
           description="Discover our curated selection of products in this subcategory. Find the perfect items that match your style and needs."
-          slugCategory={slugCategory}
-          slugSubcategory={slugSubcategory}
+          slugCategories={[slugCategory]}
+          slugSubcategories={[slugSubcategory]}
         />
       </HydrationBoundary>
     </div>

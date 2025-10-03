@@ -11,8 +11,8 @@ export const productsRouter = createTRPCRouter({
         limit,
         cursor,
         search,
-        slugCategory,
-        slugSubcategory,
+        slugCategories,
+        slugSubcategories,
         sortBy,
         sortOrder,
         priceMin,
@@ -53,11 +53,16 @@ export const productsRouter = createTRPCRouter({
           ];
         }
 
-        if (slugCategory) {
-          where.category = { is: { slug: slugCategory } };
+        if (slugCategories && slugCategories.length > 0) {
+          where.category = {
+            slug: { in: slugCategories },
+          };
         }
-        if (slugSubcategory) {
-          where.subcategory = { is: { slug: slugSubcategory } };
+
+        if (slugSubcategories && slugSubcategories.length > 0) {
+          where.subcategory = {
+            slug: { in: slugSubcategories },
+          };
         }
 
         if (priceMin !== undefined || priceMax !== undefined) {
@@ -111,37 +116,23 @@ export const productsRouter = createTRPCRouter({
           where.AND = [...(where.AND || []), cursorFilter];
         }
 
-        let orderBy: any = {};
+        let orderBy: any = undefined;
+
         switch (sortBy) {
           case "price_asc":
-            orderBy = { variants: { _min: { price: "asc" } } };
-            break;
-          case "price_desc":
-            orderBy = { variants: { _min: { price: "desc" } } };
-            break;
-          case "name_asc":
-            orderBy = { name: "asc" };
-            break;
-          case "name_desc":
-            orderBy = { name: "desc" };
-            break;
-          case "newest":
-            orderBy = { updated_at: "desc" };
-            break;
-          case "oldest":
             orderBy = { updated_at: "asc" };
             break;
-          case "stock_high":
-            orderBy = { variants: { _sum: { stock_quantity: "desc" } } };
+          case "price_desc":
+            orderBy = { updated_at: "desc" };
             break;
-          case "stock_low":
-            orderBy = { variants: { _sum: { stock_quantity: "asc" } } };
+          case "newest":
+            orderBy = { created_at: "desc" };
             break;
-          case "rating_high":
-            orderBy = { reviews: { _avg: { rating: "desc" } } };
+          case "oldest":
+            orderBy = { created_at: "asc" };
             break;
           default:
-            orderBy = { updated_at: sortOrder || "desc" };
+            orderBy = { updated_at: "desc" };
             break;
         }
 
@@ -183,7 +174,14 @@ export const productsRouter = createTRPCRouter({
                   },
                 },
               },
-              orderBy: { price: "asc" },
+              orderBy: {
+                price:
+                  sortBy === "price_asc"
+                    ? "asc"
+                    : sortBy === "price_desc"
+                    ? "desc"
+                    : "asc",
+              },
             },
             _count: { select: { reviews: true, variants: true } },
           },

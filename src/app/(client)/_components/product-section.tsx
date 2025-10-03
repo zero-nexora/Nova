@@ -11,20 +11,20 @@ import { useProductFilters } from "../hooks/products/use-product-fillter";
 interface ProductSectionProps {
   title?: string;
   description?: string;
-  slugCategory?: string;
-  slugSubcategory?: string;
+  slugCategories?: string[];
+  slugSubcategories?: string[];
   excludeSlugs?: string[];
 }
 
 export const ProductSection = ({
   title,
   description,
-  slugCategory,
-  slugSubcategory,
+  slugCategories,
+  slugSubcategories,
   excludeSlugs,
 }: ProductSectionProps) => {
-  const [filters] = useProductFilters();
-
+  const { filters } = useProductFilters();
+  
   const {
     products,
     fetchNextPage,
@@ -34,8 +34,8 @@ export const ProductSection = ({
     error,
   } = useInfiniteProducts({
     ...filters,
-    slugCategory,
-    slugSubcategory,
+    slugCategories: slugCategories ?? filters.slugCategories,
+    slugSubcategories: slugSubcategories ?? filters.slugSubcategories,
     excludeSlugs,
   });
 

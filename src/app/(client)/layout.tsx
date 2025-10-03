@@ -1,3 +1,5 @@
+"use client";
+
 import { StoreClientProvider } from "@/providers/store-client-provider";
 import { CategorySection } from "./_components/category-section";
 import { Header } from "./_components/header";
