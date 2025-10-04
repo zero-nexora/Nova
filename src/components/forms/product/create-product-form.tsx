@@ -214,6 +214,26 @@ export const CreateProductForm = () => {
     }
 
     try {
+      const uniqueVariantsMap = new Map<string, ProductVariant>();
+      variants.forEach((variant) => {
+        const key = variant.attributeValueIds.sort().join(",");
+        uniqueVariantsMap.set(key, variant);
+      });
+
+      const uniqueVariants = Array.from(uniqueVariantsMap.values()).map(
+        ({ id, ...variant }) => variant
+      );
+
+      if (uniqueVariants.length < variants.length) {
+        toast.info(
+          `Merged ${
+            variants.length - uniqueVariants.length
+          } duplicate variant(s)`
+        );
+      }
+
+      values.variants = uniqueVariants;
+
       const uploadResult = await uploadImagesAsync({
         images: selectedImages.map((image) => image.base64Url),
       });
@@ -222,8 +242,6 @@ export const CreateProductForm = () => {
         image_url: imageUrl,
         public_id: publicId,
       }));
-
-      values.variants = variants.map(({ id, ...variant }) => variant);
 
       await createProductAsync(values);
 
@@ -291,7 +309,7 @@ export const CreateProductForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {categories
-                    .filter((cateogry) => !cateogry.is_deleted)
+                    .filter((category) => !category.is_deleted)
                     .map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}

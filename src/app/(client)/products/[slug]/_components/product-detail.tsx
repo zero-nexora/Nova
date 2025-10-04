@@ -33,13 +33,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { ImageCarousel } from "./image-carousel";
+import { ErrorDisplay } from "@/components/global/error-display";
+import { NotFoundDisplay } from "@/components/global/not-found-display";
 
 interface ProductDetailProps {
   slug: string;
 }
 
 export const ProductDetail = ({ slug }: ProductDetailProps) => {
-  const { product, isPending, error } = useGetProductBySlug(slug);
+  const { product, isPending, error, refetch } = useGetProductBySlug(slug);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedAttributes, setSelectedAttributes] = useState<
@@ -50,44 +52,30 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     return <ProductDetailSkeleton />;
   }
 
-  if (error) {
+  if (error)
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-red-500">Error: {error.message}</div>
-      </div>
+      <ErrorDisplay errorMessage={error?.message || ""} onRetry={refetch} />
     );
-  }
 
-  if (!product) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div>Product not found</div>
-      </div>
-    );
-  }
+  if (!product) return <NotFoundDisplay />;
 
-  // Tìm variant phù hợp với selections hiện tại
   const findMatchingVariant = (
     selections: Record<string, string>
   ): Variant | undefined => {
     return product.variants.find((variant: Variant) => {
-      // Lấy tất cả attribute IDs của variant này
       const variantAttributeIds = new Set(
         variant.attributes.map((attr) => attr.attributeValue.attribute.id)
       );
 
-      // Kiểm tra nếu tất cả selections đều được bao phủ bởi variant's attributes
       const allSelectionsCovered = Object.keys(selections).every((key) =>
         variantAttributeIds.has(key)
       );
       if (!allSelectionsCovered) return false;
 
-      // Lấy các selections liên quan đến variant này
       const relevantSelections = Object.entries(selections).filter(([attrId]) =>
         variantAttributeIds.has(attrId)
       );
 
-      // Nếu variant chỉ có 1 attribute và 1 value, chỉ cần kiểm tra xem selection có khớp không
       if (variant.attributes.length === 1) {
         const variantAttr = variant.attributes[0];
         return relevantSelections.some(
@@ -97,12 +85,10 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
         );
       }
 
-      // Trường hợp thông thường: kiểm tra xem số lượng selections có khớp với số attribute của variant không
       if (relevantSelections.length !== variantAttributeIds.size) {
         return false;
       }
 
-      // Kiểm tra xem tất cả selections có khớp với variant không
       return relevantSelections.every(([attrId, valueId]) => {
         return variant.attributes.some(
           (variantAttr) =>
@@ -113,14 +99,12 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     });
   };
 
-  // Lấy các giá trị có sẵn cho một attribute
   const getAvailableValues = (
     attributeId: string,
     tempSelections: Record<string, string>
   ): Set<string> => {
     const availableValueIds = new Set<string>();
 
-    // Nếu đã chọn một value cho một variant chỉ có 1 attribute, chỉ giữ lại value đó
     const selectedSingleAttrVariant = product.variants.find(
       (variant: Variant) =>
         variant.attributes.length === 1 &&
@@ -129,40 +113,32 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     );
 
     if (selectedSingleAttrVariant) {
-      // Nếu attribute này thuộc variant đã chọn, chỉ cho phép value của nó
       const variantAttr = selectedSingleAttrVariant.attributes[0];
       if (variantAttr.attributeValue.attribute.id === attributeId) {
         availableValueIds.add(variantAttr.attributeValue.id);
         return availableValueIds;
       }
-      // Nếu attribute không thuộc variant đã chọn, không có value nào khả dụng
       return availableValueIds;
     }
 
-    // Tìm tất cả variants có thể match với selections hiện tại
     const matchingVariants = product.variants.filter((variant: Variant) => {
-      // Kiểm tra variant có attribute này không
       const hasThisAttribute = variant.attributes.some(
         (attr) => attr.attributeValue.attribute.id === attributeId
       );
       if (!hasThisAttribute) return false;
 
-      // Kiểm tra variant có match với các selections khác không (trừ attribute đang xét)
       const matchesSelections = variant.attributes.every(
         (variantAttr: VariantAttribute) => {
           const attrId = variantAttr.attributeValue.attribute.id;
           if (attrId === attributeId) return true;
 
           const selectedValue = tempSelections[attrId];
-          // Nếu chưa có selection cho attribute này, cho phép
-          // Nếu có selection, phải khớp với variant
           return (
             !selectedValue || selectedValue === variantAttr.attributeValue.id
           );
         }
       );
 
-      // Thêm kiểm tra: tất cả selected attributes (trừ current) phải tồn tại trong variant
       const allSelectedAttrsCovered = Object.keys(tempSelections).every(
         (key) => {
           if (key === attributeId) return true;
@@ -175,7 +151,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
       return matchesSelections && allSelectedAttrsCovered;
     });
 
-    // Collect các giá trị có sẵn cho attribute này từ các variant tương thích
     matchingVariants.forEach((variant: Variant) => {
       variant.attributes.forEach((variantAttr: VariantAttribute) => {
         if (variantAttr.attributeValue.attribute.id === attributeId) {
@@ -187,23 +162,19 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     return availableValueIds;
   };
 
-  // Xử lý thay đổi attribute
   const handleAttributeChange = (attributeId: string, valueId: string) => {
     setSelectedAttributes((prev) => {
-      // Toggle: Bỏ chọn nếu click vào value đang được chọn
       if (prev[attributeId] === valueId) {
         const newAttributes = { ...prev };
         delete newAttributes[attributeId];
         return newAttributes;
       }
 
-      // Chọn value mới
       const newAttributes = {
         ...prev,
         [attributeId]: valueId,
       };
 
-      // Xóa các attribute values không còn khả dụng
       Object.keys(newAttributes).forEach((attrId) => {
         if (attrId !== attributeId) {
           const availableValues = getAvailableValues(attrId, newAttributes);
@@ -217,7 +188,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     });
   };
 
-  // Xử lý thay đổi số lượng
   const handleQuantityChange = (type: "increment" | "decrement") => {
     if (type === "increment" && currentVariant && quantity < currentStock) {
       setQuantity((prev) => prev + 1);
@@ -228,23 +198,19 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
   const currentVariant = findMatchingVariant(selectedAttributes);
 
-  // Kiểm tra xem có đủ attributes được chọn để xác định một variant không
   const hasEnoughSelections = (): boolean => {
     if (!currentVariant) return false;
 
-    // Lấy tất cả attribute IDs mà variant hiện tại yêu cầu
     const requiredAttributeIds = new Set(
       currentVariant.attributes.map((attr) => attr.attributeValue.attribute.id)
     );
 
-    // Nếu variant chỉ có 1 attribute, chỉ cần kiểm tra xem attribute đó đã được chọn chưa
     if (currentVariant.attributes.length === 1) {
       return !!selectedAttributes[
         currentVariant.attributes[0].attributeValue.attribute.id
       ];
     }
 
-    // Trường hợp thông thường: kiểm tra xem tất cả required attributes đã được chọn chưa
     return Array.from(requiredAttributeIds).every(
       (attrId) => selectedAttributes[attrId]
     );
@@ -259,7 +225,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {JSON.stringify(product, null, 2)}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left side - Images */}
         <div className="space-y-4">

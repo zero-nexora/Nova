@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 export function useGetProductBySlug(slug: string) {
   const trpc = useTRPC();
 
-  const { data, error, isPending } = useQuery(
+  const { data, error, isPending, refetch } = useQuery(
     trpc.client.productsRouterClient.getBySlug.queryOptions({ slug })
   );
 
@@ -14,5 +14,6 @@ export function useGetProductBySlug(slug: string) {
     product: data,
     error,
     isPending,
+    refetch,
   };
 }

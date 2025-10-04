@@ -105,6 +105,7 @@ export default function ProductFilter({ onClose }: ProductFilterProps) {
 
   const handleClearFilters = () => {
     resetFilters();
+    onClose?.();
     setTempFilters({
       sortBy: "curated",
       sortOrder: "desc",
