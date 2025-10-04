@@ -287,18 +287,16 @@ export const productsRouter = createTRPCRouter({
         });
       }
 
-      // Build attribute map from variants that have stock
       const attributeMap: Record<
         string,
         {
           id: string;
           name: string;
-          values: Set<string>; // Set of value IDs
-          valueDetails: Map<string, { id: string; value: string }>; // Map of value ID to details
+          values: Set<string>;
+          valueDetails: Map<string, { id: string; value: string }>;
         }
       > = {};
 
-      // Only process variants with stock > 0
       const variantsWithStock = product.variants.filter(
         (v) => v.stock_quantity > 0
       );
@@ -318,10 +316,8 @@ export const productsRouter = createTRPCRouter({
             };
           }
 
-          // Add value ID to the set
           attributeMap[attributeId].values.add(valueId);
 
-          // Store value details
           if (!attributeMap[attributeId].valueDetails.has(valueId)) {
             attributeMap[attributeId].valueDetails.set(valueId, {
               id: valueId,
@@ -331,7 +327,6 @@ export const productsRouter = createTRPCRouter({
         });
       });
 
-      // Convert to array format with only available values
       const attributes = Object.values(attributeMap).map((attr) => ({
         id: attr.id,
         name: attr.name,
@@ -343,8 +338,6 @@ export const productsRouter = createTRPCRouter({
         attributes,
       };
     }),
-
-  // nó bị bug nếu có 1 variant có 3 attribute thì nó bắt phải chọn 3 attribute cho tất cả variant mới add to cart đc mà các attribute khác disable rồi, khoong chọn đc, nhưng tôi muốn nếu variant chỉ có 1 attribute thì chỉ cần chọn value của attribute đó là có thể add to cart, add to cart theo từng variant, logic khác còn lại của code tôi gửi thì giữ nguyên, code đầy đủ lại Ui và server theo ý tưởng mô tả trên
 
   getSuggest: baseProcedure
     .input(

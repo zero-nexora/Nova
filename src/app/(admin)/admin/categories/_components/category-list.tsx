@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Hash } from "lucide-react";
 import { useCallback } from "react";
 import { useModal } from "@/stores/modal-store";
 import { useConfirm } from "@/stores/confirm-store";
@@ -10,11 +11,12 @@ import { SubcategoryList } from "./subcategory-list";
 import { Category } from "@/stores/admin/categories-store";
 import { CategoryDetailCard } from "./category-detail-card";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
-import { Folder, Hash, Search, Filter } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { placeholderImage } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
+import { NotFoundDisplay } from "@/components/global/not-found-display";
 import { UpdateCategoryForm } from "@/components/forms/category/update-category-form";
 import {
   Accordion,
@@ -29,7 +31,6 @@ import { useToggleCategoryDeleted } from "../hooks/categories/use-toggle-categor
 import { useDeleteImage } from "@/components/uploader/hooks/use-uploader";
 import { useDeleteCategoryMultiple } from "../hooks/categories/use-delete-category-multiple";
 import { useToggleCategoryDeletedMultiple } from "../hooks/categories/use-toggle-category-deleted-multiple";
-import { placeholderImage } from "@/lib/constants";
 
 interface CategoryListProps {
   categories: Category[];
@@ -184,29 +185,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     ]
   );
 
-  if (categories.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="relative">
-          <Folder className="w-16 h-16 text-muted-foreground/30 mb-6" />
-          <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center">
-            <Search className="w-3 h-3 text-primary/60" />
-          </div>
-        </div>
-        <h3 className="text-xl font-semibold mb-3 text-foreground">
-          No categories found
-        </h3>
-        <p className="text-muted-foreground text-center max-w-md leading-relaxed">
-          Get started by creating your first category to organize your content
-          effectively.
-        </p>
-        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground/70">
-          <Filter className="w-4 h-4" />
-          <span>Try adjusting your search or filter settings</span>
-        </div>
-      </div>
-    );
-  }
+  if (categories.length === 0) return <NotFoundDisplay />;
 
   return (
     <div className="space-y-6">

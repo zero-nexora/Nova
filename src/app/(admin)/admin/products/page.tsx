@@ -31,14 +31,12 @@ export const metadata: Metadata = {
 const ProductPage = async () => {
   const queryClient = getQueryClient();
 
-  await Promise.all([
-    queryClient.prefetchQuery(
-      trpc.admin.productsRouter.getAll.queryOptions({
-        page: DEFAULT_PAGE,
-        limit: DEFAULT_LIMIT,
-      })
-    ),
-  ]);
+  await queryClient.prefetchQuery(
+    trpc.admin.productsRouter.getAll.queryOptions({
+      page: DEFAULT_PAGE,
+      limit: DEFAULT_LIMIT,
+    })
+  );
 
   return (
     <main>
@@ -47,7 +45,6 @@ const ProductPage = async () => {
           title="Products"
           description="Manage your product catalog."
         />
-
         <section aria-label="Product management">
           <HydrationBoundary state={dehydrate(queryClient)}>
             <ProductView />

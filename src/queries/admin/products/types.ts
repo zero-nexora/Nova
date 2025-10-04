@@ -13,13 +13,13 @@ export interface ProductCounts {
   variants: number;
 }
 
-export interface CategoryBrief {
+export interface Category {
   id: string;
   name: string;
   slug: string;
 }
 
-export interface SubcategoryBrief {
+export interface Subcategory {
   id: string;
   name: string;
   slug: string;
@@ -76,8 +76,8 @@ export interface Product {
   is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
-  category: CategoryBrief;
-  subcategory: SubcategoryBrief | null;
+  category: Category;
+  subcategory: Subcategory | null;
   images: Image[];
   variants: Variant[];
   _count: ProductCounts;
@@ -146,7 +146,7 @@ export const UpdateProductSchema = z.object({
 
 export const GetAllProductsSchema = z.object({
   page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(100).default(10),
+  limit: z.number().int().positive().default(10),
   search: z.string().optional(),
   slugCategory: z.string().optional(),
   slugSubcategory: z.string().optional(),

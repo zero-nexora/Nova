@@ -308,26 +308,44 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         const existingImages = form.getValues("images") || [];
         values.images = [...existingImages, ...newImages];
 
-        values.variants = variants.map((variant): VariantInput => {
-          const variantData: VariantInput = {
-            sku: variant.sku,
-            price: variant.price,
-            stock_quantity: variant.stock_quantity,
-            attributeValueIds: variant.attributeValueIds,
-          };
-
-          if (
-            variant.isExisting &&
-            variant.id &&
-            variant.id.match(
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-            )
-          ) {
-            variantData.id = variant.id;
-          }
-
-          return variantData;
+        const uniqueVariantsMap = new Map<string, ProductVariant>();
+        variants.forEach((variant) => {
+          const key = variant.attributeValueIds.sort().join(",");
+          uniqueVariantsMap.set(key, variant);
         });
+
+        const uniqueVariants = Array.from(uniqueVariantsMap.values()).map(
+          (variant): VariantInput => {
+            const variantData: VariantInput = {
+              sku: variant.sku,
+              price: variant.price,
+              stock_quantity: variant.stock_quantity,
+              attributeValueIds: variant.attributeValueIds,
+            };
+
+            if (
+              variant.isExisting &&
+              variant.id &&
+              variant.id.match(
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+              )
+            ) {
+              variantData.id = variant.id;
+            }
+
+            return variantData;
+          }
+        );
+
+        if (uniqueVariants.length < variants.length) {
+          toast.info(
+            `Merged ${
+              variants.length - uniqueVariants.length
+            } duplicate variant(s)`
+          );
+        }
+
+        values.variants = uniqueVariants;
 
         await updateProductAsync(values);
         closeModal();
@@ -425,7 +443,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           )}
         />
 
-        {/* Description */}
         <FormField
           control={form.control}
           name="description"
@@ -445,7 +462,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           )}
         />
 
-        {/* Category */}
         <FormField
           control={form.control}
           name="categoryId"
@@ -480,7 +496,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           )}
         />
 
-        {/* Subcategory */}
         {selectedCategoryId && subcategories.length > 0 && (
           <FormField
             control={form.control}
@@ -515,7 +530,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           />
         )}
 
-        {/* Images */}
         <FormField
           control={form.control}
           name="images"
@@ -528,7 +542,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           )}
         />
 
-        {/* Variants */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-sm font-medium">Product Variants *</h2>
           <Button
@@ -561,7 +574,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 )}
               </div>
 
-              {/* Basic variant info */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-sm font-medium flex items-center gap-1 mb-2">
@@ -624,7 +636,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                 </div>
               </div>
 
-              {/* Attributes */}
               {productAttributes.length > 0 && (
                 <>
                   <Separator />
@@ -637,7 +648,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
                           attribute.id
                         );
 
-                        // Tìm value đã chọn để hiển thị tên trong SelectTrigger
                         const selectedValueObj = attribute.values.find(
                           (val) => val.id === selectedValue
                         );
@@ -722,7 +732,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
           ))}
         </div>
 
-        {/* Submit Button */}
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting} className="min-w-32">
             {isSubmitting ? <Loading /> : "Update Product"}

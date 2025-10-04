@@ -29,6 +29,7 @@ import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { Download, Trash2 } from "lucide-react";
 import { Pagination, Product } from "@/queries/admin/products/types";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { NotFoundDisplay } from "@/components/global/not-found-display";
 
 interface ProductTableProps {
   products: Product[];
@@ -126,7 +127,10 @@ export const ProductTable = ({
     setPage(newPage);
     setRowSelection({});
 
-    router.push(`${pathname}?${createQueryString("page", newPage.toString())}`, { scroll: false });
+    router.push(
+      `${pathname}?${createQueryString("page", newPage.toString())}`,
+      { scroll: false }
+    );
   };
 
   return (
@@ -224,7 +228,7 @@ export const ProductTable = ({
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No products found.
+                    <NotFoundDisplay />
                   </TableCell>
                 </TableRow>
               )}

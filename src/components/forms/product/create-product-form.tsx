@@ -24,7 +24,7 @@ import { CreateProductSchema } from "@/queries/admin/products/types";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { useProductAttributesStore } from "@/stores/admin/product-attribute-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
@@ -35,7 +35,6 @@ import { useUploadImages } from "@/components/uploader/hooks/use-uploader";
 import { useCreateProduct } from "@/app/(admin)/admin/products/hooks/products/use-create-product";
 import { Label } from "@/components/ui/label";
 
-// Types
 type ProductVariant = {
   id: string;
   sku: string;
@@ -538,7 +537,6 @@ export const CreateProductForm = () => {
           ))}
         </div>
 
-        {/* Submit Button */}
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting} className="min-w-32">
             {isSubmitting ? <Loading /> : "Create Product"}

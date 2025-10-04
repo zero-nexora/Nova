@@ -1,26 +1,26 @@
 import Image from "next/image";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Folder, Search, Filter } from "lucide-react";
+import { useCallback } from "react";
 import { useModal } from "@/stores/modal-store";
+import { useConfirm } from "@/stores/confirm-store";
 import { ActionMenu } from "@/components/global/action-menu";
 import { Subcategory } from "@/stores/admin/categories-store";
 import { SubcategoryDetailCard } from "./subcategory-detail-card";
-import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
+import { NotFoundDisplay } from "@/components/global/not-found-display";
 import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
-import { toast } from "sonner";
+import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
 
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useSubcategorySelection } from "../hooks/subcategories/use-subcategory-selection";
-import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
-import { useToggleSubcategoryDeleted } from "../hooks/subcategories/use-toggle-subcategory-deleted";
-import { useDeleteSubcategory } from "../hooks/subcategories/use-delete-subcategory";
-import { UpdateSubcategoryForm } from "@/components/forms/category/update-subcategory-form";
-import { useCallback } from "react";
-import { useConfirm } from "@/stores/confirm-store";
-import { useToggleSubcategoryDeletedMultiple } from "../hooks/subcategories/use-toggle-subcategory-deleted-multiple";
-import { useDeleteSubcategoryMultiple } from "../hooks/subcategories/use-delete-subcategory-multiple";
 import { placeholderImage } from "@/lib/constants";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
+import { useDeleteSubcategory } from "../hooks/subcategories/use-delete-subcategory";
+import { useSubcategorySelection } from "../hooks/subcategories/use-subcategory-selection";
+import { UpdateSubcategoryForm } from "@/components/forms/category/update-subcategory-form";
+import { useToggleSubcategoryDeleted } from "../hooks/subcategories/use-toggle-subcategory-deleted";
+import { useDeleteSubcategoryMultiple } from "../hooks/subcategories/use-delete-subcategory-multiple";
+import { useToggleSubcategoryDeletedMultiple } from "../hooks/subcategories/use-toggle-subcategory-deleted-multiple";
 
 interface SubcategoryListProps {
   subcategories: Subcategory[];
@@ -157,29 +157,7 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
     });
   };
 
-  if (subcategories.length === 0) {
-    return (
-      <div className="py-12 text-center">
-        <div className="relative mb-6">
-          <Folder className="w-12 h-12 text-muted-foreground/30 mx-auto" />
-          <div className="absolute -top-1 -right-4 w-5 h-5 bg-primary/20 rounded-full flex items-center justify-center">
-            <Search className="w-2.5 h-2.5 text-primary/60" />
-          </div>
-        </div>
-        <h4 className="font-semibold text-lg mb-2 text-foreground">
-          No subcategories available
-        </h4>
-        <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
-          Create subcategories to organize your content better and improve
-          navigation
-        </p>
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
-          <Filter className="w-3 h-3" />
-          <span>Try adjusting your search or filter settings</span>
-        </div>
-      </div>
-    );
-  }
+  if (subcategories.length === 0) return <NotFoundDisplay />;
 
   return (
     <div className="space-y-6">

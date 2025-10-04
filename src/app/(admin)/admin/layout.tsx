@@ -1,4 +1,3 @@
-import { BlurPage } from "@/components/global/blur-page";
 import { InfoBar } from "./_components/info-bar";
 import { Sidebar } from "./_components/sidebar";
 import { StoreAdminProvider } from "@/providers/store-admin-provider";
@@ -9,13 +8,13 @@ interface LayoutAdminProps {
 
 const LayoutAdmin = ({ children }: LayoutAdminProps) => {
   return (
-    <main className="h-screen overflow-hidden">
+    <main>
       <Sidebar />
       <div className="md:pl-[300px]">
         <InfoBar />
-        <div className="relative">
+        <div className="relative p-4 pt-20">
           <StoreAdminProvider>
-            <BlurPage>{children}</BlurPage>
+            {children}
           </StoreAdminProvider>
         </div>
       </div>

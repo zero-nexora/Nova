@@ -7,7 +7,6 @@ import {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { Card, CardContent } from "@/components/ui/card";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { toast } from "sonner";
 import { createProductColumns } from "./product-columns";
@@ -26,6 +25,7 @@ import { useToggleProductDeleted } from "../hooks/products/use-toggle-product-de
 import { useDeleteProduct } from "../hooks/products/use-delete-product";
 import { ProductTable } from "./product-table";
 import { DEFAULT_LIMIT } from "@/lib/constants";
+import { ErrorDisplay } from "@/components/global/error-display";
 
 export const ProductList = () => {
   const categories = useCategoriesStore((state) => state.categories);
@@ -110,8 +110,7 @@ export const ProductList = () => {
 
     openConfirm({
       title: `Permanently Delete ${selectedIds.length} Products`,
-      description: `Are you absolutely sure you want to permanently delete ${selectedIds.length} selected products? This action CANNOT be undone and will:\n 
-        - Delete all associated images\n - Remove all relationships \n - Permanently remove the products from the database`,
+      description: `Permanently delete "${selectedIds.length}" products? This cannot be undone.`,
       onConfirm: async () => {
         try {
           const allImagePublicIds: string[] = [];
@@ -184,9 +183,7 @@ export const ProductList = () => {
       try {
         openConfirm({
           title: "Permanent Deletion Warning",
-          description: `Are you absolutely sure you want to permanently delete "${product.name}"? This action CANNOT be undone and will:
-  - Delete associated images
-  - Remove all relationships`,
+          description: `Permanently delete "${product.name}"? This cannot be undone.`,
           onConfirm: async () => {
             try {
               if (product.images?.length > 0) {
@@ -230,19 +227,7 @@ export const ProductList = () => {
     onView: handleViewProduct,
   });
 
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-red-600">
-              Error loading products: {error.message}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  if (error) <ErrorDisplay errorMessage={error.message} />;
 
   return (
     <div className="container mx-auto py-8 space-y-6">

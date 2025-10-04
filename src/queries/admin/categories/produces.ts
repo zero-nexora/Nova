@@ -107,8 +107,6 @@ export const categoriesRouter = createTRPCRouter({
       return category;
     }),
 
-  // Standardized Category Procedures with consistent return format
-
   toggleDeleted: adminOrManageCategoryProcedure
     .input(DeleteCategorySchema)
     .mutation(async ({ ctx, input }) => {

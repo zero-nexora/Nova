@@ -35,31 +35,6 @@ export const metadata: Metadata = {
     "fast delivery",
   ],
   authors: [{ name: "Nova Small Team" }],
-  openGraph: {
-    title: "Nova Small | Premium Online Shopping Experience",
-    description:
-      "Shop smarter at Nova Small. Discover top-quality products, enjoy exclusive deals, and experience fast, reliable delivery.",
-    url: "https://novasmall.com",
-    siteName: "Nova Small",
-    images: [
-      {
-        url: "https://novasmall.com/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Nova Small - Premium Online Shopping",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Nova Small | Premium Online Shopping Experience",
-    description:
-      "Nova Small brings you a premium online shopping experience with a wide selection, competitive prices, and trusted service.",
-    images: ["https://novasmall.com/og-image.png"],
-  },
-  category: "ecommerce",
 };
 
 export default function RootLayout({

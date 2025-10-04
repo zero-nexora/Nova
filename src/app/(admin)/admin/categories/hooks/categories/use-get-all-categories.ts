@@ -26,7 +26,7 @@ export function useGetAllCategories() {
   }, [isPending]);
 
   useEffect(() => {
-    if (error) setError(error);
+    if (error) setError(error.message);
   }, [error]);
 
   return {

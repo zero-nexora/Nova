@@ -1,45 +1,78 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { adminOrManageProductProcedure, createTRPCRouter } from "@/trpc/init";
-import {
-  CreateProductSchema,
-  GetAllProductsSchema,
-  ImageInput,
-  UpdateProductSchema,
-  VariantInput,
-} from "./types";
-import {
-  buildProductOrderBy,
-  buildProductWhereClause,
-  createProductVariant,
-  generateProductSlug,
-  updateProductImages,
-  updateProductVariants,
-  validateProductDependencies,
-  validateVariantData,
-} from "./utils";
+import { generateProductSlug } from "./utils";
 import { PrismaClient } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
 export const productsRouter = createTRPCRouter({
   getAll: adminOrManageProductProcedure
-    .input(GetAllProductsSchema)
+    .input(
+      z.object({
+        limit: z.number().int().positive().default(10),
+        page: z.number().int().positive().default(1),
+        search: z.string().optional(),
+        slugCategory: z.string().optional(),
+        slugSubcategory: z.string().optional(),
+        isDeleted: z.boolean().optional(),
+        priceMin: z.number().nonnegative().optional(),
+        priceMax: z.number().nonnegative().optional(),
+      })
+    )
     .query(async ({ input, ctx }) => {
-      const { page, limit, sortBy, sortOrder, ...filters } = input;
+      const {
+        page,
+        limit,
+        search,
+        slugCategory,
+        slugSubcategory,
+        isDeleted,
+        priceMin,
+        priceMax,
+      } = input;
 
-      const where = buildProductWhereClause(filters);
+      const where: Prisma.ProductsWhereInput = {};
 
-      const orderBy = buildProductOrderBy(sortBy, sortOrder);
+      if (search?.trim()) {
+        where.OR = [
+          { name: { contains: search.trim(), mode: "insensitive" } },
+          { description: { contains: search.trim(), mode: "insensitive" } },
+          { slug: { contains: search.trim(), mode: "insensitive" } },
+        ];
+      }
+
+      if (slugCategory) {
+        where.category = { is: { slug: slugCategory } };
+      }
+
+      if (slugSubcategory) {
+        where.subcategory = { is: { slug: slugSubcategory } };
+      }
+
+      if (typeof isDeleted === "boolean") {
+        where.is_deleted = isDeleted;
+      }
+
+      if (priceMin !== undefined || priceMax !== undefined) {
+        const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
+        if (priceMin !== undefined && priceMin >= 0) {
+          priceFilters.push({ price: { gte: priceMin } });
+        }
+        if (priceMax !== undefined && priceMax >= 0) {
+          priceFilters.push({ price: { lte: priceMax } });
+        }
+        if (priceFilters.length > 0) {
+          where.variants = { some: { AND: priceFilters } };
+        }
+      }
 
       const offset = (page - 1) * limit;
-
       const totalCount = await ctx.db.products.count({ where });
 
       const products = await ctx.db.products.findMany({
         where,
         take: limit,
         skip: offset,
-        orderBy,
         select: {
           id: true,
           name: true,
@@ -48,18 +81,10 @@ export const productsRouter = createTRPCRouter({
           is_deleted: true,
           created_at: true,
           updated_at: true,
-          category: {
-            select: { id: true, name: true, slug: true },
-          },
-          subcategory: {
-            select: { id: true, name: true, slug: true },
-          },
+          category: { select: { id: true, name: true, slug: true } },
+          subcategory: { select: { id: true, name: true, slug: true } },
           images: {
-            select: {
-              id: true,
-              image_url: true,
-              public_id: true,
-            },
+            select: { id: true, image_url: true, public_id: true },
             orderBy: { created_at: "asc" },
           },
           variants: {
@@ -75,9 +100,7 @@ export const productsRouter = createTRPCRouter({
                     select: {
                       id: true,
                       value: true,
-                      attribute: {
-                        select: { id: true, name: true },
-                      },
+                      attribute: { select: { id: true, name: true } },
                     },
                   },
                 },
@@ -85,16 +108,11 @@ export const productsRouter = createTRPCRouter({
             },
             orderBy: { price: "asc" },
           },
-          _count: {
-            select: { reviews: true, variants: true },
-          },
+          _count: { select: { reviews: true, variants: true } },
         },
       });
 
       const totalPages = Math.ceil(totalCount / limit);
-      const hasNextPage = page < totalPages;
-      const hasPreviousPage = page > 1;
-
       return {
         products,
         pagination: {
@@ -102,8 +120,8 @@ export const productsRouter = createTRPCRouter({
           limit,
           totalCount,
           totalPages,
-          hasNextPage,
-          hasPreviousPage,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
         },
       };
     }),
@@ -178,18 +196,152 @@ export const productsRouter = createTRPCRouter({
   ),
 
   create: adminOrManageProductProcedure
-    .input(CreateProductSchema)
+    .input(
+      z.object({
+        name: z.string().min(1, "Product name is required"),
+        description: z.string().optional(),
+        categoryId: z.string().uuid("Invalid category id"),
+        subcategoryId: z.string().uuid("Invalid subcategory id").optional(),
+        images: z
+          .array(
+            z.object({
+              image_url: z.string().url("Invalid image URL format"),
+              public_id: z.string().min(1, "Public ID is required"),
+            })
+          )
+          .optional(),
+        // .min(1, "At least one product image is required"),
+        variants: z
+          .array(
+            z.object({
+              sku: z.string().min(1, "SKU is required"),
+              price: z.number().positive("Price must be positive"),
+              stock_quantity: z
+                .number()
+                .int("Stock must be an integer")
+                .nonnegative("Stock must be >= 0"),
+              attributeValueIds: z
+                .array(z.string().uuid("Invalid attribute value id"))
+                .min(1, "At least one attribute value ID is required"),
+            })
+          )
+          .optional(),
+        // .min(1, "At least one variant is required"),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { categoryId, images, name, variants, description, subcategoryId } =
         input;
 
-      await validateProductDependencies(ctx.db, categoryId, subcategoryId);
+      // Validate category and subcategory
+      const category = await ctx.db.categories.findFirst({
+        where: { id: categoryId, is_deleted: false },
+        select: { id: true },
+      });
 
-      if (variants?.length) {
-        await validateVariantData(ctx.db, variants);
+      if (!category) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Category not found or has been deleted",
+        });
       }
 
-      const result = await ctx.db.$transaction(async (tx) => {
+      if (subcategoryId) {
+        const subcategory = await ctx.db.subcategories.findFirst({
+          where: {
+            id: subcategoryId,
+            category_id: categoryId,
+            is_deleted: false,
+          },
+          select: { id: true },
+        });
+
+        if (!subcategory) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message:
+              "Subcategory not found, deleted, or doesn't belong to the specified category",
+          });
+        }
+      }
+
+      // Validate variant data
+      if (variants?.length) {
+        const allAttributeValueIds = [
+          ...new Set(variants.flatMap((v) => v.attributeValueIds)),
+        ];
+
+        if (allAttributeValueIds.length > 0) {
+          const attributeValues =
+            await ctx.db.product_Attribute_Values.findMany({
+              where: { id: { in: allAttributeValueIds }, is_deleted: false },
+              select: { id: true },
+            });
+
+          if (attributeValues.length !== allAttributeValueIds.length) {
+            const foundIds = attributeValues.map((av) => av.id);
+            const missingIds = allAttributeValueIds.filter(
+              (id) => !foundIds.includes(id)
+            );
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Some attribute values not found or have been deleted: ${missingIds.join(
+                ", "
+              )}`,
+            });
+          }
+        }
+
+        const skuList = variants.map((v) => v.sku);
+        const uniqueSkus = [...new Set(skuList)];
+
+        if (uniqueSkus.length !== skuList.length) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Duplicate SKUs found in variant data",
+          });
+        }
+
+        const existingVariants = await ctx.db.product_Variants.findMany({
+          where: { sku: { in: skuList } },
+          select: { sku: true },
+        });
+
+        if (existingVariants.length > 0) {
+          const existingSkus = existingVariants.map((v) => v.sku);
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `SKU(s) already exist: ${existingSkus.join(", ")}`,
+          });
+        }
+
+        const invalidVariants = variants.filter(
+          (v) => v.price < 0 || v.stock_quantity < 0
+        );
+        if (invalidVariants.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Price and stock quantity must be non-negative",
+          });
+        }
+      }
+
+      // Merge variants with duplicate attributeValueIds
+      let uniqueVariants = variants || [];
+      if (variants?.length) {
+        const uniqueVariantsMap = new Map<string, (typeof variants)[0]>();
+        variants.forEach((variant) => {
+          const key = variant.attributeValueIds.sort().join(",");
+          uniqueVariantsMap.set(key, variant);
+        });
+        uniqueVariants = Array.from(uniqueVariantsMap.values());
+
+        if (uniqueVariants.length < variants.length) {
+          await ctx.db.$executeRaw`SELECT 1`; // Dummy query to satisfy transaction
+        }
+      }
+
+      return await ctx.db.$transaction(async (tx) => {
         const slug = await generateProductSlug(tx as PrismaClient, name);
 
         const productData: Prisma.ProductsCreateInput = {
@@ -204,10 +356,7 @@ export const productsRouter = createTRPCRouter({
 
         const product = await tx.products.create({
           data: productData,
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         });
 
         if (images?.length) {
@@ -220,26 +369,74 @@ export const productsRouter = createTRPCRouter({
           });
         }
 
-        if (variants?.length) {
-          for (const variantData of variants) {
-            await createProductVariant(tx, product.id, {
-              ...variantData,
-              attributeValueIds: variantData.attributeValueIds || [],
+        if (uniqueVariants.length) {
+          for (const variantData of uniqueVariants) {
+            const variant = await tx.product_Variants.create({
+              data: {
+                product_id: product.id,
+                sku: variantData.sku,
+                price: variantData.price,
+                stock_quantity: variantData.stock_quantity,
+              },
+              select: {
+                id: true,
+                sku: true,
+                price: true,
+                stock_quantity: true,
+              },
             });
+
+            if (variantData.attributeValueIds?.length) {
+              await tx.product_Variant_Attributes.createMany({
+                data: variantData.attributeValueIds.map(
+                  (attrValueId: string) => ({
+                    product_variant_id: variant.id,
+                    attribute_value_id: attrValueId,
+                  })
+                ),
+              });
+            }
           }
         }
 
-        return product;
+        return { success: true, data: product };
       });
-
-      return {
-        success: true,
-        data: result,
-      };
     }),
-
   update: adminOrManageProductProcedure
-    .input(UpdateProductSchema)
+    .input(
+      z.object({
+        id: z.string().uuid("Invalid product id"),
+        name: z.string().min(1, "Product name is required").optional(),
+        description: z.string().optional(),
+        categoryId: z.string().uuid("Invalid category id").optional(),
+        subcategoryId: z.string().uuid("Invalid subcategory id").optional(),
+        images: z
+          .array(
+            z.object({
+              id: z.string().uuid().optional(),
+              image_url: z.string().url("Invalid image URL format"),
+              public_id: z.string().min(1),
+            })
+          )
+          .optional(),
+        variants: z
+          .array(
+            z.object({
+              id: z.string().uuid().optional(),
+              sku: z.string().min(1, "SKU is required"),
+              price: z.number().positive("Price must be positive"),
+              stock_quantity: z
+                .number()
+                .int()
+                .nonnegative("Stock must be >= 0"),
+              attributeValueIds: z
+                .array(z.string().uuid("Invalid attribute value id"))
+                .min(1, "Each variant must have at least one attribute"),
+            })
+          )
+          .optional(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const {
         id,
@@ -257,13 +454,7 @@ export const productsRouter = createTRPCRouter({
           id: true,
           name: true,
           category_id: true,
-          images: {
-            select: {
-              id: true,
-              image_url: true,
-              public_id: true,
-            },
-          },
+          images: { select: { id: true, image_url: true, public_id: true } },
           variants: {
             select: {
               id: true,
@@ -280,12 +471,7 @@ export const productsRouter = createTRPCRouter({
                       id: true,
                       value: true,
                       attribute_id: true,
-                      attribute: {
-                        select: {
-                          id: true,
-                          name: true,
-                        },
-                      },
+                      attribute: { select: { id: true, name: true } },
                     },
                   },
                 },
@@ -303,18 +489,107 @@ export const productsRouter = createTRPCRouter({
       }
 
       if (categoryId || subcategoryId) {
-        await validateProductDependencies(
-          ctx.db,
-          categoryId || existingProduct.category_id,
-          subcategoryId
-        );
+        const category = await ctx.db.categories.findFirst({
+          where: {
+            id: categoryId || existingProduct.category_id,
+            is_deleted: false,
+          },
+          select: { id: true },
+        });
+
+        if (!category) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Category not found or has been deleted",
+          });
+        }
+
+        if (subcategoryId) {
+          const subcategory = await ctx.db.subcategories.findFirst({
+            where: {
+              id: subcategoryId,
+              category_id: categoryId || existingProduct.category_id,
+              is_deleted: false,
+            },
+            select: { id: true },
+          });
+
+          if (!subcategory) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message:
+                "Subcategory not found, deleted, or doesn't belong to the specified category",
+            });
+          }
+        }
       }
 
       if (variants?.length) {
-        await validateVariantData(ctx.db, variants as VariantInput[], id);
+        const allAttributeValueIds = [
+          ...new Set(variants.flatMap((v) => v.attributeValueIds)),
+        ];
+
+        if (allAttributeValueIds.length > 0) {
+          const attributeValues =
+            await ctx.db.product_Attribute_Values.findMany({
+              where: { id: { in: allAttributeValueIds }, is_deleted: false },
+              select: { id: true },
+            });
+
+          if (attributeValues.length !== allAttributeValueIds.length) {
+            const foundIds = attributeValues.map((av) => av.id);
+            const missingIds = allAttributeValueIds.filter(
+              (id) => !foundIds.includes(id)
+            );
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Some attribute values not found or have been deleted: ${missingIds.join(
+                ", "
+              )}`,
+            });
+          }
+        }
+
+        const skuList = variants.map((v) => v.sku);
+        const uniqueSkus = [...new Set(skuList)];
+
+        if (uniqueSkus.length !== skuList.length) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Duplicate SKUs found in variant data",
+          });
+        }
+
+        const whereClause: Prisma.Product_VariantsWhereInput = {
+          sku: { in: skuList },
+          product: { NOT: { id } },
+        };
+
+        const existingVariants = await ctx.db.product_Variants.findMany({
+          where: whereClause,
+          select: { sku: true },
+        });
+
+        if (existingVariants.length > 0) {
+          const existingSkus = existingVariants.map((v) => v.sku);
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `SKU(s) already exist: ${existingSkus.join(", ")}`,
+          });
+        }
+
+        const invalidVariants = variants.filter(
+          (v) => v.price < 0 || v.stock_quantity < 0
+        );
+        if (invalidVariants.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Price and stock quantity must be non-negative",
+          });
+        }
       }
 
-      const result = await ctx.db.$transaction(async (tx) => {
+      return await ctx.db.$transaction(async (tx) => {
         const updateData: Prisma.ProductsUpdateInput = {
           updated_at: new Date(),
         };
@@ -324,7 +599,7 @@ export const productsRouter = createTRPCRouter({
           updateData.slug = await generateProductSlug(
             tx as PrismaClient,
             name,
-            existingProduct.id
+            id
           );
         }
 
@@ -348,37 +623,116 @@ export const productsRouter = createTRPCRouter({
         const product = await tx.products.update({
           where: { id },
           data: updateData,
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         });
 
-        if (images) {
-          await updateProductImages(
-            tx,
-            id,
-            images as ImageInput[],
-            existingProduct.images
+        if (images?.length) {
+          const existingPublicIds = new Set(
+            existingProduct.images.map((img) => img.public_id)
           );
+          const imagesToCreate = images.filter(
+            (img) =>
+              img.public_id.trim() && !existingPublicIds.has(img.public_id)
+          );
+
+          if (imagesToCreate.length > 0) {
+            await tx.product_Images.createMany({
+              data: imagesToCreate.map((image) => ({
+                product_id: id,
+                image_url: image.image_url,
+                public_id: image.public_id,
+              })),
+            });
+          }
         }
 
-        if (variants?.length) {
-          await updateProductVariants(
-            tx,
-            id,
-            variants as VariantInput[],
-            existingProduct.variants
-          );
+        if (variants) {
+          const uniqueVariantsMap = new Map<string, (typeof variants)[0]>();
+          variants.forEach((variant) => {
+            const key = variant.attributeValueIds.sort().join(",");
+            uniqueVariantsMap.set(key, variant);
+          });
+
+          const uniqueVariants = Array.from(uniqueVariantsMap.values());
+
+          if (uniqueVariants.length < variants.length) {
+            await ctx.db.$executeRaw`SELECT 1`; // Dummy query to satisfy transaction
+          }
+
+          if (!uniqueVariants.length && existingProduct.variants.length > 0) {
+            await tx.product_Variants.deleteMany({
+              where: { id: { in: existingProduct.variants.map((v) => v.id) } },
+            });
+          } else if (uniqueVariants.length) {
+            const existingVariantIds = new Set(
+              existingProduct.variants.map((v) => v.id)
+            );
+            const newVariantIds = new Set(
+              uniqueVariants.filter((v) => v.id).map((v) => v.id!)
+            );
+
+            const variantsToDelete = existingProduct.variants.filter(
+              (v) => !newVariantIds.has(v.id)
+            );
+            if (variantsToDelete.length > 0) {
+              await tx.product_Variants.deleteMany({
+                where: { id: { in: variantsToDelete.map((v) => v.id) } },
+              });
+            }
+
+            for (const variant of uniqueVariants) {
+              if (variant.id && existingVariantIds.has(variant.id)) {
+                await tx.product_Variants.update({
+                  where: { id: variant.id },
+                  data: {
+                    sku: variant.sku,
+                    price: variant.price,
+                    stock_quantity: variant.stock_quantity,
+                    updated_at: new Date(),
+                  },
+                });
+
+                await tx.product_Variant_Attributes.deleteMany({
+                  where: { product_variant_id: variant.id },
+                });
+
+                if (variant.attributeValueIds.length > 0) {
+                  await tx.product_Variant_Attributes.createMany({
+                    data: variant.attributeValueIds.map(
+                      (attrValueId: string) => ({
+                        product_variant_id: variant.id!,
+                        attribute_value_id: attrValueId,
+                      })
+                    ),
+                  });
+                }
+              } else {
+                const newVariant = await tx.product_Variants.create({
+                  data: {
+                    product_id: id,
+                    sku: variant.sku,
+                    price: variant.price,
+                    stock_quantity: variant.stock_quantity,
+                  },
+                });
+
+                if (variant.attributeValueIds.length > 0) {
+                  await tx.product_Variant_Attributes.createMany({
+                    data: variant.attributeValueIds.map(
+                      (attrValueId: string) => ({
+                        product_variant_id: newVariant.id,
+                        attribute_value_id: attrValueId,
+                      })
+                    ),
+                  });
+                }
+              }
+            }
+          }
         }
 
-        return product;
+        return { success: true, data: product };
       });
-
-      return {
-        success: true,
-        data: result,
-      };
     }),
 
   toggleDeleted: adminOrManageProductProcedure
