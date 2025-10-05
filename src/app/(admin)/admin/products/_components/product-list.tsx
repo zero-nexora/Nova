@@ -1,12 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import {
-  ColumnFiltersState,
-  RowSelectionState,
-  SortingState,
-  VisibilityState,
-} from "@tanstack/react-table";
+import React, { useCallback } from "react";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { toast } from "sonner";
 import { createProductColumns } from "./product-columns";
@@ -15,7 +9,6 @@ import { useConfirm } from "@/stores/confirm-store";
 import { useModal } from "@/stores/modal-store";
 import { ProductDetailCard } from "./product-details-card";
 import { UpdateProductForm } from "@/components/forms/product/update-product-form";
-import { useProductFilters } from "../hooks/products/use-product-filters";
 import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
 import { useGetAllProducts } from "../hooks/products/use-get-all-products";
 import { useToggleProductDeletedMultiple } from "../hooks/products/use-toggle-product-deleted-multiple";
@@ -24,10 +17,11 @@ import { Product } from "@/queries/admin/products/types";
 import { useToggleProductDeleted } from "../hooks/products/use-toggle-product-deleted";
 import { useDeleteProduct } from "../hooks/products/use-delete-product";
 import { ProductTable } from "./product-table";
-import { DEFAULT_LIMIT } from "@/lib/constants";
 import { ErrorDisplay } from "@/components/global/error-display";
+import { useProductFilters } from "../hooks/products/use-product-fillters";
 
 export const ProductList = () => {
+  const { filters } = useProductFilters();
   const categories = useCategoriesStore((state) => state.categories);
   const openConfirm = useConfirm((state) => state.open);
   const openModal = useModal((state) => state.open);
@@ -39,55 +33,26 @@ export const ProductList = () => {
   const { deleteProductMultipleAsync } = useDeleteProductMultiple();
   const { deleteImagesAsync } = useDeleteImages();
 
-  const {
-    filters,
-    pagination: paginationState,
-    updateFilters,
-    clearFilters,
-    setPage,
-  } = useProductFilters();
-
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-
-  // Map deletedFilter to boolean/undefined
-  const isDeleted =
-    filters.deletedFilter === "all"
-      ? undefined
-      : filters.deletedFilter === "true";
-
+  // Map isDeleted to boolean/undefined for API
   const { products, pagination, isFetching, error } = useGetAllProducts({
-    page: paginationState.page,
-    limit: DEFAULT_LIMIT,
+    page: filters.page,
+    limit: filters.limit,
     search: filters.search || undefined,
-    slugCategory:
-      filters.slugCategory && filters.slugCategory !== "all"
-        ? filters.slugCategory
-        : undefined,
-    slugSubcategory:
-      filters.slugSubcategory && filters.slugSubcategory !== "all"
-        ? filters.slugSubcategory
-        : undefined,
-    isDeleted,
-    priceMin: filters.priceRange.min
-      ? parseFloat(filters.priceRange.min)
-      : undefined,
-    priceMax: filters.priceRange.max
-      ? parseFloat(filters.priceRange.max)
-      : undefined,
-    sortBy:
-      (sorting[0]?.id as "name" | "price" | "created_at" | "updated_at") ||
-      "created_at",
-    sortOrder: sorting[0]?.desc ? "desc" : "asc",
+    slugCategory: filters.slugCategory || undefined,
+    slugSubcategory: filters.slugSubcategory || undefined,
+    isDeleted: filters.isDeleted,
+    priceMin: filters.priceMin || undefined,
+    priceMax: filters.priceMax || undefined,
   });
 
-  const selectedIds = Object.keys(rowSelection).filter(
-    (id) => rowSelection[id]
-  );
-
   const handleBulkToggle = useCallback(async () => {
+    const selectedIds = Object.keys(
+      products.reduce((acc, product) => {
+        if (product.id) acc[product.id] = true;
+        return acc;
+      }, {} as Record<string, boolean>)
+    );
+
     if (selectedIds.length === 0) return;
 
     openConfirm({
@@ -96,16 +61,22 @@ export const ProductList = () => {
       onConfirm: async () => {
         try {
           await toggleProductDeletedMultipleAsync({ ids: selectedIds });
-          setRowSelection({});
         } catch (error: any) {
           toast.error(error?.message || "Failed to toggle products");
           console.error("Bulk toggle error:", error);
         }
       },
     });
-  }, [toggleProductDeletedMultipleAsync, openConfirm, selectedIds]);
+  }, [toggleProductDeletedMultipleAsync, openConfirm, products]);
 
   const handleBulkDelete = useCallback(async () => {
+    const selectedIds = Object.keys(
+      products.reduce((acc, product) => {
+        if (product.id) acc[product.id] = true;
+        return acc;
+      }, {} as Record<string, boolean>)
+    );
+
     if (selectedIds.length === 0) return;
 
     openConfirm({
@@ -114,38 +85,28 @@ export const ProductList = () => {
       onConfirm: async () => {
         try {
           const allImagePublicIds: string[] = [];
-
-          if (products) {
-            products.forEach((product) => {
-              if (product.images && Array.isArray(product.images)) {
-                product.images.forEach((image) => {
-                  if (image.public_id) {
-                    allImagePublicIds.push(image.public_id);
-                  }
-                });
-              }
-            });
-          }
+          products.forEach((product) => {
+            if (product.images && Array.isArray(product.images)) {
+              product.images.forEach((image) => {
+                if (image.public_id) {
+                  allImagePublicIds.push(image.public_id);
+                }
+              });
+            }
+          });
 
           if (allImagePublicIds.length > 0) {
             await deleteImagesAsync({ publicIds: allImagePublicIds });
           }
 
           await deleteProductMultipleAsync({ ids: selectedIds });
-          setRowSelection({});
         } catch (error: any) {
           toast.error(error?.message || "Failed to delete products");
           console.error("Bulk delete error:", error);
         }
       },
     });
-  }, [
-    deleteProductMultipleAsync,
-    deleteImagesAsync,
-    openConfirm,
-    products,
-    selectedIds,
-  ]);
+  }, [deleteProductMultipleAsync, deleteImagesAsync, openConfirm, products]);
 
   const handleUpdateProduct = useCallback(
     (product: Product) => {
@@ -190,7 +151,7 @@ export const ProductList = () => {
                 await deleteImagesAsync({
                   publicIds: product.images
                     .map((image) => image.public_id)
-                    .filter(Boolean),
+                    .filter((id): id is string => Boolean(id)),
                 });
               }
               await deleteProductAsync({ id: product.id });
@@ -227,17 +188,12 @@ export const ProductList = () => {
     onView: handleViewProduct,
   });
 
-  if (error) <ErrorDisplay errorMessage={error.message} />;
+  if (error) return <ErrorDisplay errorMessage={error.message} />;
 
   return (
     <div className="container mx-auto py-8 space-y-6">
       {/* Filters */}
-      <ProductFiltersComponent
-        filters={filters}
-        categories={categories}
-        onFiltersChange={updateFilters}
-        onClearFilters={clearFilters}
-      />
+      <ProductFiltersComponent filters={filters} categories={categories} />
 
       {/* Table */}
       <ProductTable
@@ -245,16 +201,6 @@ export const ProductList = () => {
         columns={columns}
         pagination={pagination}
         isFetching={isFetching}
-        sorting={sorting}
-        setSorting={setSorting}
-        columnFilters={columnFilters}
-        setColumnFilters={setColumnFilters}
-        columnVisibility={columnVisibility}
-        setColumnVisibility={setColumnVisibility}
-        rowSelection={rowSelection}
-        setRowSelection={setRowSelection}
-        page={paginationState.page}
-        setPage={setPage}
         onBulkDelete={handleBulkDelete}
         onBulkToggle={handleBulkToggle}
       />

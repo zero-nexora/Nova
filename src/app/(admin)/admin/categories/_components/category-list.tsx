@@ -185,8 +185,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     ]
   );
 
-  if (categories.length === 0) return <NotFoundDisplay />;
-
   return (
     <div className="space-y-6">
       <BulkActionsToolbar
@@ -211,6 +209,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
       {/* Enhanced Categories List */}
       <div className="space-y-3">
+        {filteredCategories.length === 0 && <NotFoundDisplay />}
         <Accordion type="multiple" className="w-full">
           {filteredCategories.map((category) => {
             return (

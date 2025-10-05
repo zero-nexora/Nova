@@ -3,7 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { ProductFilters } from "./use-product-fillter";
+import { ProductFilters } from "./use-product-fillters";
 import { normalizeFilters } from "@/lib/utils";
 
 export function useInfiniteProducts(params: ProductFilters) {

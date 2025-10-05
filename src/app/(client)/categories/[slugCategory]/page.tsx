@@ -33,7 +33,7 @@ const CategoriesPage = async ({
   );
 
   return (
-    <div>
+    <>
       <CategoryBanner slugCategory={slugCategory} />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ProductSection
@@ -42,7 +42,7 @@ const CategoriesPage = async ({
           slugCategories={[slugCategory]}
         />
       </HydrationBoundary>
-    </div>
+    </>
   );
 };
 

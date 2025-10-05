@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillter";
+import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillters";
 
 interface ProductFiltersStore {
   filters: ProductFilters;

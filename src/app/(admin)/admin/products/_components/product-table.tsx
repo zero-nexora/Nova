@@ -1,12 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
-  RowSelectionState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -25,27 +21,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { Download, Trash2 } from "lucide-react";
 import { Pagination, Product } from "@/queries/admin/products/types";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { useProductFilters } from "../hooks/products/use-product-fillters";
 
 interface ProductTableProps {
   products: Product[];
   columns: ColumnDef<Product>[];
   pagination: Pagination | null;
   isFetching: boolean;
-  sorting: SortingState;
-  setSorting: React.Dispatch<React.SetStateAction<SortingState>>;
-  columnFilters: ColumnFiltersState;
-  setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
-  columnVisibility: VisibilityState;
-  setColumnVisibility: React.Dispatch<React.SetStateAction<VisibilityState>>;
-  rowSelection: RowSelectionState;
-  setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
-  page: number;
-  setPage: (page: number) => void;
   onBulkDelete?: () => Promise<void>;
   onBulkToggle?: () => Promise<void>;
 }
@@ -55,20 +42,10 @@ export const ProductTable = ({
   columns,
   pagination,
   isFetching,
-  sorting,
-  setSorting,
-  columnFilters,
-  setColumnFilters,
-  columnVisibility,
-  setColumnVisibility,
-  rowSelection,
-  setRowSelection,
-  page,
-  setPage,
   onBulkDelete,
   onBulkToggle,
 }: ProductTableProps) => {
-  const searchParams = useSearchParams();
+  const { filters, updateFilter } = useProductFilters();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -76,31 +53,26 @@ export const ProductTable = ({
     data: products,
     columns,
     state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
+      rowSelection: {},
+      pagination: {
+        pageIndex: filters.page - 1,
+        pageSize: filters.limit,
+      },
     },
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: (updater) => {
+      if (typeof updater === "function") {
+        table.setRowSelection(updater);
+      }
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     manualPagination: true,
-    manualSorting: true,
     pageCount: pagination?.totalPages || 0,
     enableRowSelection: true,
     getRowId: (row) => row.id,
   });
-
-  useEffect(() => {
-    if (searchParams.get("page")) {
-      setPage(parseInt(searchParams.get("page") || "1"));
-    }
-  }, [searchParams]);
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
@@ -108,28 +80,36 @@ export const ProductTable = ({
   const handleBulkDelete = async () => {
     if (onBulkDelete) {
       await onBulkDelete();
+      table.setRowSelection({});
     }
   };
 
   const handleBulkToggle = async () => {
     if (onBulkToggle) {
       await onBulkToggle();
+      table.setRowSelection({});
     }
   };
 
   const createQueryString = (name: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== undefined && val !== "" && val !== "all" && val !== 0) {
+        params.set(key, val.toString());
+      }
+    });
     params.set(name, value);
     return params.toString();
   };
 
   const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    setRowSelection({});
-
+    updateFilter("page", newPage);
+    table.setRowSelection({});
     router.push(
       `${pathname}?${createQueryString("page", newPage.toString())}`,
-      { scroll: false }
+      {
+        scroll: false,
+      }
     );
   };
 
@@ -168,7 +148,6 @@ export const ProductTable = ({
                 </Button>
               </div>
             )}
-
             {/* Export */}
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
@@ -246,7 +225,7 @@ export const ProductTable = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setRowSelection({})}
+              onClick={() => table.setRowSelection({})}
             >
               Clear selection
             </Button>
@@ -274,7 +253,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(page - 1)}
+                    onClick={() => handlePageChange(filters.page - 1)}
                     disabled={!pagination.hasPreviousPage}
                   >
                     <span className="sr-only">Go to previous page</span>⟨
@@ -282,7 +261,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(page + 1)}
+                    onClick={() => handlePageChange(filters.page + 1)}
                     disabled={!pagination.hasNextPage}
                   >
                     <span className="sr-only">Go to next page</span>⟩

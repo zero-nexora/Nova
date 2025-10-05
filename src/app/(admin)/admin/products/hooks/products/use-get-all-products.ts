@@ -1,23 +1,18 @@
 "use client";
 
-import z from "zod";
 import { useTRPC } from "@/trpc/client";
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { GetAllProductsSchema } from "@/queries/admin/products/types";
+import { ProductFilters } from "./use-product-fillters";
+import { cleanProductFilters } from "@/lib/utils";
+import { useMemo } from "react";
 
-export function useGetAllProducts(
-  params: z.infer<typeof GetAllProductsSchema> = {
-    page: DEFAULT_PAGE,
-    limit: DEFAULT_LIMIT,
-    sortBy: "created_at",
-    sortOrder: "asc",
-  }
-) {
+export function useGetAllProducts(params: ProductFilters) {
   const trpc = useTRPC();
 
+  const normalizedParams = useMemo(() => cleanProductFilters(params), [params]);
+
   const { data, error, isPending, isFetching } = useQuery(
-    trpc.admin.productsRouter.getAll.queryOptions(params, {
+    trpc.admin.productsRouter.getAll.queryOptions(normalizedParams, {
       placeholderData: keepPreviousData,
     })
   );

@@ -1,7 +1,8 @@
 import { twMerge } from "tailwind-merge";
 import { clsx, type ClassValue } from "clsx";
 import { FormatUSDOptions } from "./types";
-import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillter";
+import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillters";
+import { ProductFilters as ProductQueryParams } from "@/app/(admin)/admin/products/hooks/products/use-product-fillters";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -62,6 +63,7 @@ export function formatUSD(
   return formatted;
 }
 
+// Filters Client
 export function normalizeFilters(params: ProductFilters): ProductFilters {
   return {
     ...params,
@@ -72,6 +74,25 @@ export function normalizeFilters(params: ProductFilters): ProductFilters {
       params.slugSubcategories?.length === 0
         ? undefined
         : params.slugSubcategories,
+    priceMin: params.priceMin === 0 ? undefined : params.priceMin,
+    priceMax: params.priceMax === 0 ? undefined : params.priceMax,
+  };
+}
+
+// Filters Admin
+export function cleanProductFilters(
+  params: ProductQueryParams
+): ProductQueryParams {
+  return {
+    ...params,
+    search: params.search?.trim() === "" ? undefined : params.search,
+    slugCategory:
+      params.slugCategory?.trim() === "" || params.slugCategory?.trim() === "all" ? undefined : params.slugCategory,
+    slugSubcategory:
+      params.slugSubcategory?.trim() === "" || params.slugSubcategory?.trim() === "all"
+        ? undefined
+        : params.slugSubcategory,
+    isDeleted: params.isDeleted === "all" ? undefined : params.isDeleted,
     priceMin: params.priceMin === 0 ? undefined : params.priceMin,
     priceMax: params.priceMax === 0 ? undefined : params.priceMax,
   };

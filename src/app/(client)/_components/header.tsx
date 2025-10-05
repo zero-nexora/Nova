@@ -17,7 +17,7 @@ import ThemeToggle from "@/components/global/theme-toggle";
 import { useDebounce } from "@/hooks/use-debounce";
 import { UserButtonCustom } from "@/components/global/user-button-custom";
 import { useGetSuggest } from "../hooks/products/use-get-suggest";
-import { useProductFilters } from "../hooks/products/use-product-fillter";
+import { useProductFilters } from "../hooks/products/use-product-fillters";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Logo } from "@/components/global/logo";
 
@@ -189,9 +189,12 @@ export function Header() {
         case "Enter":
           e.preventDefault();
           if (selectedIndex >= 0) {
-            executeSearch(currentSuggestions[selectedIndex], false);
+            executeSearch(
+              currentSuggestions[selectedIndex],
+              isMobileSearchOpen
+            );
           } else {
-            executeSearch(inputValue, false);
+            executeSearch(inputValue, isMobileSearchOpen);
           }
           break;
 
@@ -209,6 +212,7 @@ export function Header() {
       selectedIndex,
       inputValue,
       executeSearch,
+      isMobileSearchOpen,
     ]
   );
 

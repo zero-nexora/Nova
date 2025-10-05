@@ -5,126 +5,130 @@ import { generateProductSlug } from "./utils";
 import { PrismaClient } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
+export const isDeletedValues = ["true", "false", "all"] as const;
+
 export const productsRouter = createTRPCRouter({
   getAll: adminOrManageProductProcedure
     .input(
-      z.object({
-        limit: z.number().int().positive().default(10),
-        page: z.number().int().positive().default(1),
-        search: z.string().optional(),
-        slugCategory: z.string().optional(),
-        slugSubcategory: z.string().optional(),
-        isDeleted: z.boolean().optional(),
-        priceMin: z.number().nonnegative().optional(),
-        priceMax: z.number().nonnegative().optional(),
-      })
-    )
-    .query(async ({ input, ctx }) => {
-      const {
-        page,
-        limit,
-        search,
-        slugCategory,
-        slugSubcategory,
-        isDeleted,
-        priceMin,
-        priceMax,
-      } = input;
+    z.object({
+      limit: z.number().int().positive().default(10),
+      page: z.number().int().positive().default(1),
+      search: z.string().optional(),
+      slugCategory: z.string().optional(),
+      slugSubcategory: z.string().optional(),
+      isDeleted: z.enum(isDeletedValues).optional(),
+      priceMin: z.number().nonnegative().optional(),
+      priceMax: z.number().nonnegative().optional(),
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    const {
+      page,
+      limit,
+      search,
+      slugCategory,
+      slugSubcategory,
+      isDeleted,
+      priceMin,
+      priceMax,
+    } = input;
 
-      const where: Prisma.ProductsWhereInput = {};
+    const where: Prisma.ProductsWhereInput = {};
 
-      if (search?.trim()) {
-        where.OR = [
-          { name: { contains: search.trim(), mode: "insensitive" } },
-          { description: { contains: search.trim(), mode: "insensitive" } },
-          { slug: { contains: search.trim(), mode: "insensitive" } },
-        ];
+    if (search?.trim()) {
+      where.OR = [
+        { name: { contains: search.trim(), mode: "insensitive" } },
+        { description: { contains: search.trim(), mode: "insensitive" } },
+        { slug: { contains: search.trim(), mode: "insensitive" } },
+      ];
+    }
+
+    if (slugCategory) {
+      where.category = { is: { slug: slugCategory } };
+    }
+
+    if (slugSubcategory) {
+      where.subcategory = { is: { slug: slugSubcategory } };
+    }
+
+    if (isDeleted === "true") {
+      where.is_deleted = true;
+    } else if (isDeleted === "false") {
+      where.is_deleted = false;
+    }
+
+    if (priceMin !== undefined || priceMax !== undefined) {
+      const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
+      if (priceMin !== undefined && priceMin >= 0) {
+        priceFilters.push({ price: { gte: priceMin } });
       }
-
-      if (slugCategory) {
-        where.category = { is: { slug: slugCategory } };
+      if (priceMax !== undefined && priceMax >= 0) {
+        priceFilters.push({ price: { lte: priceMax } });
       }
-
-      if (slugSubcategory) {
-        where.subcategory = { is: { slug: slugSubcategory } };
+      if (priceFilters.length > 0) {
+        where.variants = { some: { AND: priceFilters } };
       }
+    }
 
-      if (typeof isDeleted === "boolean") {
-        where.is_deleted = isDeleted;
-      }
+    const offset = (page - 1) * limit;
+    const totalCount = await ctx.db.products.count({ where });
 
-      if (priceMin !== undefined || priceMax !== undefined) {
-        const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
-        if (priceMin !== undefined && priceMin >= 0) {
-          priceFilters.push({ price: { gte: priceMin } });
-        }
-        if (priceMax !== undefined && priceMax >= 0) {
-          priceFilters.push({ price: { lte: priceMax } });
-        }
-        if (priceFilters.length > 0) {
-          where.variants = { some: { AND: priceFilters } };
-        }
-      }
-
-      const offset = (page - 1) * limit;
-      const totalCount = await ctx.db.products.count({ where });
-
-      const products = await ctx.db.products.findMany({
-        where,
-        take: limit,
-        skip: offset,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
-          is_deleted: true,
-          created_at: true,
-          updated_at: true,
-          category: { select: { id: true, name: true, slug: true } },
-          subcategory: { select: { id: true, name: true, slug: true } },
-          images: {
-            select: { id: true, image_url: true, public_id: true },
-            orderBy: { created_at: "asc" },
-          },
-          variants: {
-            select: {
-              id: true,
-              sku: true,
-              price: true,
-              stock_quantity: true,
-              attributes: {
-                select: {
-                  id: true,
-                  attributeValue: {
-                    select: {
-                      id: true,
-                      value: true,
-                      attribute: { select: { id: true, name: true } },
-                    },
+    const products = await ctx.db.products.findMany({
+      where,
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        is_deleted: true,
+        created_at: true,
+        updated_at: true,
+        category: { select: { id: true, name: true, slug: true } },
+        subcategory: { select: { id: true, name: true, slug: true } },
+        images: {
+          select: { id: true, image_url: true, public_id: true },
+          orderBy: { created_at: "asc" },
+        },
+        variants: {
+          select: {
+            id: true,
+            sku: true,
+            price: true,
+            stock_quantity: true,
+            attributes: {
+              select: {
+                id: true,
+                attributeValue: {
+                  select: {
+                    id: true,
+                    value: true,
+                    attribute: { select: { id: true, name: true } },
                   },
                 },
               },
             },
-            orderBy: { price: "asc" },
           },
-          _count: { select: { reviews: true, variants: true } },
+          orderBy: { price: "asc" },
         },
-      });
+        _count: { select: { reviews: true, variants: true } },
+      },
+    });
 
-      const totalPages = Math.ceil(totalCount / limit);
-      return {
-        products,
-        pagination: {
-          page,
-          limit,
-          totalCount,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPreviousPage: page > 1,
-        },
-      };
-    }),
+    const totalPages = Math.ceil(totalCount / limit);
+    return {
+      products,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }),
 
   getByCategory: adminOrManageProductProcedure
     .input(

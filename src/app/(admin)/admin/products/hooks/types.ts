@@ -39,19 +39,16 @@ export interface ProductAttributeValue {
   attribute: ProductAttribute;
 }
 
-// UPDATED: Đổi tên interface để khớp với form
 export interface ProductVariantAttribute {
   id: string;
   product_variant_id: string;
   attribute_value_id: string;
   created_at: Date;
   updated_at: Date;
-  // Thêm nested data để form có thể access
   attribute: ProductAttribute;
   attribute_value: ProductAttributeValue;
 }
 
-// UPDATED: Thêm variant_attributes field để khớp với form
 export interface ProductVariant {
   id: string;
   product_id: string;
@@ -61,7 +58,6 @@ export interface ProductVariant {
   stock_quantity: number;
   created_at: Date;
   updated_at: Date;
-  // CHANGED: Đổi tên từ 'attributes' thành 'variant_attributes' để khớp với form
   variant_attributes: ProductVariantAttribute[];
   _count?: {
     cartItems: number;

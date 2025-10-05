@@ -2,8 +2,11 @@ import { Metadata } from "next";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { PageHeader } from "@/components/global/page-header";
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
+import { DEFAULT_LIMIT } from "@/lib/constants";
 import { ProductView } from "./_components/product-view";
+import type { SearchParams } from "nuqs/server";
+import { loaderProductFilters } from "./hooks/products/product-filters";
+import { cleanProductFilters } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Product Management | Admin Dashboard",
@@ -16,41 +19,33 @@ export const metadata: Metadata = {
     "admin",
     "inventory",
   ],
-  openGraph: {
-    title: "Product Management",
-    description:
-      "Easily manage and organize your products with our powerful admin tools.",
-    type: "website",
-  },
-  robots: {
-    index: false,
-    follow: false,
-  },
 };
 
-const ProductPage = async () => {
+
+interface ProductPageProps {
+  searchParams: Promise<SearchParams>;
+}
+
+const ProductPage = async ({ searchParams }: ProductPageProps) => {
   const queryClient = getQueryClient();
+  const filters = await loaderProductFilters(searchParams);
+  const normalizedFilters = cleanProductFilters(filters);
 
   await queryClient.prefetchQuery(
     trpc.admin.productsRouter.getAll.queryOptions({
-      page: DEFAULT_PAGE,
+      ...normalizedFilters,
       limit: DEFAULT_LIMIT,
     })
   );
 
   return (
-    <main>
-      <div className="space-y-8">
-        <PageHeader
-          title="Products"
-          description="Manage your product catalog."
-        />
-        <section aria-label="Product management">
-          <HydrationBoundary state={dehydrate(queryClient)}>
-            <ProductView />
-          </HydrationBoundary>
-        </section>
-      </div>
+    <main className="space-y-8">
+      <PageHeader title="Products" description="Manage your product catalog." />
+      <section aria-label="Product management">
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <ProductView />
+        </HydrationBoundary>
+      </section>
     </main>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,59 +11,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, Search, RefreshCw } from "lucide-react";
-import { ProductFilters } from "../hooks/types";
+import { Filter, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
-
-interface Category {
-  slug: string;
-  name: string;
-  subcategories?: Array<{ slug: string; name: string }>;
-}
+import {
+  ProductFilters,
+  useProductFilters,
+} from "../hooks/products/use-product-fillters";
+import { DEFAULT_PAGE } from "@/lib/constants";
+import { Category } from "@/stores/admin/categories-store";
 
 interface ProductFiltersProps {
   filters: ProductFilters;
   categories: Category[];
-  onFiltersChange: (filters: Partial<ProductFilters>) => void;
-  onClearFilters: () => void;
 }
 
 export const ProductFiltersComponent = ({
   filters,
   categories,
-  onFiltersChange,
-  onClearFilters,
 }: ProductFiltersProps) => {
+  const { resetFilters, setFilters } = useProductFilters();
+  const [tempFilters, setTempFilters] = useState<ProductFilters>(filters);
+
   const subcategories =
-    categories.find((c) => c.slug === filters.slugCategory)?.subcategories ||
-    [];
+    categories.find((c) => c.slug === tempFilters.slugCategory)
+      ?.subcategories || [];
 
   const handleSearchChange = (value: string) => {
-    onFiltersChange({ search: value });
+    setTempFilters({ ...tempFilters, search: value });
   };
 
   const handleCategoryChange = (value: string) => {
-    onFiltersChange({
-      slugCategory: value,
-      slugSubcategory: "all", // reset subcategory khi đổi category
+    setTempFilters({
+      ...tempFilters,
+      slugCategory: value === "all" ? "" : value,
+      slugSubcategory: "all",
     });
   };
 
   const handleSubcategoryChange = (value: string) => {
-    onFiltersChange({ slugSubcategory: value });
+    setTempFilters({
+      ...tempFilters,
+      slugSubcategory: value === "all" ? "" : value,
+    });
   };
 
   const handleDeletedFilterChange = (value: "true" | "false" | "all") => {
-    onFiltersChange({ deletedFilter: value });
+    setTempFilters({ ...tempFilters, isDeleted: value });
   };
 
-  const handlePriceRangeChange = (type: "min" | "max", value: string) => {
-    onFiltersChange({
-      priceRange: {
-        ...filters.priceRange,
-        [type]: value,
-      },
+  const handlePriceChange = (type: "priceMin" | "priceMax", value: string) => {
+    const numValue = value === "" ? 0 : Number(value);
+    setTempFilters({ ...tempFilters, [type]: numValue });
+  };
+
+  const handleApplyFilters = () => {
+    setFilters({
+      ...tempFilters,
+      page: DEFAULT_PAGE,
     });
+  };
+
+  const handleClearFilters = () => {
+    setTempFilters({
+      limit: filters.limit,
+      page: 1,
+      search: "",
+      slugCategory: "",
+      slugSubcategory: "",
+      isDeleted: "all",
+      priceMin: 0,
+      priceMax: 0,
+    });
+    resetFilters();
   };
 
   return (
@@ -83,7 +102,7 @@ export const ProductFiltersComponent = ({
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products..."
-                value={filters.search}
+                value={tempFilters.search || ""}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
@@ -94,7 +113,7 @@ export const ProductFiltersComponent = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Category</Label>
             <Select
-              value={filters.slugCategory}
+              value={tempFilters.slugCategory || "all"}
               onValueChange={handleCategoryChange}
             >
               <SelectTrigger>
@@ -115,9 +134,9 @@ export const ProductFiltersComponent = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Subcategory</Label>
             <Select
-              value={filters.slugSubcategory}
+              value={tempFilters.slugSubcategory || "all"}
               onValueChange={handleSubcategoryChange}
-              disabled={!filters.slugCategory || subcategories.length === 0}
+              disabled={!tempFilters.slugCategory || subcategories.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All subcategories" />
@@ -137,11 +156,11 @@ export const ProductFiltersComponent = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Status</Label>
             <Select
-              value={filters.deletedFilter}
+              value={tempFilters.isDeleted || "all"}
               onValueChange={handleDeletedFilterChange}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="All products" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="false">Active only</SelectItem>
@@ -158,26 +177,24 @@ export const ProductFiltersComponent = ({
               <Input
                 type="number"
                 placeholder="Min price"
-                value={filters.priceRange.min}
-                onChange={(e) => handlePriceRangeChange("min", e.target.value)}
+                value={tempFilters.priceMin || ""}
+                onChange={(e) => handlePriceChange("priceMin", e.target.value)}
               />
               <Input
                 type="number"
                 placeholder="Max price"
-                value={filters.priceRange.max}
-                onChange={(e) => handlePriceRangeChange("max", e.target.value)}
+                value={tempFilters.priceMax || ""}
+                onChange={(e) => handlePriceChange("priceMax", e.target.value)}
               />
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex gap-2 md:col-span-2 lg:col-span-1 items-end">
-            <Button variant="outline" onClick={onClearFilters}>
+            <Button variant="outline" onClick={handleClearFilters}>
               Clear Filters
             </Button>
-            <Button variant="outline" size="icon">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <Button onClick={handleApplyFilters}>Apply Filters</Button>
           </div>
         </div>
       </CardContent>

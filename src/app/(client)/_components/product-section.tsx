@@ -6,7 +6,7 @@ import { InfiniteScroll } from "@/components/global/infinite-scroll";
 import { ProductSectionHeader } from "./product-section-header";
 import { ProductEmptyState } from "./product-empty-state";
 import { ProductGrid, ProductGridSkeleton } from "./product-grid";
-import { useProductFilters } from "../hooks/products/use-product-fillter";
+import { useProductFilters } from "../hooks/products/use-product-fillters";
 
 interface ProductSectionProps {
   title?: string;
