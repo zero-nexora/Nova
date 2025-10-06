@@ -23,7 +23,7 @@ import {
 } from "@/queries/client/products/types";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatUSD } from "@/lib/utils";
+import { cn, formatUSD } from "@/lib/utils";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -35,20 +35,29 @@ import Link from "next/link";
 import { ImageCarousel } from "./image-carousel";
 import { ErrorDisplay } from "@/components/global/error-display";
 import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { useToggleWishlist } from "@/app/(client)/wishlist/hooks/use-toggle-wishlist";
 
 interface ProductDetailProps {
   slug: string;
 }
 
 export const ProductDetail = ({ slug }: ProductDetailProps) => {
-  const { product, isPending, error, refetch } = useGetProductBySlug(slug);
+  const { toggleWishlistAsync, isPending: wishlistIsPending } =
+    useToggleWishlist();
+
+  const {
+    product,
+    isPending: productIsPending,
+    error,
+    refetch,
+  } = useGetProductBySlug(slug);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedAttributes, setSelectedAttributes] = useState<
     Record<string, string>
   >({});
 
-  if (isPending) {
+  if (productIsPending) {
     return <ProductDetailSkeleton />;
   }
 
@@ -58,6 +67,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     );
 
   if (!product) return <NotFoundDisplay />;
+
+  const handleToggleWishlist = async () =>
+    await toggleWishlistAsync({ productId: product.id });
 
   const findMatchingVariant = (
     selections: Record<string, string>
@@ -450,8 +462,18 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     : "Add to Cart"
                   : "Invalid Selection"}
               </Button>
-              <Button variant="outline" size="lg">
-                <Heart className="w-4 h-4" />
+              <Button
+                variant="outline"
+                size="lg"
+                disabled={wishlistIsPending}
+                onClick={handleToggleWishlist}
+              >
+                <Heart
+                  className={cn(
+                    "w-4 h-4 mr-2",
+                    product.wishlist && "fill-red-800"
+                  )}
+                />
               </Button>
             </div>
           </div>

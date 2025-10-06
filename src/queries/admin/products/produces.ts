@@ -4,131 +4,131 @@ import { adminOrManageProductProcedure, createTRPCRouter } from "@/trpc/init";
 import { generateProductSlug } from "./utils";
 import { PrismaClient } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
+import { GetAllProductsResponse } from "./types";
 
 export const isDeletedValues = ["true", "false", "all"] as const;
 
 export const productsRouter = createTRPCRouter({
   getAll: adminOrManageProductProcedure
     .input(
-    z.object({
-      limit: z.number().int().positive().default(10),
-      page: z.number().int().positive().default(1),
-      search: z.string().optional(),
-      slugCategory: z.string().optional(),
-      slugSubcategory: z.string().optional(),
-      isDeleted: z.enum(isDeletedValues).optional(),
-      priceMin: z.number().nonnegative().optional(),
-      priceMax: z.number().nonnegative().optional(),
-    })
-  )
-  .query(async ({ input, ctx }) => {
-    const {
-      page,
-      limit,
-      search,
-      slugCategory,
-      slugSubcategory,
-      isDeleted,
-      priceMin,
-      priceMax,
-    } = input;
+      z.object({
+        limit: z.number().int().positive().default(10),
+        page: z.number().int().positive().default(1),
+        search: z.string().optional(),
+        slugCategory: z.string().optional(),
+        slugSubcategory: z.string().optional(),
+        isDeleted: z.enum(isDeletedValues).optional(),
+        priceMin: z.number().nonnegative().optional(),
+        priceMax: z.number().nonnegative().optional(),
+      })
+    )
+    .query(async ({ input, ctx }): Promise<GetAllProductsResponse> => {
+      const {
+        page,
+        limit,
+        search,
+        slugCategory,
+        slugSubcategory,
+        isDeleted,
+        priceMin,
+        priceMax,
+      } = input;
 
-    const where: Prisma.ProductsWhereInput = {};
+      const where: Prisma.ProductsWhereInput = {};
 
-    if (search?.trim()) {
-      where.OR = [
-        { name: { contains: search.trim(), mode: "insensitive" } },
-        { description: { contains: search.trim(), mode: "insensitive" } },
-        { slug: { contains: search.trim(), mode: "insensitive" } },
-      ];
-    }
-
-    if (slugCategory) {
-      where.category = { is: { slug: slugCategory } };
-    }
-
-    if (slugSubcategory) {
-      where.subcategory = { is: { slug: slugSubcategory } };
-    }
-
-    if (isDeleted === "true") {
-      where.is_deleted = true;
-    } else if (isDeleted === "false") {
-      where.is_deleted = false;
-    }
-
-    if (priceMin !== undefined || priceMax !== undefined) {
-      const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
-      if (priceMin !== undefined && priceMin >= 0) {
-        priceFilters.push({ price: { gte: priceMin } });
+      if (search?.trim()) {
+        where.OR = [
+          { name: { contains: search.trim(), mode: "insensitive" } },
+          { description: { contains: search.trim(), mode: "insensitive" } },
+          { slug: { contains: search.trim(), mode: "insensitive" } },
+        ];
       }
-      if (priceMax !== undefined && priceMax >= 0) {
-        priceFilters.push({ price: { lte: priceMax } });
-      }
-      if (priceFilters.length > 0) {
-        where.variants = { some: { AND: priceFilters } };
-      }
-    }
 
-    const offset = (page - 1) * limit;
-    const totalCount = await ctx.db.products.count({ where });
+      if (slugCategory) {
+        where.category = { is: { slug: slugCategory } };
+      }
 
-    const products = await ctx.db.products.findMany({
-      where,
-      take: limit,
-      skip: offset,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        is_deleted: true,
-        created_at: true,
-        updated_at: true,
-        category: { select: { id: true, name: true, slug: true } },
-        subcategory: { select: { id: true, name: true, slug: true } },
-        images: {
-          select: { id: true, image_url: true, public_id: true },
-          orderBy: { created_at: "asc" },
-        },
-        variants: {
-          select: {
-            id: true,
-            sku: true,
-            price: true,
-            stock_quantity: true,
-            attributes: {
-              select: {
-                id: true,
-                attributeValue: {
-                  select: {
-                    id: true,
-                    value: true,
-                    attribute: { select: { id: true, name: true } },
+      if (slugSubcategory) {
+        where.subcategory = { is: { slug: slugSubcategory } };
+      }
+
+      if (isDeleted === "true") {
+        where.is_deleted = true;
+      } else if (isDeleted === "false") {
+        where.is_deleted = false;
+      }
+
+      if (priceMin !== undefined || priceMax !== undefined) {
+        const priceFilters: Prisma.Product_VariantsWhereInput[] = [];
+        if (priceMin !== undefined && priceMin >= 0) {
+          priceFilters.push({ price: { gte: priceMin } });
+        }
+        if (priceMax !== undefined && priceMax >= 0) {
+          priceFilters.push({ price: { lte: priceMax } });
+        }
+        if (priceFilters.length > 0) {
+          where.variants = { some: { AND: priceFilters } };
+        }
+      }
+
+      const offset = (page - 1) * limit;
+      const totalCount = await ctx.db.products.count({ where });
+
+      const products = await ctx.db.products.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          is_deleted: true,
+          created_at: true,
+          updated_at: true,
+          category: { select: { id: true, name: true, slug: true } },
+          subcategory: { select: { id: true, name: true, slug: true } },
+          images: {
+            select: { id: true, image_url: true, public_id: true },
+            orderBy: { created_at: "asc" },
+          },
+          variants: {
+            select: {
+              id: true,
+              sku: true,
+              price: true,
+              stock_quantity: true,
+              attributes: {
+                select: {
+                  id: true,
+                  attributeValue: {
+                    select: {
+                      id: true,
+                      value: true,
+                      attribute: { select: { id: true, name: true } },
+                    },
                   },
                 },
               },
             },
+            orderBy: { price: "asc" },
           },
-          orderBy: { price: "asc" },
+          _count: { select: { reviews: true, variants: true } },
         },
-        _count: { select: { reviews: true, variants: true } },
-      },
-    });
+      });
 
-    const totalPages = Math.ceil(totalCount / limit);
-    return {
-      products,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    };
-  }),
+      const totalPages = Math.ceil(totalCount / limit);
+      return {
+        products,
+        pagination: {
+          page,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      };
+    }),
 
   getByCategory: adminOrManageProductProcedure
     .input(
@@ -901,26 +901,22 @@ export const productsRouter = createTRPCRouter({
     }),
 
   delete: adminOrManageProductProcedure
-    .input(z.object({ id: z.string().uuid("Invalid product id") }))
+    .input(
+      z.object({
+        id: z.string().uuid("Invalid product ID"),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { id } = input;
+      const { db } = ctx;
 
-      const product = await ctx.db.products.findUnique({
-        where: { id },
+      // Fetch product with related variants
+      const product = await db.products.findUnique({
+        where: { id, is_deleted: false },
         select: {
           id: true,
           name: true,
-          variants: {
-            select: {
-              id: true,
-              _count: {
-                select: {
-                  cartItems: true,
-                  wishlists: true,
-                },
-              },
-            },
-          },
+          variants: { select: { id: true } },
         },
       });
 
@@ -931,73 +927,58 @@ export const productsRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db.$transaction(async (tx) => {
+      // Perform deletion in a transaction
+      const deletedProduct = await db.$transaction(async (tx) => {
         const variantIds = product.variants.map((v) => v.id);
 
+        // Delete related cart items
         if (variantIds.length) {
           await tx.cart_Items.deleteMany({
             where: { product_variant_id: { in: variantIds } },
           });
-
-          await tx.wishlists.deleteMany({
-            where: { product_variant_id: { in: variantIds } },
-          });
         }
 
-        const deletedProduct = await tx.products.delete({
-          where: { id },
-          select: {
-            id: true,
-            name: true,
-          },
+        // Delete related wishlists
+        await tx.wishlists.deleteMany({
+          where: { product_id: id },
         });
 
-        return deletedProduct;
+        // Delete the product
+        return await tx.products.delete({
+          where: { id },
+          select: { id: true, name: true },
+        });
       });
 
       return {
         success: true,
-        data: result,
+        data: deletedProduct,
       };
     }),
 
   deleteMultiple: adminOrManageProductProcedure
     .input(
       z.object({
-        ids: z.array(z.string().uuid("Invalid product id")),
+        ids: z
+          .array(z.string().uuid("Invalid product ID"))
+          .min(1, "At least one product ID is required"),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const { ids } = input;
+      const { db } = ctx;
 
-      if (!ids.length) {
-        return {
-          success: true,
-          count: 0,
-          deletedProducts: [],
-          notFoundIds: [],
-        };
-      }
-
-      const products = await ctx.db.products.findMany({
-        where: { id: { in: ids } },
+      // Fetch products with related variants
+      const products = await db.products.findMany({
+        where: { id: { in: ids }, is_deleted: false },
         select: {
           id: true,
           name: true,
-          variants: {
-            select: {
-              id: true,
-              _count: {
-                select: {
-                  cartItems: true,
-                  wishlists: true,
-                },
-              },
-            },
-          },
+          variants: { select: { id: true } },
         },
       });
 
+      // If no products found, return early with notFoundIds
       if (!products.length) {
         return {
           success: true,
@@ -1007,42 +988,35 @@ export const productsRouter = createTRPCRouter({
         };
       }
 
-      let deletedProducts: Array<{ id: string; name: string }> = [];
+      // Perform deletion in a transaction
+      const deletedProducts = await db.$transaction(async (tx) => {
+        // Collect all variant IDs across products
+        const allVariantIds = products.flatMap((product) =>
+          product.variants.map((v) => v.id)
+        );
 
-      if (products.length > 0) {
-        deletedProducts = await ctx.db.$transaction(async (tx) => {
-          for (const product of products) {
-            const variantIds = product.variants.map((v) => v.id);
+        // Delete related cart items
+        if (allVariantIds.length) {
+          await tx.cart_Items.deleteMany({
+            where: { product_variant_id: { in: allVariantIds } },
+          });
+        }
 
-            if (variantIds.length) {
-              await tx.cart_Items.deleteMany({
-                where: { product_variant_id: { in: variantIds } },
-              });
-
-              await tx.wishlists.deleteMany({
-                where: { product_variant_id: { in: variantIds } },
-              });
-            }
-          }
-
-          // Delete products
-          const deleted = [];
-          for (const product of products) {
-            const deletedProduct = await tx.products.delete({
-              where: { id: product.id },
-              select: {
-                id: true,
-                name: true,
-              },
-            });
-            deleted.push(deletedProduct);
-          }
-
-          return deleted;
+        // Delete related wishlists
+        await tx.wishlists.deleteMany({
+          where: { product_id: { in: products.map((p) => p.id) } },
         });
-      }
 
-      const foundIds = products.map((product) => product.id);
+        // Delete products
+        await tx.products.deleteMany({
+          where: { id: { in: products.map((p) => p.id) } },
+        });
+
+        // Return the list of deleted products
+        return products.map((p) => ({ id: p.id, name: p.name }));
+      });
+
+      const foundIds = products.map((p) => p.id);
       const notFoundIds = ids.filter((id) => !foundIds.includes(id));
 
       return {

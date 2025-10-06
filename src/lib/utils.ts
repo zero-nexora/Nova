@@ -74,6 +74,8 @@ export function normalizeFilters(params: ProductFilters): ProductFilters {
       params.slugSubcategories?.length === 0
         ? undefined
         : params.slugSubcategories,
+    excludeSlugs:
+      params.excludeSlugs?.length === 0 ? undefined : params.excludeSlugs,
     priceMin: params.priceMin === 0 ? undefined : params.priceMin,
     priceMax: params.priceMax === 0 ? undefined : params.priceMax,
   };
@@ -87,9 +89,13 @@ export function cleanProductFilters(
     ...params,
     search: params.search?.trim() === "" ? undefined : params.search,
     slugCategory:
-      params.slugCategory?.trim() === "" || params.slugCategory?.trim() === "all" ? undefined : params.slugCategory,
+      params.slugCategory?.trim() === "" ||
+      params.slugCategory?.trim() === "all"
+        ? undefined
+        : params.slugCategory,
     slugSubcategory:
-      params.slugSubcategory?.trim() === "" || params.slugSubcategory?.trim() === "all"
+      params.slugSubcategory?.trim() === "" ||
+      params.slugSubcategory?.trim() === "all"
         ? undefined
         : params.slugSubcategory,
     isDeleted: params.isDeleted === "all" ? undefined : params.isDeleted,

@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
 import { ArrowUpDown } from "lucide-react";
 import { formatDate, formatUSD } from "@/lib/utils";
-import { ProductTable } from "../hooks/types";
 import { Product } from "@/queries/admin/products/types";
 import Image from "next/image";
 import { placeholderImage } from "@/lib/constants";
@@ -54,7 +53,7 @@ export const createProductColumns = ({
     accessorKey: "images",
     header: "Image",
     cell: ({ row }) => {
-      const images = row.getValue("images") as ProductTable["images"];
+      const images = row.getValue("images") as Product["images"];
       const firstImage = images?.[0]?.image_url || placeholderImage;
       return (
         <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100">
@@ -94,7 +93,7 @@ export const createProductColumns = ({
     accessorKey: "category",
     header: "Category",
     cell: ({ row }) => {
-      const category = row.getValue("category") as ProductTable["category"];
+      const category = row.getValue("category") as Product["category"];
       const subcategory = row.original.subcategory;
       return (
         <div className="space-y-1">
@@ -116,7 +115,7 @@ export const createProductColumns = ({
     accessorKey: "variants",
     header: "Variants",
     cell: ({ row }) => {
-      const variants = row.getValue("variants") as ProductTable["variants"];
+      const variants = row.getValue("variants") as Product["variants"];
       const minPrice = Math.min(...variants.map((v) => v.price));
       const maxPrice = Math.max(...variants.map((v) => v.price));
       const totalStock = variants.reduce((sum, v) => sum + v.stock_quantity, 0);

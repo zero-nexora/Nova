@@ -107,30 +107,26 @@ export interface ProductDetail {
   name: string;
   slug: string;
   description: string | null;
-  // reviews: any[];
   images: Image[];
   updated_at: Date;
   category: Category;
   subcategory: Subcategory | null;
   variants: Variant[];
   attributes: ProductAttribute[];
+  wishlist: { id: string } | null;
 }
 
 export const GetInfiniteProductsSchema = z.object({
-  limit: z.number().min(1).max(100).default(DEFAULT_LIMIT),
-
+  limit: z.number().default(DEFAULT_LIMIT),
   cursor: z
     .object({
       id: z.string().uuid(),
       updatedAt: z.date(),
     })
     .nullish(),
-
   search: z.string().optional(),
-
   slugCategories: z.array(z.string()).optional(),
   slugSubcategories: z.array(z.string()).optional(),
-
   sortBy: z
     .enum([
       "curated",
@@ -147,11 +143,9 @@ export const GetInfiniteProductsSchema = z.object({
       "rating_high",
     ])
     .default("curated"),
-
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
-
   priceMin: z.number().min(1).optional(),
   priceMax: z.number().min(1).optional(),
-
   excludeSlugs: z.array(z.string()).optional(),
+  wishlist: z.boolean().optional().default(false).optional(),
 });

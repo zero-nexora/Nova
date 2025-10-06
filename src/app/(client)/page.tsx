@@ -23,7 +23,7 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
   );
 
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="min-h-screen">
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ProductSection />
       </HydrationBoundary>

@@ -7,6 +7,8 @@ import { ProductSectionHeader } from "./product-section-header";
 import { ProductEmptyState } from "./product-empty-state";
 import { ProductGrid, ProductGridSkeleton } from "./product-grid";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
+import { Button } from "@/components/ui/button";
+import { useDeleteWishlistMultiple } from "../wishlist/hooks/use-delete-wishlist-multiple";
 
 interface ProductSectionProps {
   title?: string;
@@ -14,6 +16,7 @@ interface ProductSectionProps {
   slugCategories?: string[];
   slugSubcategories?: string[];
   excludeSlugs?: string[];
+  wishlist?: boolean;
 }
 
 export const ProductSection = ({
@@ -22,24 +25,36 @@ export const ProductSection = ({
   slugCategories,
   slugSubcategories,
   excludeSlugs,
+  wishlist,
 }: ProductSectionProps) => {
   const { filters } = useProductFilters();
-  
+  const {
+    deleteWishlistMultipleAsync,
+    isPending: deleteWishlistMultiplePending,
+  } = useDeleteWishlistMultiple();
+
   const {
     products,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isPending,
+    isPending: isPendingProducts,
     error,
   } = useInfiniteProducts({
     ...filters,
     slugCategories: slugCategories ?? filters.slugCategories,
     slugSubcategories: slugSubcategories ?? filters.slugSubcategories,
     excludeSlugs,
+    wishlist,
   });
 
-  if (isPending) {
+  const handleDeleteWishlistMultiple = async () => {
+    await deleteWishlistMultipleAsync({
+      wishlistIds: products.map((product) => product.wishlist?.id) as string[],
+    });
+  };
+
+  if (isPendingProducts) {
     return (
       <div className="container mx-auto px-4 py-8">
         <ProductSectionHeader title={title} description={description} />
@@ -65,7 +80,17 @@ export const ProductSection = ({
       <ProductSectionHeader title={title} description={description} />
 
       {products && products.length > 0 ? (
-        <>
+        <div>
+          {wishlist && (
+            <Button
+              className="mb-5"
+              disabled={deleteWishlistMultiplePending}
+              onClick={handleDeleteWishlistMultiple}
+            >
+              Clear all
+            </Button>
+          )}
+
           <ProductGrid products={products} />
 
           <div className="mt-8">
@@ -77,7 +102,7 @@ export const ProductSection = ({
               skeletonCount={8}
             />
           </div>
-        </>
+        </div>
       ) : (
         <ProductEmptyState
           title="No products found"

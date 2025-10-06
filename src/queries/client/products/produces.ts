@@ -1,11 +1,47 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { GetInfiniteProductsSchema, ProductDetail } from "./types";
+import { ProductDetail } from "./types";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import { auth } from "@clerk/nextjs/server";
 
 export const productsRouter = createTRPCRouter({
   getAll: baseProcedure
-    .input(GetInfiniteProductsSchema)
+    .input(
+      z.object({
+        limit: z.number().default(DEFAULT_LIMIT),
+        cursor: z
+          .object({
+            id: z.string().uuid(),
+            updatedAt: z.date(),
+          })
+          .nullish(),
+        search: z.string().optional(),
+        slugCategories: z.array(z.string()).optional(),
+        slugSubcategories: z.array(z.string()).optional(),
+        sortBy: z
+          .enum([
+            "curated",
+            "trending",
+            "hot_and_new",
+            "price_asc",
+            "price_desc",
+            "name_asc",
+            "name_desc",
+            "newest",
+            "oldest",
+            "stock_high",
+            "stock_low",
+            "rating_high",
+          ])
+          .default("curated"),
+        sortOrder: z.enum(["asc", "desc"]).default("desc"),
+        priceMin: z.number().min(1).optional(),
+        priceMax: z.number().min(1).optional(),
+        excludeSlugs: z.array(z.string()).optional(),
+        wishlist: z.boolean().optional().default(false),
+      })
+    )
     .query(async ({ input, ctx }) => {
       const {
         limit,
@@ -18,7 +54,10 @@ export const productsRouter = createTRPCRouter({
         priceMin,
         priceMax,
         excludeSlugs,
+        wishlist,
       } = input;
+      const { db } = ctx;
+      const { userId } = await auth();
 
       try {
         const where: any = {
@@ -27,6 +66,34 @@ export const productsRouter = createTRPCRouter({
             some: { stock_quantity: { gt: 0 } },
           },
         };
+
+        // Add wishlist filter if wishlist is true
+        if (wishlist) {
+          if (!userId) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "Access denied. User session not found.",
+            });
+          }
+
+          // Fetch user by clerkId
+          const user = await db.users.findFirst({
+            where: { clerkId: userId },
+            select: { id: true },
+          });
+
+          if (!user) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "User not found",
+            });
+          }
+
+          // Filter products in the user's wishlist (one-to-one relation)
+          where.wishlist = {
+            user_id: user.id,
+          };
+        }
 
         if (search?.trim()) {
           const searchTerm = search.trim();
@@ -136,7 +203,7 @@ export const productsRouter = createTRPCRouter({
             break;
         }
 
-        const products = await ctx.db.products.findMany({
+        const products = await db.products.findMany({
           where,
           take: limit + 1,
           orderBy,
@@ -183,11 +250,18 @@ export const productsRouter = createTRPCRouter({
                     : "asc",
               },
             },
+            wishlist: {
+              // Updated to singular wishlist
+              select: {
+                id: true,
+                user_id: true, // Include user_id to verify wishlist ownership
+              },
+            },
             _count: { select: { reviews: true, variants: true } },
           },
         });
 
-        const hasMore = products.length > limit;
+        const hasMore = products?.length > limit;
         const items = hasMore ? products.slice(0, -1) : products;
         const lastItem = items[items.length - 1];
         const nextCursor = hasMore
@@ -203,7 +277,6 @@ export const productsRouter = createTRPCRouter({
         });
       }
     }),
-
   getBySlug: baseProcedure
     .input(
       z.object({
@@ -220,7 +293,7 @@ export const productsRouter = createTRPCRouter({
           variants: {
             some: {
               stock_quantity: {
-                gt: 0,
+                gte: 0,
               },
             },
           },
@@ -277,6 +350,11 @@ export const productsRouter = createTRPCRouter({
               },
             },
           },
+          wishlist: {
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
@@ -297,11 +375,8 @@ export const productsRouter = createTRPCRouter({
         }
       > = {};
 
-      const variantsWithStock = product.variants.filter(
-        (v) => v.stock_quantity > 0
-      );
-
-      variantsWithStock.forEach((variant) => {
+      // Include all variants, regardless of stock_quantity
+      product.variants.forEach((variant) => {
         variant.attributes.forEach((attr) => {
           const attribute = attr.attributeValue.attribute;
           const attributeId = attribute.id;

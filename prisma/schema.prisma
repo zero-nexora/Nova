@@ -86,8 +86,6 @@ model Users {
   notifications Notifications[]
   created_at    DateTime         @default(now())
   updated_at    DateTime         @updatedAt
-  is_deleted    Boolean          @default(false)
-  deleted_at    DateTime?
 
   @@index([clerkId])
   @@index([email])
@@ -182,6 +180,7 @@ model Products {
   images         Product_Images[]
   variants       Product_Variants[]
   reviews        Reviews[]
+  wishlist       Wishlists?         @relation("ProductToWishlist")
   created_at     DateTime           @default(now())
   updated_at     DateTime           @updatedAt
   is_deleted     Boolean            @default(false)
@@ -190,6 +189,19 @@ model Products {
   @@index([slug])
   @@index([category_id])
   @@index([subcategory_id])
+}
+
+model Wishlists {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product_id String   @unique
+  product    Products @relation("ProductToWishlist", fields: [product_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([product_id])
 }
 
 model Product_Images {
@@ -217,7 +229,6 @@ model Product_Variants {
   attributes     Product_Variant_Attributes[]
   cartItems      Cart_Items[]
   orderItems     Order_Items[]
-  wishlists      Wishlists[]
   created_at     DateTime                     @default(now())
   updated_at     DateTime                     @updatedAt
 
@@ -379,20 +390,6 @@ model Review_Images {
   updated_at DateTime @updatedAt
 
   @@index([review_id])
-}
-
-model Wishlists {
-  id                 String           @id @default(uuid())
-  user_id            String
-  user               Users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  product_variant_id String
-  productVariant     Product_Variants @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
-  created_at         DateTime         @default(now())
-  updated_at         DateTime         @updatedAt
-
-  @@index([user_id])
-  @@index([product_variant_id])
-  @@index([user_id, product_variant_id])
 }
 
 model User_Addresses {

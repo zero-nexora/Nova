@@ -31,18 +31,6 @@ const sortOrderValues = ["asc", "desc"] as const;
 type SortBy = (typeof sortValues)[number];
 type SortOrder = (typeof sortOrderValues)[number];
 
-interface ProductFilterParams {
-  search?: string;
-  sortBy: SortBy;
-  sortOrder: SortOrder;
-  priceMin?: number;
-  priceMax?: number;
-  slugCategories?: string[];
-  slugSubcategories?: string[];
-  excludeSlugs?: string[];
-  limit: number;
-}
-
 const params = {
   search: parseAsString.withOptions({ clearOnDefault: true }).withDefault(""),
   sortBy: parseAsStringLiteral(sortValues).withDefault("curated" as SortBy),
@@ -82,9 +70,9 @@ export const useProductFilters = () => {
     });
   };
 
-  const updateFilter = <K extends keyof ProductFilterParams>(
+  const updateFilter = <K extends keyof ProductFilters>(
     key: K,
-    value: ProductFilterParams[K]
+    value: ProductFilters[K]
   ) => {
     setFilters({ [key]: value });
   };
@@ -109,7 +97,7 @@ export const useProductFilters = () => {
   };
 
   return {
-    filters: filters as ProductFilterParams,
+    filters: filters as ProductFilters,
     setFilters,
     resetFilters,
     updateFilter,
