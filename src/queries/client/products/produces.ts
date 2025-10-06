@@ -59,6 +59,8 @@ export const productsRouter = createTRPCRouter({
       const { db } = ctx;
       const { userId } = await auth();
 
+      console.log(input)
+
       try {
         const where: any = {
           is_deleted: false,

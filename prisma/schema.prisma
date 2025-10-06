@@ -78,7 +78,7 @@ model Users {
   last_name     String?
   image_url     String?
   roles         User_Roles[]
-  carts         Carts[]
+  cart          Carts?           @relation("UserToCart") // Changed to singular, optional cart
   orders        Orders[]
   addresses     User_Addresses[]
   reviews       Reviews[]
@@ -278,8 +278,8 @@ model Product_Variant_Attributes {
 
 model Carts {
   id         String       @id @default(uuid())
-  user_id    String
-  user       Users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String       @unique
+  user       Users        @relation("UserToCart", fields: [user_id], references: [id], onDelete: Cascade)
   items      Cart_Items[]
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt

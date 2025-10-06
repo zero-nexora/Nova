@@ -120,6 +120,14 @@ async function handleUserUpdated(userData: UserJSON) {
     },
   });
 
+  if (user) {
+    await db.carts.create({
+      data: {
+        user_id: user.id,
+      },
+    });
+  }
+
   console.log(`User updated: ${user.id}`);
 }
 
