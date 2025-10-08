@@ -6,6 +6,8 @@ import { categoriesRouter } from "@/queries/admin/categories/produces";
 import { subcategoriesRouter } from "@/queries/admin/subcategories/produces";
 import { productsRouter as productsRouterClient } from "@/queries/client/products/produces";
 import { categoriesRouter as categoriesRouterClient } from "@/queries/client/categories/produces";
+import { usersRouter } from "@/queries/client/users/produces";
+import { cartsRouter } from "@/queries/client/carts/produces";
 
 export const appRouter = createTRPCRouter({
   admin: {
@@ -18,6 +20,8 @@ export const appRouter = createTRPCRouter({
     categoriesRouterClient,
     productsRouterClient,
     wishlistsRouter,
+    usersRouter,
+    cartsRouter,
   },
 });
 

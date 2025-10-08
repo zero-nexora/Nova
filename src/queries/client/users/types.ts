@@ -11,28 +11,17 @@ export interface User {
   roles: {
     role: {
       id: string;
-      name: RoleName; // Use Prisma enum
+      name: RoleName;
       description: string | null;
       permissions: {
         permission: {
           id: string;
-          name: PermissionName; // Use Prisma enum
+          name: PermissionName;
           description: string | null;
         };
       }[];
     };
   }[];
-  cart: {
-    id: string;
-    items: {
-      id: string;
-      cart_id: string;
-      product_variant_id: string;
-      quantity: number;
-      created_at: Date;
-      updated_at: Date;
-    }[];
-  } | null;
   _count: {
     wishlists: number;
   };

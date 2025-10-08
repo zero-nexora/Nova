@@ -59,8 +59,6 @@ export const productsRouter = createTRPCRouter({
       const { db } = ctx;
       const { userId } = await auth();
 
-      console.log(input)
-
       try {
         const where: any = {
           is_deleted: false,
@@ -79,7 +77,7 @@ export const productsRouter = createTRPCRouter({
           }
 
           // Fetch user by clerkId
-          const user = await db.users.findFirst({
+          const user = await db.users.findUnique({
             where: { clerkId: userId },
             select: { id: true },
           });
@@ -91,7 +89,6 @@ export const productsRouter = createTRPCRouter({
             });
           }
 
-          // Filter products in the user's wishlist (one-to-one relation)
           where.wishlist = {
             user_id: user.id,
           };

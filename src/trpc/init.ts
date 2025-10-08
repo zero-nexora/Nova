@@ -24,10 +24,20 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
   if (!userId)
     throw new TRPCError({ code: "UNAUTHORIZED", message: "UNAUTHORIZED" });
 
+  const user = await db.users.findUnique({
+    where: { clerkId: userId },
+    select: { id: true },
+  });
+
+  if (!user) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+  }
+
   return next({
     ctx: {
       ...ctx,
-      userId,
+      clerkId: userId,
+      userId: user.id,
     },
   });
 });

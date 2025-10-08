@@ -76,7 +76,7 @@ export const ProductSection = ({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       <ProductSectionHeader title={title} description={description} />
 
       {products && products.length > 0 ? (

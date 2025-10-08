@@ -13,19 +13,6 @@ export const wishlistsRouter = createTRPCRouter({
       const { db, userId } = ctx;
       const { productId } = input;
 
-      // Fetch user by clerkId
-      const user = await db.users.findFirst({
-        where: { clerkId: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
-      }
-
       // Check if product exists and is not deleted
       const product = await db.products.findFirst({
         where: { id: productId, is_deleted: false },
@@ -41,7 +28,7 @@ export const wishlistsRouter = createTRPCRouter({
 
       // Check if the product is already in the user's wishlist
       const existingWishlist = await db.wishlists.findFirst({
-        where: { product_id: productId, user_id: user.id },
+        where: { product_id: productId, user_id: userId },
         select: { id: true },
       });
 
@@ -53,7 +40,7 @@ export const wishlistsRouter = createTRPCRouter({
         return { action: "removed", success: true, data: product.slug };
       } else {
         const wishlistCount = await db.wishlists.count({
-          where: { user_id: user.id },
+          where: { user_id: userId },
         });
 
         // Check if wishlist limit (100) is reached
@@ -66,7 +53,7 @@ export const wishlistsRouter = createTRPCRouter({
 
         // Create new wishlist item
         await db.wishlists.create({
-          data: { product_id: productId, user_id: user.id },
+          data: { product_id: productId, user_id: userId },
         });
         return {
           action: "added",
@@ -81,30 +68,18 @@ export const wishlistsRouter = createTRPCRouter({
       z.object({
         wishlistIds: z
           .array(z.string().uuid("Invalid wishlist ID"))
-          .min(2, "At least one wishlist ID is required"),
+          .min(1, "At least one wishlist ID is required"),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { db, userId } = ctx;
       const { wishlistIds } = input;
 
-      const user = await db.users.findFirst({
-        where: { clerkId: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
-      }
-
       // Verify that all wishlist items belong to the user
       const wishlists = await db.wishlists.findMany({
         where: {
           id: { in: wishlistIds },
-          user_id: user.id,
+          user_id: userId,
         },
         select: { id: true },
       });

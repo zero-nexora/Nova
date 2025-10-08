@@ -20,6 +20,9 @@ export function useToggleWishlist() {
             slug: data.data,
           })
         );
+        queryClient.invalidateQueries(
+          trpc.client.usersRouter.getCurrentUser.queryOptions()
+        );
         toast.success(message);
       },
       onError: (error: any) => {

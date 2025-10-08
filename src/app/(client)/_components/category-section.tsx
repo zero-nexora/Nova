@@ -126,7 +126,7 @@ export const CategorySection = () => {
 
   return (
     <div className="w-full border-b">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto">
         <DesktopNavigation {...navigationProps} />
         <LaptopNavigation {...navigationProps} />
         <TabletNavigation {...navigationProps} />
@@ -222,11 +222,6 @@ const ResponsiveNavigation = ({
           </ScrollArea>
         </SheetContent>
       </Sheet>
-      <AllCategoriesDropdown
-        categories={categories}
-        onCategoryClick={onCategoryClick}
-        onSubcategoryClick={onSubcategoryClick}
-      />
     </div>
 
     <div className="flex-1">
@@ -254,6 +249,12 @@ const ResponsiveNavigation = ({
         </NavigationMenuList>
       </NavigationMenu>
     </div>
+
+    <AllCategoriesDropdown
+      categories={categories}
+      onCategoryClick={onCategoryClick}
+      onSubcategoryClick={onSubcategoryClick}
+    />
   </div>
 );
 

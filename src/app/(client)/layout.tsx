@@ -14,7 +14,7 @@ export default function LayoutClient({ children }: LayoutHomeProps) {
       <div className="flex flex-col min-h-screen">
         <Header />
         <CategorySection />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 container mx-auto pt-8">{children}</main>
       </div>
     </StoreClientProvider>
   );
