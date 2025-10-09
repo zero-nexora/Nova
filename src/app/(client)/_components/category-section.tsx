@@ -188,6 +188,38 @@ const ResponsiveNavigation = ({
   onFilterClose,
 }: ResponsiveNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
+    <AllCategoriesDropdown
+      categories={categories}
+      onCategoryClick={onCategoryClick}
+      onSubcategoryClick={onSubcategoryClick}
+    />
+
+    <div className="flex-1">
+      <NavigationMenu>
+        <NavigationMenuList className="flex-wrap gap-2 justify-start">
+          {categories.slice(0, limit).map((category) => (
+            <NavigationMenuItem key={category.id}>
+              {category.subcategories.length > 0 ? (
+                <CategoryWithSubmenu
+                  category={category}
+                  categories={categories}
+                  onCategoryClick={onCategoryClick}
+                  onSubcategoryClick={onSubcategoryClick}
+                />
+              ) : (
+                <CategoryLink
+                  category={category}
+                  categories={categories}
+                  onCategoryClick={onCategoryClick}
+                  onSubcategoryClick={onSubcategoryClick}
+                />
+              )}
+            </NavigationMenuItem>
+          ))}
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
+
     <div className="flex items-center space-y-2 mr-8 flex-col">
       <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
         <SheetTrigger asChild>
@@ -223,38 +255,6 @@ const ResponsiveNavigation = ({
         </SheetContent>
       </Sheet>
     </div>
-
-    <div className="flex-1">
-      <NavigationMenu>
-        <NavigationMenuList className="flex-wrap gap-2 justify-start">
-          {categories.slice(0, limit).map((category) => (
-            <NavigationMenuItem key={category.id}>
-              {category.subcategories.length > 0 ? (
-                <CategoryWithSubmenu
-                  category={category}
-                  categories={categories}
-                  onCategoryClick={onCategoryClick}
-                  onSubcategoryClick={onSubcategoryClick}
-                />
-              ) : (
-                <CategoryLink
-                  category={category}
-                  categories={categories}
-                  onCategoryClick={onCategoryClick}
-                  onSubcategoryClick={onSubcategoryClick}
-                />
-              )}
-            </NavigationMenuItem>
-          ))}
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
-
-    <AllCategoriesDropdown
-      categories={categories}
-      onCategoryClick={onCategoryClick}
-      onSubcategoryClick={onSubcategoryClick}
-    />
   </div>
 );
 
@@ -271,7 +271,7 @@ const AllCategoriesDropdown = ({
   "categories" | "onCategoryClick" | "onSubcategoryClick"
 >) => (
   <div className="flex items-center space-x-2">
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center space-x-2">
           <Menu className="h-4 w-4" />

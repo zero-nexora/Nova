@@ -556,7 +556,7 @@ export function Header() {
                 className="w-full justify-start h-12 text-left"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Link href="/orders">
+                <Link href="/cart">
                   <ShoppingCart className="mr-3 h-5 w-5" />
                   <div>
                     <div className="font-medium">

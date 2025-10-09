@@ -35,6 +35,7 @@ import Link from "next/link";
 import { ImageCarousel } from "./image-carousel";
 import { ErrorDisplay } from "@/components/global/error-display";
 import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { useAddToCart } from "@/app/(client)/cart/hooks/use-add-to-cart";
 import { useToggleWishlist } from "@/app/(client)/wishlist/hooks/use-toggle-wishlist";
 
 interface ProductDetailProps {
@@ -42,6 +43,8 @@ interface ProductDetailProps {
 }
 
 export const ProductDetail = ({ slug }: ProductDetailProps) => {
+  const { addToCartAsync, isPending: addToCartIsPending } = useAddToCart();
+
   const { toggleWishlistAsync, isPending: wishlistIsPending } =
     useToggleWishlist();
 
@@ -234,6 +237,11 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
   const canAddToCart =
     allAttributesSelected && currentVariant && currentStock > 0;
+
+  const handleAddToCart = async () => {
+    if (!currentVariant) return;
+    addToCartAsync({ productVariantId: currentVariant.id, quantity });
+  };
 
   return (
     <div>
@@ -452,7 +460,12 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
 
             <div className="flex gap-3">
-              <Button size="lg" className="flex-1" disabled={!canAddToCart}>
+              <Button
+                size="lg"
+                className="flex-1"
+                disabled={!canAddToCart || addToCartIsPending}
+                onClick={handleAddToCart}
+              >
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 {!allAttributesSelected
                   ? "Select Options"
@@ -467,11 +480,17 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 size="lg"
                 disabled={wishlistIsPending}
                 onClick={handleToggleWishlist}
+                className={cn(
+                  "relative group transition-all duration-300 hover:bg-red-50",
+                  product.wishlist && "border-red-300 hover:bg-red-100"
+                )}
               >
                 <Heart
                   className={cn(
-                    "w-4 h-4 mr-2",
-                    product.wishlist && "fill-red-800"
+                    "w-4 h-4 transition-transform duration-300",
+                    product.wishlist
+                      ? "fill-red-500 text-red-500 scale-110"
+                      : "fill-transparent text-gray-500 group-hover:scale-110 group-hover:text-red-400"
                   )}
                 />
               </Button>

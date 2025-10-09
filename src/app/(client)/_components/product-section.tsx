@@ -76,23 +76,24 @@ export const ProductSection = ({
   }
 
   return (
-    <div>
-      <ProductSectionHeader title={title} description={description} />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <ProductSectionHeader title={title} description={description} />
+        {wishlist && products && products.length > 0 && (
+          <Button
+            disabled={deleteWishlistMultiplePending}
+            onClick={handleDeleteWishlistMultiple}
+            variant="outline"
+            className="shrink-0"
+          >
+            Clear all
+          </Button>
+        )}
+      </div>
 
       {products && products.length > 0 ? (
         <div>
-          {wishlist && (
-            <Button
-              className="mb-5"
-              disabled={deleteWishlistMultiplePending}
-              onClick={handleDeleteWishlistMultiple}
-            >
-              Clear all
-            </Button>
-          )}
-
           <ProductGrid products={products} />
-
           <div className="mt-8">
             <InfiniteScroll
               fetchNextPage={fetchNextPage}
