@@ -4,7 +4,9 @@ import { useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useGetAllCategories } from "@/app/(client)/hooks/categories/use-get-all-categories";
 import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
+import { useGetCart } from "@/app/(client)/cart/hooks/use-get-cart";
 import { useUserStore } from "@/stores/client/user-store";
+import { useCartStore } from "@/stores/client/carts-store";
 
 interface StoreClientProviderProps {
   children: React.ReactNode;
@@ -12,30 +14,75 @@ interface StoreClientProviderProps {
 
 export const StoreClientProvider = ({ children }: StoreClientProviderProps) => {
   const { isSignedIn, isLoaded } = useAuth();
-  const { user, isPending, error } = useGetCurrentUser();
-  const { setUser, setLoading, setError, clearUser } = useUserStore();
+  const {
+    user,
+    isPending: isUserPending,
+    error: userError,
+  } = useGetCurrentUser();
+  const { cart, isPending: isCartPending, error: cartError } = useGetCart();
+  const {
+    setUser,
+    setLoading: setUserLoading,
+    setError: setUserError,
+    clearUser,
+  } = useUserStore();
+  const {
+    setCart,
+    setLoading: setCartLoading,
+    setError: setCartError,
+    clearCart,
+  } = useCartStore();
 
   // Preload categories
   useGetAllCategories();
 
   useEffect(() => {
+    // Wait until Clerk authentication is loaded
     if (!isLoaded) return;
 
-    setLoading(isPending);
-
-    // Handle error if present
-    if (error) {
-      setError(error.message || "An error occurred while fetching user data");
+    // Handle user state
+    setUserLoading(isUserPending);
+    if (userError) {
+      setUserError(userError.message || "Failed to fetch user data");
       return;
     }
 
-    // Set or clear user based on auth status and user data
     if (isSignedIn && user) {
       setUser(user);
     } else {
       clearUser();
     }
-  }, [isLoaded, isSignedIn, user, isPending, error?.message]);
+
+    // Handle cart state
+    setCartLoading(isCartPending);
+    if (cartError) {
+      setCartError(cartError.message || "Failed to fetch cart data");
+      return;
+    }
+
+    if (isSignedIn && cart) {
+      setCart(cart);
+    } else {
+      clearCart();
+    }
+  }, [
+    isLoaded,
+    isSignedIn,
+    user,
+    isUserPending,
+    userError,
+    cart,
+    isCartPending,
+    cartError,
+    setUser,
+    setUserLoading,
+    setUserError,
+    clearUser,
+    setCart,
+    setCartLoading,
+    setCartError,
+    clearCart,
+  ]);
 
   return <>{children}</>;
 };

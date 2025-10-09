@@ -7,18 +7,46 @@ export interface Cart {
       id: string;
       sku: string;
       price: number;
-      slug: string | null;
       stock_quantity: number;
       product: {
         id: string;
         name: string;
         slug: string;
-        images: {
-          id: string;
-          image_url: string;
-          public_id: string;
-        }[];
+        image_url: string | null;
       };
+      attributes: {
+        attributeValue: {
+          value: string;
+          attribute: {
+            name: string;
+          };
+        };
+      }[];
     };
   }[];
+}
+
+export interface CartItem {
+  id: string;
+  quantity: number;
+  productVariant: {
+    id: string;
+    sku: string;
+    price: number;
+    stock_quantity: number;
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+      image_url: string | null;
+    };
+    attributes: {
+      id: string;
+      name: string;
+      values: {
+        id: string;
+        value: string;
+      }[];
+    }[];
+  };
 }

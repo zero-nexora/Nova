@@ -21,9 +21,11 @@ import { useProductFilters } from "../hooks/products/use-product-fillters";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Logo } from "@/components/global/logo";
 import { useUserStore } from "@/stores/client/user-store";
+import { useCartStore } from "@/stores/client/carts-store";
 
 export function Header() {
   const user = useUserStore((state) => state.user);
+  const cart = useCartStore((state) => state.cart);
 
   const { filters, setFilters } = useProductFilters();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -436,7 +438,7 @@ export function Header() {
                   <Link href="/cart">
                     <ShoppingCart className="h-5 w-5" />
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs border-0">
-                      5
+                      {cart?.items.length}
                     </Badge>
                     <span className="sr-only">Shopping Cart</span>
                   </Link>
@@ -557,7 +559,9 @@ export function Header() {
                 <Link href="/orders">
                   <ShoppingCart className="mr-3 h-5 w-5" />
                   <div>
-                    <div className="font-medium">Carts</div>
+                    <div className="font-medium">
+                      Carts ({cart?.items.length})
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       Track & manage carts
                     </div>

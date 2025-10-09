@@ -253,7 +253,7 @@ export const productsRouter = createTRPCRouter({
               // Updated to singular wishlist
               select: {
                 id: true,
-                user_id: true, // Include user_id to verify wishlist ownership
+                user_id: true,
               },
             },
             _count: { select: { reviews: true, variants: true } },
@@ -276,6 +276,7 @@ export const productsRouter = createTRPCRouter({
         });
       }
     }),
+
   getBySlug: baseProcedure
     .input(
       z.object({
@@ -374,7 +375,6 @@ export const productsRouter = createTRPCRouter({
         }
       > = {};
 
-      // Include all variants, regardless of stock_quantity
       product.variants.forEach((variant) => {
         variant.attributes.forEach((attr) => {
           const attribute = attr.attributeValue.attribute;

@@ -1,18 +1,15 @@
-// File: src/server/routers/cart.ts
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { Cart } from "./types";
-import { getOrCreateCart } from "./utils";
+import { Cart, CartItem } from "./types";
+import { cartItemSelect, getOrCreateCart } from "./utils";
 
 export const cartsRouter = createTRPCRouter({
-  // Get the current user's cart
   getCart: protectedProcedure.query(async ({ ctx }): Promise<Cart> => {
     const { db, userId } = ctx;
     return getOrCreateCart(db, userId);
   }),
 
-  // Add item to cart
   addToCart: protectedProcedure
     .input(
       z.object({
@@ -20,14 +17,40 @@ export const cartsRouter = createTRPCRouter({
         quantity: z.number().int().min(1, "Quantity must be at least 1"),
       })
     )
-    .mutation(async ({ ctx, input }): Promise<Cart> => {
+    .mutation(async ({ ctx, input }): Promise<CartItem> => {
       const { db, userId } = ctx;
       const { productVariantId, quantity } = input;
 
-      // Validate product variant and stock
       const productVariant = await db.product_Variants.findUnique({
         where: { id: productVariantId },
-        select: { id: true, stock_quantity: true },
+        select: {
+          id: true,
+          stock_quantity: true,
+          sku: true,
+          price: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              images: {
+                select: { image_url: true },
+                take: 1,
+              },
+            },
+          },
+          attributes: {
+            select: {
+              attributeValue: {
+                select: {
+                  id: true,
+                  value: true,
+                  attribute: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!productVariant) {
@@ -44,18 +67,25 @@ export const cartsRouter = createTRPCRouter({
         });
       }
 
-      // Get or create cart
-      const cart = await getOrCreateCart(db, userId);
+      const cart =
+        (await db.carts.findUnique({
+          where: { user_id: userId },
+          select: { id: true },
+        })) ??
+        (await db.carts.create({
+          data: { user_id: userId },
+          select: { id: true },
+        }));
 
-      // Check for existing item
       const existingItem = await db.cart_Items.findFirst({
         where: {
           cart_id: cart.id,
-          product_variant_id: productVariant.id,
+          product_variant_id: productVariantId,
         },
         select: { id: true, quantity: true },
       });
 
+      let cartItem;
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantity;
         if (newQuantity > productVariant.stock_quantity) {
@@ -64,26 +94,47 @@ export const cartsRouter = createTRPCRouter({
             message: "Total quantity exceeds available stock",
           });
         }
-
-        await db.cart_Items.update({
+        cartItem = await db.cart_Items.update({
           where: { id: existingItem.id },
           data: { quantity: newQuantity },
+          select: cartItemSelect,
         });
       } else {
-        await db.cart_Items.create({
+        cartItem = await db.cart_Items.create({
           data: {
             cart_id: cart.id,
-            product_variant_id: productVariant.id,
+            product_variant_id: productVariantId,
             quantity,
           },
+          select: cartItemSelect,
         });
       }
 
-      // Return updated cart
-      return getOrCreateCart(db, userId);
+      const attributes = productVariant.attributes.map((attr) => ({
+        id: attr.attributeValue.attribute.id,
+        name: attr.attributeValue.attribute.name,
+        values: [
+          {
+            id: attr.attributeValue.id,
+            value: attr.attributeValue.value,
+          },
+        ],
+      }));
+
+      return {
+        ...cartItem,
+        productVariant: {
+          ...cartItem.productVariant,
+          product: {
+            ...cartItem.productVariant.product,
+            image_url:
+              cartItem.productVariant.product.images[0]?.image_url ?? null,
+          },
+          attributes,
+        },
+      };
     }),
 
-  // Update cart item quantity
   updateCartItem: protectedProcedure
     .input(
       z.object({
@@ -91,11 +142,10 @@ export const cartsRouter = createTRPCRouter({
         quantity: z.number().int().min(1, "Quantity must be at least 1"),
       })
     )
-    .mutation(async ({ ctx, input }): Promise<Cart> => {
+    .mutation(async ({ ctx, input }): Promise<CartItem> => {
       const { db, userId } = ctx;
       const { cartItemId, quantity } = input;
 
-      // Validate cart item
       const cartItem = await db.cart_Items.findFirst({
         where: {
           id: cartItemId,
@@ -104,7 +154,20 @@ export const cartsRouter = createTRPCRouter({
         select: {
           id: true,
           productVariant: {
-            select: { stock_quantity: true },
+            select: {
+              stock_quantity: true,
+              attributes: {
+                select: {
+                  attributeValue: {
+                    select: {
+                      id: true,
+                      value: true,
+                      attribute: { select: { id: true, name: true } },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       });
@@ -123,26 +186,44 @@ export const cartsRouter = createTRPCRouter({
         });
       }
 
-      await db.cart_Items.update({
+      const updatedCartItem = await db.cart_Items.update({
         where: { id: cartItem.id },
         data: { quantity },
+        select: cartItemSelect,
       });
 
-      return getOrCreateCart(db, userId);
+      const attributes = cartItem.productVariant.attributes.map((attr) => ({
+        id: attr.attributeValue.attribute.id,
+        name: attr.attributeValue.attribute.name,
+        values: [
+          {
+            id: attr.attributeValue.id,
+            value: attr.attributeValue.value,
+          },
+        ],
+      }));
+
+      return {
+        ...updatedCartItem,
+        productVariant: {
+          ...updatedCartItem.productVariant,
+          product: {
+            ...updatedCartItem.productVariant.product,
+            image_url:
+              updatedCartItem.productVariant.product.images[0]?.image_url ??
+              null,
+          },
+          attributes,
+        },
+      };
     }),
 
-  // Delete cart item
   deleteCartItem: protectedProcedure
-    .input(
-      z.object({
-        cartItemId: z.string().uuid(),
-      })
-    )
-    .mutation(async ({ ctx, input }): Promise<Cart> => {
+    .input(z.object({ cartItemId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }): Promise<{ cartItemId: string }> => {
       const { db, userId } = ctx;
       const { cartItemId } = input;
 
-      // Validate cart item
       const cartItem = await db.cart_Items.findFirst({
         where: {
           id: cartItemId,
@@ -162,24 +243,25 @@ export const cartsRouter = createTRPCRouter({
         where: { id: cartItemId },
       });
 
-      return getOrCreateCart(db, userId);
+      return { cartItemId };
     }),
 
-  // Clear cart
-  clearCart: protectedProcedure.mutation(async ({ ctx }): Promise<void> => {
-    const { db, userId } = ctx;
+  clearCart: protectedProcedure.mutation(
+    async ({ ctx }): Promise<{ success: true }> => {
+      const { db, userId } = ctx;
 
-    const cart = await db.carts.findUnique({
-      where: { user_id: userId },
-      select: { id: true },
-    });
+      const cart = await db.carts.findUnique({
+        where: { user_id: userId },
+        select: { id: true },
+      });
 
-    if (!cart) {
-      return;
+      if (cart) {
+        await db.cart_Items.deleteMany({
+          where: { cart_id: cart.id },
+        });
+      }
+
+      return { success: true };
     }
-
-    await db.cart_Items.deleteMany({
-      where: { cart_id: cart.id },
-    });
-  }),
+  ),
 });
