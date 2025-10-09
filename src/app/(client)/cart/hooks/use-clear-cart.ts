@@ -9,9 +9,6 @@ export function useClearCart() {
 
   const { mutate, mutateAsync, isPending, error } = useMutation(
     trpc.client.cartsRouter.clearCart.mutationOptions({
-      onSuccess: () => {
-        toast.success("Cart cleared successfully");
-      },
       onError: (err) => {
         toast.error(err.message || "Failed to clear cart");
       },

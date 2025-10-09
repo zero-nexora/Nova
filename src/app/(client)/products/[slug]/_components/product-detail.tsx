@@ -33,8 +33,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { ImageCarousel } from "./image-carousel";
-import { ErrorDisplay } from "@/components/global/error-display";
-import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { Error } from "@/components/global/error";
+import { NotFound } from "@/components/global/not-found";
 import { useAddToCart } from "@/app/(client)/cart/hooks/use-add-to-cart";
 import { useToggleWishlist } from "@/app/(client)/wishlist/hooks/use-toggle-wishlist";
 
@@ -52,7 +52,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     product,
     isPending: productIsPending,
     error,
-    refetch,
   } = useGetProductBySlug(slug);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
@@ -64,12 +63,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     return <ProductDetailSkeleton />;
   }
 
-  if (error)
-    return (
-      <ErrorDisplay errorMessage={error?.message || ""} onRetry={refetch} />
-    );
+  if (error) return <Error />;
 
-  if (!product) return <NotFoundDisplay />;
+  if (!product) return <NotFound />;
 
   const handleToggleWishlist = async () =>
     await toggleWishlistAsync({ productId: product.id });

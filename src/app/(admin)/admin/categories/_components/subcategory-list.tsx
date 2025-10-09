@@ -7,7 +7,7 @@ import { useConfirm } from "@/stores/confirm-store";
 import { ActionMenu } from "@/components/global/action-menu";
 import { Subcategory } from "@/stores/admin/categories-store";
 import { SubcategoryDetailCard } from "./subcategory-detail-card";
-import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { NotFound } from "@/components/global/not-found";
 import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
 
@@ -157,7 +157,7 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
     });
   };
 
-  if (subcategories.length === 0) return <NotFoundDisplay />;
+  if (subcategories.length === 0) return <NotFound />;
 
   return (
     <div className="space-y-6">

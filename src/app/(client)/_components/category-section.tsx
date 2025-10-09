@@ -188,72 +188,74 @@ const ResponsiveNavigation = ({
   onFilterClose,
 }: ResponsiveNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
-    <AllCategoriesDropdown
-      categories={categories}
-      onCategoryClick={onCategoryClick}
-      onSubcategoryClick={onSubcategoryClick}
-    />
+    <div className="flex gap-4">
+      <AllCategoriesDropdown
+        categories={categories}
+        onCategoryClick={onCategoryClick}
+        onSubcategoryClick={onSubcategoryClick}
+      />
 
-    <div className="flex-1">
-      <NavigationMenu>
-        <NavigationMenuList className="flex-wrap gap-2 justify-start">
-          {categories.slice(0, limit).map((category) => (
-            <NavigationMenuItem key={category.id}>
-              {category.subcategories.length > 0 ? (
-                <CategoryWithSubmenu
-                  category={category}
-                  categories={categories}
-                  onCategoryClick={onCategoryClick}
-                  onSubcategoryClick={onSubcategoryClick}
-                />
-              ) : (
-                <CategoryLink
-                  category={category}
-                  categories={categories}
-                  onCategoryClick={onCategoryClick}
-                  onSubcategoryClick={onSubcategoryClick}
-                />
-              )}
-            </NavigationMenuItem>
-          ))}
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
+      <div className="flex-1">
+        <NavigationMenu>
+          <NavigationMenuList className="flex-wrap gap-2 justify-start">
+            {categories.slice(0, limit).map((category) => (
+              <NavigationMenuItem key={category.id}>
+                {category.subcategories.length > 0 ? (
+                  <CategoryWithSubmenu
+                    category={category}
+                    categories={categories}
+                    onCategoryClick={onCategoryClick}
+                    onSubcategoryClick={onSubcategoryClick}
+                  />
+                ) : (
+                  <CategoryLink
+                    category={category}
+                    categories={categories}
+                    onCategoryClick={onCategoryClick}
+                    onSubcategoryClick={onSubcategoryClick}
+                  />
+                )}
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
+      </div>
 
-    <div className="flex items-center space-y-2 mr-8 flex-col">
-      <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            className="flex items-center space-x-2 w-full"
-          >
-            <Filter className="h-4 w-4" />
-            <span>Filter Products</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-80 sm:w-96 p-0">
-          <SheetHeader className="p-6 pb-4 border-b">
-            <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Filter className="h-5 w-5 text-primary" />
+      <div className="flex items-center space-y-2 mr-8 flex-col">
+        <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex items-center space-x-2 w-full"
+            >
+              <Filter className="h-4 w-4" />
+              <span>Filter Products</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 sm:w-96 p-0">
+            <SheetHeader className="p-6 pb-4 border-b">
+              <div className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Filter className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <SheetTitle className="text-xl font-bold">
+                    Product Filters
+                  </SheetTitle>
+                  <SheetDescription className="text-sm">
+                    Refine your product search
+                  </SheetDescription>
+                </div>
               </div>
-              <div>
-                <SheetTitle className="text-xl font-bold">
-                  Product Filters
-                </SheetTitle>
-                <SheetDescription className="text-sm">
-                  Refine your product search
-                </SheetDescription>
+            </SheetHeader>
+            <ScrollArea className="h-[calc(100vh-120px)]">
+              <div className="p-4">
+                <ProductFilter onClose={onFilterClose} />
               </div>
-            </div>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-120px)]">
-            <div className="p-4">
-              <ProductFilter onClose={onFilterClose} />
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   </div>
 );
@@ -623,7 +625,7 @@ const CategoryImage = ({ src, alt, size }: CategoryImageProps) => {
 // Loading Skeleton
 // ============================================================================
 
-const CategorySectionSkeleton = () => (
+export const CategorySectionSkeleton = () => (
   <div className="w-full border-b">
     <div className="container mx-auto px-4">
       <SkeletonNavigation
@@ -655,15 +657,16 @@ interface SkeletonNavigationProps {
 
 const SkeletonNavigation = ({ count, className }: SkeletonNavigationProps) => (
   <div className={cn("items-center py-4", className)}>
-    <div className="flex flex-col items-center space-y-2 mr-8">
+    <div className="flex gap-4">
       <Skeleton className="h-10 w-40" />
-      <Skeleton className="h-10 w-40" />
-    </div>
 
-    <div className="flex items-center space-x-4 flex-1">
-      {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-9 w-24" />
-      ))}
+      <div className="flex items-center space-x-4 flex-1">
+        {Array.from({ length: count }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-24" />
+        ))}
+      </div>
+
+      <Skeleton className="h-10 w-40" />
     </div>
   </div>
 );

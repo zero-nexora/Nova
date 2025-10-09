@@ -11,7 +11,7 @@ export function useGetAllCategories() {
   const setLoading = useCategoriesStore((state) => state.setLoading);
   const setError = useCategoriesStore((state) => state.setError);
 
-  const { data, error, isFetching } = useQuery(
+  const { data, error, isPending } = useQuery(
     trpc.client.categoriesRouterClient.getAll.queryOptions()
   );
 
@@ -22,8 +22,8 @@ export function useGetAllCategories() {
   }, [data]);
 
   useEffect(() => {
-    setLoading(isFetching);
-  }, [isFetching]);
+    setLoading(isPending);
+  }, [isPending]);
 
   useEffect(() => {
     if (error) setError(error);
@@ -32,6 +32,6 @@ export function useGetAllCategories() {
   return {
     error,
     categories: data,
-    isPending: isFetching,
+    isPending,
   };
 }

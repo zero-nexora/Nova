@@ -45,6 +45,15 @@ export const usersRouter = createTRPCRouter({
             wishlists: true,
           },
         },
+        cart: {
+          select: {
+            _count: {
+              select: {
+                items: true,
+              },
+            },
+          },
+        },
       },
     });
 

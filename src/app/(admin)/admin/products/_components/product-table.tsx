@@ -25,7 +25,7 @@ import { Download, Trash2 } from "lucide-react";
 import { Pagination, Product } from "@/queries/admin/products/types";
 import { useRouter, usePathname } from "next/navigation";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
-import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { NotFound } from "@/components/global/not-found";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
 
 interface ProductTableProps {
@@ -207,7 +207,7 @@ export const ProductTable = ({
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    <NotFoundDisplay />
+                    <NotFound />
                   </TableCell>
                 </TableRow>
               )}

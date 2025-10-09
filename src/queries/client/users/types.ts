@@ -1,4 +1,4 @@
-import { RoleName, PermissionName } from "@prisma/client"; // Import enums from Prisma schema
+import { RoleName, PermissionName } from "@prisma/client";
 
 export interface User {
   id: string;
@@ -25,4 +25,9 @@ export interface User {
   _count: {
     wishlists: number;
   };
+  cart: {
+    _count: {
+      items: number;
+    };
+  } | null;
 }

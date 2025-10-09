@@ -1,22 +1,6 @@
 import { Cart, CartItem } from "@/queries/client/carts/types";
 import { create } from "zustand";
 
-const transformCartItemToCartItemFormat = (
-  cartItem: CartItem
-): Cart["items"][number] => ({
-  id: cartItem.id,
-  quantity: cartItem.quantity,
-  productVariant: {
-    ...cartItem.productVariant,
-    attributes: cartItem.productVariant.attributes.map((attr) => ({
-      attributeValue: {
-        value: attr.values[0]?.value || "",
-        attribute: { name: attr.name },
-      },
-    })),
-  },
-});
-
 interface CartState {
   cart: Cart | null;
   loading: boolean;
@@ -24,6 +8,7 @@ interface CartState {
   setCart: (cart: Cart) => void;
   addToCart: (newItem: CartItem) => void;
   updateCartItemQuantity: (cartItemId: string, quantity: number) => void;
+  rollbackCartItemQuantity: (cartItemId: string, quantity: number) => void; // 🔹 mới thêm
   deleteCartItem: (cartItemId: string) => void;
   clearCart: () => void;
   setLoading: (loading: boolean) => void;
@@ -39,18 +24,16 @@ export const useCartStore = create<CartState>((set) => ({
 
   addToCart: (newItem) =>
     set((state) => {
-      const transformedItem = transformCartItemToCartItemFormat(newItem);
-
       if (!state.cart) {
         return {
-          cart: { id: crypto.randomUUID(), items: [transformedItem] },
+          cart: null,
           loading: false,
           error: null,
         };
       }
 
       const existingItem = state.cart.items.find(
-        (item) => item.id === transformedItem.id
+        (item) => item.id === newItem.id
       );
 
       if (existingItem) {
@@ -58,10 +41,10 @@ export const useCartStore = create<CartState>((set) => ({
           cart: {
             ...state.cart,
             items: state.cart.items.map((item) =>
-              item.id === transformedItem.id
+              item.id === newItem.id
                 ? {
                     ...item,
-                    quantity: item.quantity + transformedItem.quantity,
+                    quantity: item.quantity + newItem.quantity,
                   }
                 : item
             ),
@@ -74,7 +57,7 @@ export const useCartStore = create<CartState>((set) => ({
       return {
         cart: {
           ...state.cart,
-          items: [...state.cart.items, transformedItem],
+          items: [...state.cart.items, newItem],
         },
         loading: false,
         error: null,
@@ -82,6 +65,20 @@ export const useCartStore = create<CartState>((set) => ({
     }),
 
   updateCartItemQuantity: (cartItemId, quantity) =>
+    set((state) => ({
+      cart: state.cart
+        ? {
+            ...state.cart,
+            items: state.cart.items.map((item) =>
+              item.id === cartItemId ? { ...item, quantity } : item
+            ),
+          }
+        : state.cart,
+      loading: false,
+      error: null,
+    })),
+
+  rollbackCartItemQuantity: (cartItemId, quantity) =>
     set((state) => ({
       cart: state.cart
         ? {

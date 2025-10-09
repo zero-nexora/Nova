@@ -5,8 +5,8 @@ import { CreateCategory } from "./create-category";
 import { CreateSubcategory } from "./create-subcategory";
 import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { CategoryListSkeleton } from "@/components/global/category-skeleton";
-import { NotFoundDisplay } from "@/components/global/not-found-display";
-import { ErrorDisplay } from "@/components/global/error-display";
+import { NotFound } from "@/components/global/not-found";
+import { Error } from "@/components/global/error";
 
 export const CategoryView = () => {
   const { categories, error, loading } = useCategoriesStore();
@@ -15,9 +15,9 @@ export const CategoryView = () => {
     return <CategoryListSkeleton />;
   }
 
-  if (error) return <ErrorDisplay errorMessage={error} />
+  if (error) <Error />;
 
-  if (!categories || categories.length === 0) return <NotFoundDisplay />
+  if (!categories || categories.length === 0) return <NotFound />;
 
   return (
     <div className="space-y-6">

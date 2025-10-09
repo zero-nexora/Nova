@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { placeholderImage } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
-import { NotFoundDisplay } from "@/components/global/not-found-display";
+import { NotFound } from "@/components/global/not-found";
 import { UpdateCategoryForm } from "@/components/forms/category/update-category-form";
 import {
   Accordion,
@@ -209,7 +209,7 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
       {/* Enhanced Categories List */}
       <div className="space-y-3">
-        {filteredCategories.length === 0 && <NotFoundDisplay />}
+        {filteredCategories.length === 0 && <NotFound />}
         <Accordion type="multiple" className="w-full">
           {filteredCategories.map((category) => {
             return (

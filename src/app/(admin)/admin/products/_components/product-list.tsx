@@ -17,7 +17,7 @@ import { Product } from "@/queries/admin/products/types";
 import { useToggleProductDeleted } from "../hooks/products/use-toggle-product-deleted";
 import { useDeleteProduct } from "../hooks/products/use-delete-product";
 import { ProductTable } from "./product-table";
-import { ErrorDisplay } from "@/components/global/error-display";
+import { Error } from "@/components/global/error";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
 
 export const ProductList = () => {
@@ -188,7 +188,7 @@ export const ProductList = () => {
     onView: handleViewProduct,
   });
 
-  if (error) return <ErrorDisplay errorMessage={error.message} />;
+  if (error) return <Error/>;
 
   return (
     <div className="container mx-auto py-8 space-y-6">
