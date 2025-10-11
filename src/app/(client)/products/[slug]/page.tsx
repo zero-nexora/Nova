@@ -1,3 +1,4 @@
+// src/app/products/[slug]/page.tsx
 import { getQueryClient, trpc } from "@/trpc/server";
 import {
   ProductDetail,
@@ -11,8 +12,8 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { loaderProductFilters } from "../../hooks/products/product-filters";
 import { normalizeFilters } from "@/lib/utils";
 import { DEFAULT_LIMIT } from "@/lib/constants";
-import type { SearchParams } from "nuqs/server";
 import { Suspense } from "react";
+import type { SearchParams } from "nuqs";
 
 export const dynamic = "force-dynamic";
 

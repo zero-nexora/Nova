@@ -1,3 +1,4 @@
+// src/app/products/[slug]/_components/image-carousel.tsx
 "use client";
 
 import {
@@ -45,6 +46,8 @@ export const ImageCarousel = ({
 
   if (isLoading) return <ImageCarouselSkeleton />;
 
+  if (!images || images.length === 0) return null;
+
   return (
     <div className="relative w-full">
       <div
@@ -62,7 +65,7 @@ export const ImageCarousel = ({
         className="w-full px-12"
       >
         <CarouselContent className="-ml-3">
-          {images?.map((img, index) => (
+          {images.map((img, index) => (
             <CarouselItem
               key={img.id}
               className="pl-3 basis-auto cursor-pointer"
@@ -83,7 +86,6 @@ export const ImageCarousel = ({
         <CarouselPrevious className="left-0 z-20" />
         <CarouselNext className="right-0 z-20" />
       </Carousel>
-
       <div
         className={cn(
           "absolute right-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-white/90 to-transparent pointer-events-none",
@@ -96,12 +98,26 @@ export const ImageCarousel = ({
 
 const ImageCarouselSkeleton = () => {
   return (
-    <>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <CarouselItem key={index} className="pl-3 basis-auto">
-          <Skeleton className="w-[120px] h-[80px] rounded-lg" />
-        </CarouselItem>
-      ))}
-    </>
+    <div className="relative w-full">
+      <div className="absolute left-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-white/90 to-transparent pointer-events-none" />
+      <Carousel
+        opts={{
+          align: "start",
+          dragFree: true,
+        }}
+        className="w-full px-12"
+      >
+        <CarouselContent className="-ml-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <CarouselItem key={index} className="pl-3 basis-auto">
+              <Skeleton className="w-[120px] h-[80px] rounded-lg" />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="left-0 z-20" />
+        <CarouselNext className="right-0 z-20" />
+      </Carousel>
+      <div className="absolute right-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-white/90 to-transparent pointer-events-none" />
+    </div>
   );
 };
