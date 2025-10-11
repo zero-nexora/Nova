@@ -1,4 +1,4 @@
-import { Home, Box, Tag, ShoppingCart, Settings } from "lucide-react";
+import { Home, Box, Tag, ShoppingCart, Settings, Key } from "lucide-react";
 
 const PREFIX = "/admin";
 export const MAX_FILES = 10;
@@ -23,6 +23,11 @@ export const sidebarRoutes = [
     label: "Category",
     path: `${PREFIX}/categories`,
     icon: Tag,
+  },
+  {
+    label: "Role & Permission",
+    path: `${PREFIX}/roles`,
+    icon: Key,
   },
   {
     label: "Order",
