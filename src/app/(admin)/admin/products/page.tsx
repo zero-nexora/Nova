@@ -7,6 +7,8 @@ import { ProductView } from "./_components/product-view";
 import type { SearchParams } from "nuqs/server";
 import { loaderProductFilters } from "./hooks/products/product-filters";
 import { cleanProductFilters } from "@/lib/utils";
+import { Suspense } from "react";
+import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 
 export const metadata: Metadata = {
   title: "Product Management | Admin Dashboard",
@@ -21,7 +23,6 @@ export const metadata: Metadata = {
   ],
 };
 
-
 interface ProductPageProps {
   searchParams: Promise<SearchParams>;
 }
@@ -31,7 +32,7 @@ const ProductPage = async ({ searchParams }: ProductPageProps) => {
   const filters = await loaderProductFilters(searchParams);
   const normalizedFilters = cleanProductFilters(filters);
 
-  await queryClient.prefetchQuery(
+  void queryClient.prefetchQuery(
     trpc.admin.productsRouter.getAll.queryOptions({
       ...normalizedFilters,
       limit: DEFAULT_LIMIT,
@@ -41,11 +42,11 @@ const ProductPage = async ({ searchParams }: ProductPageProps) => {
   return (
     <main className="space-y-8">
       <PageHeader title="Products" description="Manage your product catalog." />
-      <section aria-label="Product management">
-        <HydrationBoundary state={dehydrate(queryClient)}>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <Suspense fallback={<DataTableSkeleton />}>
           <ProductView />
-        </HydrationBoundary>
-      </section>
+        </Suspense>
+      </HydrationBoundary>
     </main>
   );
 };

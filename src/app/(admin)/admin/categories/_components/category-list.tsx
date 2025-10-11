@@ -16,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { placeholderImage } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionMenu } from "@/components/global/action-menu";
-import { NotFound } from "@/components/global/not-found";
 import { UpdateCategoryForm } from "@/components/forms/category/update-category-form";
 import {
   Accordion,
@@ -31,6 +30,7 @@ import { useToggleCategoryDeleted } from "../hooks/categories/use-toggle-categor
 import { useDeleteImage } from "@/components/uploader/hooks/use-uploader";
 import { useDeleteCategoryMultiple } from "../hooks/categories/use-delete-category-multiple";
 import { useToggleCategoryDeletedMultiple } from "../hooks/categories/use-toggle-category-deleted-multiple";
+import { Empty } from "@/components/global/empty";
 
 interface CategoryListProps {
   categories: Category[];
@@ -185,6 +185,8 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     ]
   );
 
+  if (!filteredCategories.length) return <Empty />;
+
   return (
     <div className="space-y-6">
       <BulkActionsToolbar
@@ -209,7 +211,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
 
       {/* Enhanced Categories List */}
       <div className="space-y-3">
-        {filteredCategories.length === 0 && <NotFound />}
         <Accordion type="multiple" className="w-full">
           {filteredCategories.map((category) => {
             return (

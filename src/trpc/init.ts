@@ -82,7 +82,7 @@ export const adminOrEmployee = createRoleProcedure(
 function createRoleProcedure(allowedRoles: RoleName[], message: string) {
   return protectedProcedure.use(async ({ ctx, next }) => {
     const user = await ctx.db.users.findUnique({
-      where: { clerkId: ctx.userId },
+      where: { clerkId: ctx.clerkId },
       select: { roles: { select: { role: { select: { name: true } } } } },
     });
 

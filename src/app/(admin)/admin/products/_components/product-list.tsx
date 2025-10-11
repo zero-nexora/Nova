@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
-import { useCategoriesStore } from "@/stores/admin/categories-store";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { createProductColumns } from "./product-columns";
 import { ProductFiltersComponent } from "./product-filters";
@@ -19,10 +18,11 @@ import { useDeleteProduct } from "../hooks/products/use-delete-product";
 import { ProductTable } from "./product-table";
 import { Error } from "@/components/global/error";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
+import { useGetAllCategories } from "../../categories/hooks/categories/use-get-all-categories";
 
 export const ProductList = () => {
   const { filters } = useProductFilters();
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useGetAllCategories();
   const openConfirm = useConfirm((state) => state.open);
   const openModal = useModal((state) => state.open);
 
@@ -33,8 +33,7 @@ export const ProductList = () => {
   const { deleteProductMultipleAsync } = useDeleteProductMultiple();
   const { deleteImagesAsync } = useDeleteImages();
 
-  // Map isDeleted to boolean/undefined for API
-  const { products, pagination, isFetching, error } = useGetAllProducts({
+  const { products, pagination, error } = useGetAllProducts({
     page: filters.page,
     limit: filters.limit,
     search: filters.search || undefined,
@@ -188,7 +187,7 @@ export const ProductList = () => {
     onView: handleViewProduct,
   });
 
-  if (error) return <Error/>;
+  if (error) return <Error />;
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -200,7 +199,6 @@ export const ProductList = () => {
         products={products}
         columns={columns}
         pagination={pagination}
-        isFetching={isFetching}
         onBulkDelete={handleBulkDelete}
         onBulkToggle={handleBulkToggle}
       />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
 import { ProductFilters } from "./use-product-fillters";
 import { cleanProductFilters } from "@/lib/utils";
 import { useMemo } from "react";
@@ -12,7 +12,7 @@ export function useGetAllProducts(params: ProductFilters) {
 
   const normalizedParams = useMemo(() => cleanProductFilters(params), [params]);
 
-  const { data, error, isPending, isFetching } = useQuery(
+  const { data, error } = useSuspenseQuery(
     trpc.admin.productsRouter.getAll.queryOptions(
       {
         ...normalizedParams,
@@ -27,8 +27,6 @@ export function useGetAllProducts(params: ProductFilters) {
   return {
     products: data?.products ?? [],
     pagination: data?.pagination ?? null,
-    isPending,
-    isFetching,
     error,
   };
 }

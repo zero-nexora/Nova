@@ -24,7 +24,6 @@ import { Separator } from "@/components/ui/separator";
 import { Download, Trash2 } from "lucide-react";
 import { Pagination, Product } from "@/queries/admin/products/types";
 import { useRouter, usePathname } from "next/navigation";
-import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 import { NotFound } from "@/components/global/not-found";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
 
@@ -32,7 +31,6 @@ interface ProductTableProps {
   products: Product[];
   columns: ColumnDef<Product>[];
   pagination: Pagination | null;
-  isFetching: boolean;
   onBulkDelete?: () => Promise<void>;
   onBulkToggle?: () => Promise<void>;
 }
@@ -41,7 +39,6 @@ export const ProductTable = ({
   products,
   columns,
   pagination,
-  isFetching,
   onBulkDelete,
   onBulkToggle,
 }: ProductTableProps) => {
@@ -179,9 +176,7 @@ export const ProductTable = ({
               ))}
             </TableHeader>
             <TableBody>
-              {isFetching ? (
-                <DataTableSkeleton columnCount={columns.length} />
-              ) : table.getRowModel().rows?.length ? (
+              {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
