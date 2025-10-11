@@ -5,6 +5,7 @@ import { useConfirm } from "@/stores/confirm-store";
 import { useCartStore } from "@/stores/client/carts-store";
 import { Cart } from "@/queries/client/carts/types";
 import { useClearCart } from "../hooks/use-clear-cart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CartHeaderProps {
   cart: Cart;
@@ -52,6 +53,18 @@ export const CartHeader = ({
       >
         Clear Cart
       </Button>
+    </div>
+  );
+};
+
+export const CartHeaderSkeleton = () => {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-5 w-5" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      <Skeleton className="h-10 w-full sm:w-24" />
     </div>
   );
 };

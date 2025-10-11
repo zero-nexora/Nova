@@ -11,26 +11,17 @@ interface CategoryBannerProps {
 }
 
 export const CategoryBanner = ({ slugCategory }: CategoryBannerProps) => {
-  const { categories, loading: isCategoriesLoading } = useCategoriesStore();
+  const { categories } = useCategoriesStore();
   const category = categories.find((cat) => cat.slug === slugCategory);
 
-  if (isCategoriesLoading) return <CategoryBannerSkeleton />;
-
-  if (!category) {
-    return (
-      <div className="text-center text-muted-foreground py-4">
-        Category not found
-      </div>
-    );
-  }
+  if (!category) return;
 
   return (
-    <div className="container mx-auto px-4 py-8 mt-4 flex flex-col gap-6">
+    <div className="container mx-auto flex flex-col gap-6 mb-8">
       <h1 className="text-3xl sm:text-4xl font-bold">{category.name}</h1>
       <Card>
         <CardContent className="p-0">
           <div className="relative h-64 sm:h-80 md:h-96">
-            {/* Main Banner Image */}
             <Image
               src={category.image_url || placeholderImage}
               alt={category.name}
@@ -67,22 +58,17 @@ export const CategoryBanner = ({ slugCategory }: CategoryBannerProps) => {
 
 export const CategoryBannerSkeleton = () => {
   return (
-    <div className="container mx-auto px-4 py-8 mt-4 flex flex-col gap-6">
-      {/* Title Skeleton */}
+    <div className="container mx-auto flex flex-col gap-6 mb-8">
       <Skeleton className="h-9 w-64 sm:w-80 mx-auto sm:mx-0" />
-
       <Card>
         <CardContent className="p-0">
           <div className="relative h-64 sm:h-80 md:h-96">
-            {/* Main Banner Image Skeleton */}
             <Skeleton className="w-full h-full" />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center p-6 space-y-4">
-                {/* Small Image Skeleton */}
                 <div className="flex justify-center">
                   <Skeleton className="w-16 h-16 sm:w-20 sm:h-20 rounded-full" />
                 </div>
-                {/* Description Skeleton */}
                 <Skeleton className="h-4 w-64 sm:w-80 mx-auto" />
               </div>
             </div>

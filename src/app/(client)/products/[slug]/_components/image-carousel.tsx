@@ -43,12 +43,13 @@ export const ImageCarousel = ({
     });
   }, [api]);
 
+  if (isLoading) return <ImageCarouselSkeleton />;
+
   return (
     <div className="relative w-full">
-      {/* gradient trái */}
       <div
         className={cn(
-          "absolute left-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-white/50 to-transparent pointer-events-none",
+          "absolute left-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-white/90 to-transparent pointer-events-none",
           current === 1 && "hidden"
         )}
       />
@@ -61,31 +62,23 @@ export const ImageCarousel = ({
         className="w-full px-12"
       >
         <CarouselContent className="-ml-3">
-          {isLoading &&
-            Array.from({ length: 6 }).map((_, index) => (
-              <CarouselItem key={index} className="pl-3 basis-auto">
-                <Skeleton className="w-[120px] h-[80px] rounded-lg" />
-              </CarouselItem>
-            ))}
-
-          {!isLoading &&
-            images?.map((img, index) => (
-              <CarouselItem
-                key={img.id}
-                className="pl-3 basis-auto cursor-pointer"
-                onClick={() => onSelect?.(index)}
-                onMouseEnter={() => onSelect?.(index)}
-              >
-                <div className="relative w-[120px] h-[80px] rounded-lg overflow-hidden border">
-                  <Image
-                    src={img.image_url}
-                    alt={img.public_id}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </CarouselItem>
-            ))}
+          {images?.map((img, index) => (
+            <CarouselItem
+              key={img.id}
+              className="pl-3 basis-auto cursor-pointer"
+              onClick={() => onSelect?.(index)}
+              onMouseEnter={() => onSelect?.(index)}
+            >
+              <div className="relative w-[120px] h-[80px] rounded-lg overflow-hidden border">
+                <Image
+                  src={img.image_url}
+                  alt={img.public_id}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </CarouselItem>
+          ))}
         </CarouselContent>
         <CarouselPrevious className="left-0 z-20" />
         <CarouselNext className="right-0 z-20" />
@@ -93,10 +86,22 @@ export const ImageCarousel = ({
 
       <div
         className={cn(
-          "absolute right-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-white/50 to-transparent pointer-events-none",
+          "absolute right-12 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-white/90 to-transparent pointer-events-none",
           current === count && "hidden"
         )}
       />
     </div>
+  );
+};
+
+const ImageCarouselSkeleton = () => {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <CarouselItem key={index} className="pl-3 basis-auto">
+          <Skeleton className="w-[120px] h-[80px] rounded-lg" />
+        </CarouselItem>
+      ))}
+    </>
   );
 };

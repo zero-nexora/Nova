@@ -1,11 +1,17 @@
-import { getQueryClient, trpc } from "@/trpc/server";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import type { SearchParams } from "nuqs/server";
+import { Suspense } from "react";
 import { normalizeFilters } from "@/lib/utils";
+import type { SearchParams } from "nuqs/server";
 import { DEFAULT_LIMIT } from "@/lib/constants";
-import { loaderProductFilters } from "@/app/(client)/hooks/products/product-filters";
-import { ProductSection } from "@/app/(client)/_components/product-section";
+import { getQueryClient, trpc } from "@/trpc/server";
 import { SubcategoryBanner } from "./_components/subcategory-banner";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { loaderProductFilters } from "@/app/(client)/hooks/products/product-filters";
+import {
+  ProductSection,
+  ProductSectionSkeleton,
+} from "@/app/(client)/_components/product-section";
+
+export const dynamic = "force-dynamic";
 
 interface CategoriesPageProps {
   params: Promise<{ slugCategory: string; slugSubcategory: string }>;
@@ -26,7 +32,7 @@ const CategoriesPage = async ({
     slugSubcategories: [slugSubcategory],
   });
 
-  await queryClient.prefetchInfiniteQuery(
+  void queryClient.prefetchInfiniteQuery(
     trpc.client.productsRouterClient.getAll.infiniteQueryOptions({
       ...normalizedFilters,
       limit: DEFAULT_LIMIT,
@@ -34,15 +40,20 @@ const CategoriesPage = async ({
   );
 
   return (
-    <main className="min-h-screen">
-      <SubcategoryBanner slugCategory={slugCategory} slugSubcategory={slugSubcategory} />
+    <main>
+      <SubcategoryBanner
+        slugCategory={slugCategory}
+        slugSubcategory={slugSubcategory}
+      />
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <ProductSection
-          title="Our Products"
-          description="Discover our curated selection of products in this subcategory. Find the perfect items that match your style and needs."
-          slugCategories={[slugCategory]}
-          slugSubcategories={[slugSubcategory]}
-        />
+        <Suspense fallback={<ProductSectionSkeleton />}>
+          <ProductSection
+            title="Our Products"
+            description="Discover our curated selection of products in this subcategory. Find the perfect items that match your style and needs."
+            slugCategories={[slugCategory]}
+            slugSubcategories={[slugSubcategory]}
+          />
+        </Suspense>
       </HydrationBoundary>
     </main>
   );

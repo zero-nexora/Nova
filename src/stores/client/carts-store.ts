@@ -3,32 +3,24 @@ import { create } from "zustand";
 
 interface CartState {
   cart: Cart | null;
-  loading: boolean;
-  error: string | null;
   setCart: (cart: Cart) => void;
   addToCart: (newItem: CartItem) => void;
   updateCartItemQuantity: (cartItemId: string, quantity: number) => void;
   rollbackCartItemQuantity: (cartItemId: string, quantity: number) => void; // 🔹 mới thêm
   deleteCartItem: (cartItemId: string) => void;
   clearCart: () => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
 }
 
 export const useCartStore = create<CartState>((set) => ({
   cart: null,
-  loading: false,
-  error: null,
 
-  setCart: (cart) => set({ cart, loading: false, error: null }),
+  setCart: (cart) => set({ cart }),
 
   addToCart: (newItem) =>
     set((state) => {
       if (!state.cart) {
         return {
           cart: null,
-          loading: false,
-          error: null,
         };
       }
 
@@ -49,8 +41,6 @@ export const useCartStore = create<CartState>((set) => ({
                 : item
             ),
           },
-          loading: false,
-          error: null,
         };
       }
 
@@ -59,8 +49,6 @@ export const useCartStore = create<CartState>((set) => ({
           ...state.cart,
           items: [...state.cart.items, newItem],
         },
-        loading: false,
-        error: null,
       };
     }),
 
@@ -74,8 +62,6 @@ export const useCartStore = create<CartState>((set) => ({
             ),
           }
         : state.cart,
-      loading: false,
-      error: null,
     })),
 
   rollbackCartItemQuantity: (cartItemId, quantity) =>
@@ -88,8 +74,6 @@ export const useCartStore = create<CartState>((set) => ({
             ),
           }
         : state.cart,
-      loading: false,
-      error: null,
     })),
 
   deleteCartItem: (cartItemId) =>
@@ -100,13 +84,7 @@ export const useCartStore = create<CartState>((set) => ({
             items: state.cart.items.filter((item) => item.id !== cartItemId),
           }
         : state.cart,
-      loading: false,
-      error: null,
     })),
 
-  clearCart: () => set({ cart: null, loading: false, error: null }),
-
-  setLoading: (loading) => set({ loading }),
-
-  setError: (error) => set({ error }),
+  clearCart: () => set({ cart: null }),
 }));

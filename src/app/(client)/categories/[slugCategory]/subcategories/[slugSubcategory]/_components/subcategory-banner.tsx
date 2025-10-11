@@ -15,31 +15,24 @@ export const SubcategoryBanner = ({
   slugCategory,
   slugSubcategory,
 }: SubcategoryBannerProps) => {
-  const { categories, loading: isSubcategoriesLoading } = useCategoriesStore();
+  const { categories } = useCategoriesStore();
   const category = categories.find((cat) => cat.slug === slugCategory);
   const subcategory = category?.subcategories.find(
     (sub) => sub.slug === slugSubcategory
   );
 
-  if (isSubcategoriesLoading) return <SubcategoryBannerSkeleton />;
-
-  if (!category || !subcategory) {
-    return (
-      <div className="text-center text-muted-foreground py-4">
-        Category or Subcategory not found
-      </div>
-    );
-  }
+  if (!category || !subcategory) return;
 
   return (
-    <div className="container mx-auto px-4 py-8 mt-4 flex flex-col gap-6">
+    <div className="container mx-auto flex flex-col gap-6 mb-8">
       <h1 className="text-3xl sm:text-4xl font-bold">
-        {category?.name} <span className="text-muted-foreground font-medium">/</span> {subcategory.name}
+        {category?.name}{" "}
+        <span className="text-muted-foreground font-medium">/</span>{" "}
+        {subcategory.name}
       </h1>
       <Card>
         <CardContent className="p-0">
           <div className="relative h-64 sm:h-80 md:h-96">
-            {/* Main Banner Image */}
             <Image
               src={subcategory.image_url || placeholderImage}
               alt={subcategory.name}
@@ -76,22 +69,18 @@ export const SubcategoryBanner = ({
 
 export const SubcategoryBannerSkeleton = () => {
   return (
-    <div className="container mx-auto px-4 py-8 mt-4 flex flex-col gap-6">
-      {/* Title Skeleton */}
+    <div className="container mx-auto flex flex-col gap-6 mb-8">
       <Skeleton className="h-9 w-64 sm:w-80 mx-auto sm:mx-0" />
 
       <Card>
         <CardContent className="p-0">
           <div className="relative h-64 sm:h-80 md:h-96">
-            {/* Main Banner Image Skeleton */}
             <Skeleton className="w-full h-full" />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center p-6 space-y-4">
-                {/* Small Image Skeleton */}
                 <div className="flex justify-center">
                   <Skeleton className="w-16 h-16 sm:w-20 sm:h-20 rounded-full" />
                 </div>
-                {/* Description Skeleton */}
                 <Skeleton className="h-4 w-64 sm:w-80 mx-auto" />
               </div>
             </div>

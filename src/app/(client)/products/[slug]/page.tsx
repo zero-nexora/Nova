@@ -1,11 +1,20 @@
 import { getQueryClient, trpc } from "@/trpc/server";
-import { ProductDetail } from "./_components/product-detail";
-import { ProductSection } from "../../_components/product-section";
+import {
+  ProductDetail,
+  ProductDetailSkeleton,
+} from "./_components/product-detail";
+import {
+  ProductSection,
+  ProductSectionSkeleton,
+} from "../../_components/product-section";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { loaderProductFilters } from "../../hooks/products/product-filters";
 import { normalizeFilters } from "@/lib/utils";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 import type { SearchParams } from "nuqs/server";
+import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
 
 interface ProductDetailPageProps {
   searchParams: Promise<SearchParams>;
@@ -23,7 +32,7 @@ const ProductDetailPage = async ({
     ...filters,
   });
 
-  await Promise.all([
+  void Promise.all([
     queryClient.prefetchQuery(
       trpc.client.productsRouterClient.getBySlug.queryOptions({ slug })
     ),
@@ -36,15 +45,26 @@ const ProductDetailPage = async ({
   ]);
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <ProductDetail slug={slug} />
-      <ProductSection
-        excludeSlugs={[slug]}
-        title="You may also like"
-        description="Discover more products that might interest you."
-      />
-    </HydrationBoundary>
+    <main>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <Suspense fallback={<ProductDetailPageSkeleton />}>
+          <ProductDetail slug={slug} />
+          <ProductSection
+            excludeSlugs={[slug]}
+            title="You may also like"
+            description="Discover more products that might interest you."
+          />
+        </Suspense>
+      </HydrationBoundary>
+    </main>
   );
 };
 
 export default ProductDetailPage;
+
+const ProductDetailPageSkeleton = () => (
+  <>
+    <ProductDetailSkeleton />
+    <ProductSectionSkeleton />
+  </>
+);

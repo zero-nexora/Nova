@@ -1,18 +1,25 @@
 import { getQueryClient, trpc } from "@/trpc/server";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { CartView } from "./_components/cart-view";
+import { CartView, CartViewSkeleton } from "./_components/cart-view";
+import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
 
 const CartPage = async () => {
   const queryClient = getQueryClient();
 
-  await queryClient.prefetchQuery(
+  void queryClient.prefetchQuery(
     trpc.client.cartsRouter.getCart.queryOptions()
   );
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <CartView />
-    </HydrationBoundary>
+    <main>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <Suspense fallback={<CartViewSkeleton />}>
+          <CartView />
+        </Suspense>
+      </HydrationBoundary>
+    </main>
   );
 };
 

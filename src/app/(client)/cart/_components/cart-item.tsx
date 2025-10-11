@@ -12,6 +12,7 @@ import { useUpdateCartItem } from "../hooks/use-update-cart-item";
 import { useDeleteCartItem } from "../hooks/use-delete-cart-item";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CartItemProps {
   item: CartItemType;
@@ -46,7 +47,7 @@ export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
     if (newQuantity < 1 || newQuantity > item.productVariant.stock_quantity)
       return;
 
-    setLocalQuantity(newQuantity); // Update local state immediately
+    setLocalQuantity(newQuantity);
   };
 
   const handleDeleteItem = () => {
@@ -141,5 +142,26 @@ export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+export const CartItemSkeleton = () => {
+  return (
+    <div className="border shadow-sm rounded-md p-2">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-5 w-5" />
+        <Skeleton className="w-20 h-20 rounded-md" />
+        <div className="flex-1 flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

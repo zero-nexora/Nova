@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ProductFilters } from "./use-product-fillters";
 import { normalizeFilters } from "@/lib/utils";
@@ -11,19 +11,13 @@ export function useInfiniteProducts(params: ProductFilters) {
 
   const normalizedParams = useMemo(() => normalizeFilters(params), [params]);
 
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isPending,
-  } = useInfiniteQuery(
-    trpc.client.productsRouterClient.getAll.infiniteQueryOptions(
-      normalizedParams,
-      { getNextPageParam: (lastPage) => lastPage.nextCursor }
-    )
-  );
+  const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useSuspenseInfiniteQuery(
+      trpc.client.productsRouterClient.getAll.infiniteQueryOptions(
+        normalizedParams,
+        { getNextPageParam: (lastPage) => lastPage.nextCursor }
+      )
+    );
 
   const products = useMemo(
     () => data?.pages.flatMap((p) => p.products) ?? [],
@@ -35,7 +29,6 @@ export function useInfiniteProducts(params: ProductFilters) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isPending,
     error,
   };
 }

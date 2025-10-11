@@ -1,10 +1,16 @@
-import { getQueryClient, trpc } from "@/trpc/server";
-import { DEFAULT_LIMIT } from "@/lib/constants";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { ProductSection } from "./_components/product-section";
-import { loaderProductFilters } from "./hooks/products/product-filters";
-import type { SearchParams } from "nuqs/server";
+import { Suspense } from "react";
 import { normalizeFilters } from "@/lib/utils";
+import type { SearchParams } from "nuqs/server";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import { getQueryClient, trpc } from "@/trpc/server";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { loaderProductFilters } from "./hooks/products/product-filters";
+import {
+  ProductSection,
+  ProductSectionSkeleton,
+} from "./_components/product-section";
+
+export const dynamic = "force-dynamic";
 
 interface HomePageProps {
   searchParams: Promise<SearchParams>;
@@ -15,7 +21,7 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
   const filters = await loaderProductFilters(searchParams);
   const normalizedFilters = normalizeFilters(filters);
 
-  await queryClient.prefetchInfiniteQuery(
+  void queryClient.prefetchInfiniteQuery(
     trpc.client.productsRouterClient.getAll.infiniteQueryOptions({
       ...normalizedFilters,
       limit: DEFAULT_LIMIT,
@@ -23,9 +29,11 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
   );
 
   return (
-    <main className="min-h-screen">
+    <main>
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <ProductSection />
+        <Suspense fallback={<ProductSectionSkeleton />}>
+          <ProductSection />
+        </Suspense>
       </HydrationBoundary>
     </main>
   );

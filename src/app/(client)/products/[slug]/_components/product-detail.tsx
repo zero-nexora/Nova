@@ -48,24 +48,13 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const { toggleWishlistAsync, isPending: wishlistIsPending } =
     useToggleWishlist();
 
-  const {
-    product,
-    isPending: productIsPending,
-    error,
-  } = useGetProductBySlug(slug);
+  const { product, error } = useGetProductBySlug(slug);
+  
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedAttributes, setSelectedAttributes] = useState<
     Record<string, string>
   >({});
-
-  if (productIsPending) {
-    return <ProductDetailSkeleton />;
-  }
-
-  if (error) return <Error />;
-
-  if (!product) return <NotFound />;
 
   const handleToggleWishlist = async () =>
     await toggleWishlistAsync({ productId: product.id });
@@ -238,6 +227,10 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     if (!currentVariant) return;
     addToCartAsync({ productVariantId: currentVariant.id, quantity });
   };
+
+  if (error) return <Error />;
+
+  if (!product) return <NotFound />;
 
   return (
     <div>
@@ -506,9 +499,8 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
 export const ProductDetailSkeleton = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Left side - Images */}
         <div className="space-y-4">
           <Card className="overflow-hidden">
             <CardContent className="p-0">
@@ -518,7 +510,6 @@ export const ProductDetailSkeleton = () => {
           <ImageCarousel isLoading />
         </div>
 
-        {/* Right side - Product Info */}
         <div className="space-y-6">
           <Skeleton className="h-4 w-1/2" />
 

@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { Home, Lock, LogIn } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
-import { Home, LogIn, ShieldAlert } from "lucide-react";
 
-export const Unauthorized = () => (
+export const Forbidden = () => (
   <div className="container mx-auto px-4 py-8">
     <Card className="max-w-md mx-auto">
       <CardContent className="flex flex-col items-center py-12">
-        <ShieldAlert className="w-12 h-12 mb-4" />
+        <Lock className="w-12 h-12 mb-4" />
         <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          Please sign in to access this page.
+          You do not have permission to access this page. Please contact the
+          administrator.
         </p>
         <div className="flex gap-3">
           <Link href={"/"}>
@@ -22,10 +23,10 @@ export const Unauthorized = () => (
               </span>
             </Button>
           </Link>
-          <Link href={"/sign-in"}>
+          <Link href={"/contact-admin"}>
             <Button>
               <span className="flex items-center gap-2">
-                <LogIn className="w-4 h-4" /> Sign In
+                <LogIn className="w-4 h-4" /> Contact Admin
               </span>
             </Button>
           </Link>

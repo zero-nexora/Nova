@@ -55,7 +55,7 @@ type SortOrderValue = (typeof SORT_ORDER_VALUES)[number];
 
 export default function ProductFilter({ onClose }: ProductFilterProps) {
   const { filters, setFilters, resetFilters } = useProductFilters();
-  const { categories, loading: isLoading } = useCategoriesStore();
+  const { categories } = useCategoriesStore();
 
   const [tempFilters, setTempFilters] = useState({
     sortBy: filters.sortBy,
@@ -129,10 +129,6 @@ export default function ProductFilter({ onClose }: ProductFilterProps) {
         category.subcategories?.some((sub) => sub.slug === subcategorySlug)
     );
   };
-
-  if (isLoading) {
-    return <ProductFilterSkeleton />;
-  }
 
   return (
     <div className="flex flex-col h-full">

@@ -1,11 +1,17 @@
-import { getQueryClient, trpc } from "@/trpc/server";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { ProductSection } from "../../_components/product-section";
-import { loaderProductFilters } from "../../hooks/products/product-filters";
-import type { SearchParams } from "nuqs/server";
+import { Suspense } from "react";
 import { normalizeFilters } from "@/lib/utils";
 import { DEFAULT_LIMIT } from "@/lib/constants";
+import type { SearchParams } from "nuqs/server";
+import { getQueryClient, trpc } from "@/trpc/server";
 import { CategoryBanner } from "./_components/category-banner";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { loaderProductFilters } from "../../hooks/products/product-filters";
+import {
+  ProductSection,
+  ProductSectionSkeleton,
+} from "../../_components/product-section";
+
+export const dynamic = "force-dynamic";
 
 interface CategoriesPageProps {
   params: Promise<{ slugCategory: string }>;
@@ -25,7 +31,7 @@ const CategoriesPage = async ({
     slugCategories: [slugCategory],
   });
 
-  await queryClient.prefetchInfiniteQuery(
+  void queryClient.prefetchInfiniteQuery(
     trpc.client.productsRouterClient.getAll.infiniteQueryOptions({
       ...normalizedFilters,
       limit: DEFAULT_LIMIT,
@@ -33,14 +39,16 @@ const CategoriesPage = async ({
   );
 
   return (
-    <main className="min-h-screen">
+    <main>
       <CategoryBanner slugCategory={slugCategory} />
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <ProductSection
-          title="Our Products"
-          description="Browse through our wide range of categories and discover the products you love."
-          slugCategories={[slugCategory]}
-        />
+        <Suspense fallback={<ProductSectionSkeleton />}>
+          <ProductSection
+            title="Our Products"
+            description="Browse through our wide range of categories and discover the products you love."
+            slugCategories={[slugCategory]}
+          />
+        </Suspense>
       </HydrationBoundary>
     </main>
   );
