@@ -7,6 +7,8 @@ import {
   CategorySectionSkeleton,
 } from "./_components/category-section";
 
+export const dynamic = "force-dynamic";
+
 interface LayoutHomeProps {
   children: React.ReactNode;
 }

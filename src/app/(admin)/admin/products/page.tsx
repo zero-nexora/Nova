@@ -1,14 +1,17 @@
 import { Metadata } from "next";
-import { getQueryClient, trpc } from "@/trpc/server";
-import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
-import { PageHeader } from "@/components/global/page-header";
-import { DEFAULT_LIMIT } from "@/lib/constants";
-import { ProductView } from "./_components/product-view";
-import type { SearchParams } from "nuqs/server";
-import { loaderProductFilters } from "./hooks/products/product-filters";
-import { cleanProductFilters } from "@/lib/utils";
 import { Suspense } from "react";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import type { SearchParams } from "nuqs/server";
+import { cleanProductFilters } from "@/lib/utils";
+import { RoleGuardProvider } from "@/providers/role-guard-provider";
+import { getQueryClient, trpc } from "@/trpc/server";
+import { ProductView } from "./_components/product-view";
+import { PageHeader } from "@/components/global/page-header";
+import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
+import { loaderProductFilters } from "./hooks/products/product-filters";
 import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Product Management | Admin Dashboard",
@@ -41,12 +44,17 @@ const ProductPage = async ({ searchParams }: ProductPageProps) => {
 
   return (
     <main className="space-y-8">
-      <PageHeader title="Products" description="Manage your product catalog." />
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <Suspense fallback={<DataTableSkeleton />}>
-          <ProductView />
-        </Suspense>
-      </HydrationBoundary>
+      <RoleGuardProvider check="adminOrManageProduct">
+        <PageHeader
+          title="Products"
+          description="Manage your product catalog."
+        />
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <Suspense fallback={<DataTableSkeleton />}>
+            <ProductView />
+          </Suspense>
+        </HydrationBoundary>
+      </RoleGuardProvider>
     </main>
   );
 };

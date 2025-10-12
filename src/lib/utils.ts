@@ -3,6 +3,9 @@ import { clsx, type ClassValue } from "clsx";
 import { FormatUSDOptions } from "./types";
 import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillters";
 import { ProductFilters as ProductQueryParams } from "@/app/(admin)/admin/products/hooks/products/use-product-fillters";
+import { RoleName } from "@prisma/client";
+import { User } from "@/queries/client/users/types";
+import { SidebarRoute, sidebarRoutes } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -102,4 +105,80 @@ export function cleanProductFilters(
     priceMin: params.priceMin === 0 ? undefined : params.priceMin,
     priceMax: params.priceMax === 0 ? undefined : params.priceMax,
   };
+}
+
+export function hasAnyRole(user: User): boolean {
+  return user.roles.some((role) =>
+    Object.values(RoleName).includes(role.role.name)
+  );
+}
+
+export function isAdmin(user: User): boolean {
+  return user.roles.some((role) => role.role.name === RoleName.ADMIN) ?? false;
+}
+
+export function isAdminOrManageProduct(user: User): boolean {
+  return (
+    user.roles.some(
+      (role) =>
+        role.role.name === RoleName.ADMIN ||
+        role.role.name === RoleName.MANAGE_PRODUCT
+    ) ?? false
+  );
+}
+
+export function isAdminOrManageCategory(user: User): boolean {
+  return (
+    user.roles.some(
+      (r) =>
+        r.role.name === RoleName.ADMIN ||
+        r.role.name === RoleName.MANAGE_CATEGORY
+    ) ?? false
+  );
+}
+
+export function isAdminOrManageStaff(user: User): boolean {
+  return (
+    user.roles.some(
+      (role) =>
+        role.role.name === RoleName.ADMIN ||
+        role.role.name === RoleName.MANAGE_STAFF
+    ) ?? false
+  );
+}
+
+export function isAdminOrManageOrder(user: User): boolean {
+  return (
+    user.roles.some(
+      (role) =>
+        role.role.name === RoleName.ADMIN ||
+        role.role.name === RoleName.MANAGE_ORDER
+    ) ?? false
+  );
+}
+
+export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
+  if (!user) return [];
+  return sidebarRoutes.filter((route) => {
+    switch (route.label) {
+      case "Dashboard":
+        return isAdmin(user);
+      case "Product":
+        return isAdminOrManageProduct(user);
+
+      case "Category":
+        return isAdminOrManageCategory(user);
+
+      case "Role & Permission":
+        return isAdminOrManageStaff(user);
+
+      case "Order":
+        return isAdminOrManageOrder(user);
+
+      case "Setting":
+        return hasAnyRole(user);
+      default:
+        return false;
+    }
+  });
 }

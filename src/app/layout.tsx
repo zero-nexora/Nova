@@ -8,6 +8,11 @@ import { TRPCReactProvider } from "@/trpc/client";
 import { ModalProvider } from "@/providers/modal-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { UserProvider } from "@/providers/user-provider";
+import { Suspense } from "react";
+import Loading from "./loading";
+
+export const dynamic = "force-dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,6 +62,9 @@ export default function RootLayout({
             <TRPCReactProvider>
               <NuqsAdapter>
                 {children}
+                <Suspense fallback={<Loading />}>
+                  <UserProvider />
+                </Suspense>
                 <Toaster />
                 <ModalProvider />
               </NuqsAdapter>

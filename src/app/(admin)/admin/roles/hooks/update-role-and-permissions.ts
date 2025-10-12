@@ -1,17 +1,21 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export function useUpdateRoleAndPermissions() {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const { mutateAsync, mutate, error, isPending } = useMutation(
     trpc.admin.rolesAndPermissionsRouter.updateRoleAndPermissions.mutationOptions(
       {
         onSuccess: () => {
           toast.success("Save successfully");
+          queryClient.invalidateQueries(
+            trpc.admin.rolesAndPermissionsRouter.getAllRoleAndPermissions.queryOptions()
+          );
         },
         onError: (error) => {
           console.log(error);

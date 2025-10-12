@@ -1,5 +1,7 @@
 "use client";
 
+import { hasAnyRole } from "@/lib/utils";
+import { useUserStore } from "@/stores/client/user-store";
 import { UserButton } from "@clerk/nextjs";
 import { LayoutDashboard, User, Home } from "lucide-react";
 
@@ -10,6 +12,10 @@ interface UserButtonCustomProps {
 export const UserButtonCustom = ({
   isAdminPage = false,
 }: UserButtonCustomProps) => {
+  const { user } = useUserStore();
+
+  if (!user) return null;
+
   return (
     <>
       <UserButton>
@@ -22,7 +28,7 @@ export const UserButtonCustom = ({
             />
           )}
 
-          {!isAdminPage && (
+          {!isAdminPage && hasAnyRole(user) && (
             <UserButton.Link
               label="Dashboard"
               href="/admin/dashboard"

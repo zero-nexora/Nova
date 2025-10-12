@@ -2,12 +2,10 @@
 
 import clsx from "clsx";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, restrictSidebarRoutes } from "@/lib/utils";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { sidebarRoutes } from "@/lib/constants";
 import { useEffect, useMemo, useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -25,6 +23,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Logo } from "@/components/global/logo";
+import { useUserStore } from "@/stores/client/user-store";
 
 interface MenuOptionsProps {
   defaultOpen: boolean;
@@ -34,6 +33,9 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
+  const user = useUserStore((state) => state.user);
+
+  const filteredRoutes = useMemo(() => restrictSidebarRoutes(user), [user]);
 
   const openState = useMemo(
     () => (defaultOpen ? { open: true } : {}),
@@ -52,7 +54,6 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen} modal={false} {...openState}>
-      {/* Nút mở menu mobile */}
       <SheetTrigger
         asChild
         className="absolute left-4 top-4 z-[100] md:hidden flex"
@@ -62,7 +63,6 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
         </Button>
       </SheetTrigger>
 
-      {/* Sidebar content */}
       <SheetContent
         side="left"
         showX={!defaultOpen}
@@ -74,14 +74,12 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
           }
         )}
       >
-        {/* Header */}
         <SheetHeader className="pb-4 border-b flex items-center">
           <SheetTitle className="text-xl font-bold tracking-tight">
             <Logo />
           </SheetTitle>
         </SheetHeader>
 
-        {/* Search & menu */}
         <div className="flex-1 overflow-y-auto py-4">
           <Command className="rounded-lg bg-background/60 shadow-sm">
             <CommandInput placeholder="Search menu..." className="h-10" />
@@ -91,7 +89,7 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
               </CommandEmpty>
 
               <CommandGroup heading="Navigation" className="px-2">
-                {sidebarRoutes.map((route) => {
+                {filteredRoutes.map((route) => {
                   const isActive = pathname === route.path;
 
                   return (

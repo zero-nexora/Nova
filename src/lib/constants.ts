@@ -8,7 +8,13 @@ export const DEFAULT_PAGE = 1;
 export const DEBOUNCEDSEARCH = 300;
 export const placeholderImage = "/placeholder.png";
 
-export const sidebarRoutes = [
+export interface SidebarRoute {
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export const sidebarRoutes: SidebarRoute[] = [
   {
     label: "Dashboard",
     path: `${PREFIX}/dashboard`,

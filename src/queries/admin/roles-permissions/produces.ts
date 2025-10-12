@@ -5,7 +5,6 @@ import { adminOrManageStaffProcedure, createTRPCRouter } from "@/trpc/init";
 export const rolesAndPermissionsRouter = createTRPCRouter({
   getAllRoleAndPermissions: adminOrManageStaffProcedure.query(
     async ({ ctx }): Promise<RolePermissionData> => {
-      // Fetch roles with their assigned permissions
       const roles = await ctx.db.roles.findMany({
         select: {
           id: true,
@@ -25,7 +24,6 @@ export const rolesAndPermissionsRouter = createTRPCRouter({
         },
       });
 
-      // Fetch all permissions
       const allPermissions = await ctx.db.permissions.findMany({
         select: {
           id: true,
@@ -34,7 +32,6 @@ export const rolesAndPermissionsRouter = createTRPCRouter({
         },
       });
 
-      // Group permissions by suffix
       const groupPermissionsBySuffix = (permissions: typeof allPermissions) => {
         const knownSuffixes = ["CATEGORY", "PRODUCT", "ORDER", "STAFF"];
         const grouped: { [key: string]: typeof allPermissions } = {};
@@ -49,12 +46,10 @@ export const rolesAndPermissionsRouter = createTRPCRouter({
           grouped[groupKey].push(permission);
         });
 
-        // Sort permissions within each group alphabetically by name
         Object.keys(grouped).forEach((key) => {
           grouped[key].sort((a, b) => a.name.localeCompare(b.name));
         });
 
-        // Sort groups by predefined order
         const sortedGroups = Object.keys(grouped)
           .sort((a, b) => {
             const order = ["CATEGORY", "PRODUCT", "ORDER", "STAFF", "UNKNOWN"];
@@ -68,7 +63,6 @@ export const rolesAndPermissionsRouter = createTRPCRouter({
         return sortedGroups;
       };
 
-      // Map roles with all permissions, including isAssigned status
       const rolesWithAllPermissions = roles.map((role) => ({
         id: role.id,
         name: role.name,
