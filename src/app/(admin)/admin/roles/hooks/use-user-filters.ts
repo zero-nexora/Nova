@@ -4,8 +4,6 @@ import { z } from "zod";
 import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
 import { useQueryStates, parseAsString, parseAsInteger } from "nuqs";
 
-export const isDeletedValues = ["true", "false", "all"] as const;
-
 export const GetUserByRoleSchema = z.object({
   roleId: z.string().uuid().optional(),
   search: z.string().optional(),
@@ -40,7 +38,7 @@ export const useUserRoleFilters = () => {
     key: K,
     value: UserRoleFilters[K]
   ) => {
-    setFilters({ [key]: value, ...(key !== "page" && { page: 1 }) });
+    setFilters({ [key]: value, ...(key !== "page" && { page: DEFAULT_PAGE }) });
   };
 
   return {

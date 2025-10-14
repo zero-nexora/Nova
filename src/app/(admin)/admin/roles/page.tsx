@@ -16,6 +16,7 @@ const RolesPage = async ({ searchParams }: ProductPageProps) => {
   const queryClient = getQueryClient();
   const filters = await loaderUserRoleFilters(searchParams);
   const normalizedFilters = cleanUserRoleFilters(filters);
+
   void queryClient.prefetchQuery(
     trpc.admin.rolesRouter.getUserByRole.queryOptions({
       ...normalizedFilters,
@@ -24,7 +25,7 @@ const RolesPage = async ({ searchParams }: ProductPageProps) => {
   );
 
   return (
-    <main className="space-y-8">
+    <main className="space-y-4">
       <RoleGuardProvider check="adminOrManageProduct">
         <PageHeader title="Roles" description="Manage your roles." />
         <HydrationBoundary state={dehydrate(queryClient)}>

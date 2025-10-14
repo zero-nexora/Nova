@@ -2,7 +2,7 @@
 
 import { cleanUserRoleFilters } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { UserRoleFilters } from "./use-user-filters";
 import { DEFAULT_LIMIT } from "@/lib/constants";
@@ -15,7 +15,7 @@ export function useGetUsers(params: UserRoleFilters) {
     [params]
   );
 
-  const { data, error, isPending } = useQuery(
+  const { data, error } = useSuspenseQuery(
     trpc.admin.rolesRouter.getUserByRole.queryOptions(
       {
         ...normalizedParams,
@@ -31,6 +31,5 @@ export function useGetUsers(params: UserRoleFilters) {
     users: data?.users,
     totalItem: data?.total,
     error,
-    isPending,
   };
 }

@@ -9,12 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Error } from "@/components/global/error";
-import { Loading } from "@/components/global/loading";
-import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 import { UserByRole } from "@/queries/admin/roles/types";
 import { ActionMenu } from "@/components/global/action-menu";
 import { useUserRoleFilters } from "../hooks/use-user-filters";
@@ -25,28 +23,30 @@ import { UpdateUserRoleForm } from "@/components/forms/role/update-user-role-for
 
 export const UserRolesTable = () => {
   const { filters, updateFilter } = useUserRoleFilters();
+  const { open } = useModal();
+  const { users, totalItem, error } = useGetUsers(filters);
 
-  const open = useModal((state) => state.open);
+  const totalPages = Math.ceil(totalItem / filters.limit);
+  const hasPreviousPage = filters.page > 1;
+  const hasNextPage = filters.page < totalPages;
 
-  const { users, totalItem, isPending, error } = useGetUsers(filters);
-
-  const totalPages = Math.ceil(totalItem || 0 / filters.limit);
+  const handlePageChange = (page: number) => {
+    updateFilter("page", page);
+  };
 
   const handleUpdateRoles = (user: UserByRole) => {
     open({
-      title: "",
-      description: "",
-      children: <UpdateUserRoleForm user={user} />
-    })
+      title: "Update User Roles",
+      description: `Modify the roles for ${user.email}`,
+      children: <UpdateUserRoleForm user={user} />,
+    });
   };
 
-  if (!users) return <Error />;
-  if (users.length === 0) return <Empty />;
+  if (users.length === 0 && !error) return <Empty />;
   if (error) return <Error />;
-  if (isPending) return <Loading />;
 
   return (
-    <div className="space-y-6 p-6 rounded-lg shadow">
+    <div className="space-y-4 rounded-lg shadow">
       <div className="border rounded-lg overflow-x-auto shadow-sm">
         <Table>
           <TableHeader>
@@ -84,44 +84,60 @@ export const UserRolesTable = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {users.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="py-4 text-center text-gray-500"
-                >
-                  No users found
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
       <div className="flex justify-between items-center">
-        <div>
-          Showing {users.length} of {totalItem} users
-        </div>
-        <div className="flex gap-2">
-          <Button
-            disabled={filters.page === 1}
-            onClick={() => updateFilter("page", filters.page - 1)}
-            className={cn(
-              filters.page === 1 && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            Previous
-          </Button>
-          <Button
-            disabled={filters.page === totalPages || totalItem === 0}
-            onClick={() => updateFilter("page", filters.page + 1)}
-            className={cn(
-              (filters.page === totalPages || totalItem === 0) &&
-                "opacity-50 cursor-not-allowed"
-            )}
-          >
-            Next
-          </Button>
-        </div>
+        {totalPages > 1 && (
+          <>
+            <Separator className="my-4" />
+            <div className="flex items-center justify-end">
+              <div className="flex items-center space-x-6 lg:space-x-8">
+                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                  Page {filters.page} of {totalPages}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePageChange(1)}
+                    disabled={!hasPreviousPage}
+                  >
+                    <span className="sr-only">Go to first page</span>
+                    <span>⟪</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePageChange(filters.page - 1)}
+                    disabled={!hasPreviousPage}
+                  >
+                    <span className="sr-only">Go to previous page</span>
+                    <span>⟨</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePageChange(filters.page + 1)}
+                    disabled={!hasNextPage}
+                  >
+                    <span className="sr-only">Go to next page</span>
+                    <span>⟩</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={!hasNextPage}
+                  >
+                    <span className="sr-only">Go to last page</span>
+                    <span>⟫</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -86,7 +86,6 @@ export const CreateCategoryForm = () => {
       close();
     } catch (error) {
       console.error("Error creating category:", error);
-      toast.error("Failed to create category. Please try again.");
     }
   };
 

@@ -85,7 +85,7 @@ export const PermissionsTable = () => {
   }
 
   return (
-    <div className="space-y-6 p-6 rounded-lg shadow">
+    <div className="space-y-6 rounded-lg shadow">
       <div className="flex justify-end items-center">
         <Button
           onClick={handleSaveChanges}

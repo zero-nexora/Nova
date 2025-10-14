@@ -15,6 +15,9 @@ interface LayoutAdminProps {
 
 const LayoutAdmin = async ({ children }: LayoutAdminProps) => {
   const { userId } = await auth();
+
+  if (!userId) return <Unauthorized />;
+
   const queryClient = getQueryClient();
 
   void Promise.all([
@@ -24,9 +27,10 @@ const LayoutAdmin = async ({ children }: LayoutAdminProps) => {
     queryClient.prefetchQuery(
       trpc.admin.productsRouter.getAllProductAttributes.queryOptions()
     ),
+    queryClient.prefetchQuery(
+      trpc.admin.permissionsRouter.getAllPermissions.queryOptions()
+    ),
   ]);
-
-  if (!userId) return <Unauthorized />;
 
   return (
     <main>

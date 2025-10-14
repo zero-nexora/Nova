@@ -3,8 +3,6 @@ import { CategoryView } from "./_components/category-view";
 import { PageHeader } from "@/components/global/page-header";
 import { RoleGuardProvider } from "@/providers/role-guard-provider";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "Category Management | Admin Dashboard",
   description:

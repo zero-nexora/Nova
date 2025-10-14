@@ -63,7 +63,7 @@ export const useProductFilters = () => {
     key: K,
     value: ProductFilters[K]
   ) => {
-    setFilters({ [key]: value });
+    setFilters({ [key]: value, ...(key !== "page" && { page: DEFAULT_PAGE }) });
   };
 
   return {
