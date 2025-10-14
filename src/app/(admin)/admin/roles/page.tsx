@@ -1,31 +1,34 @@
-import { Suspense } from "react";
+import { PageHeader } from "@/components/global/page-header";
 import { RoleGuardProvider } from "@/providers/role-guard-provider";
 import { getQueryClient, trpc } from "@/trpc/server";
-import { PageHeader } from "@/components/global/page-header";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import {
-  RolesAndPermissionsTable,
-} from "./_components/roles-and-permissions-table";
+import { loaderUserRoleFilters } from "./hooks/user-filters";
+import type { SearchParams } from "nuqs";
+import { cleanUserRoleFilters } from "@/lib/utils";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import { UserRoleView } from "./_components/user-role-view";
 
-export const dynamic = "force-dynamic";
+interface ProductPageProps {
+  searchParams: Promise<SearchParams>;
+}
 
-const RolesPage = () => {
+const RolesPage = async ({ searchParams }: ProductPageProps) => {
   const queryClient = getQueryClient();
+  const filters = await loaderUserRoleFilters(searchParams);
+  const normalizedFilters = cleanUserRoleFilters(filters);
   void queryClient.prefetchQuery(
-    trpc.admin.rolesAndPermissionsRouter.getAllRoleAndPermissions.queryOptions()
+    trpc.admin.rolesRouter.getUserByRole.queryOptions({
+      ...normalizedFilters,
+      limit: DEFAULT_LIMIT,
+    })
   );
 
   return (
-    <main className="flex flex-col gap-8">
-      <RoleGuardProvider check="adminOrManageStaff">
-        <PageHeader
-          title="Roles and Permissions"
-          description="Manage user roles and permissions."
-        />
+    <main className="space-y-8">
+      <RoleGuardProvider check="adminOrManageProduct">
+        <PageHeader title="Roles" description="Manage your roles." />
         <HydrationBoundary state={dehydrate(queryClient)}>
-          <Suspense fallback={<div>Loading...</div>}>
-            <RolesAndPermissionsTable />
-          </Suspense>
+          <UserRoleView />
         </HydrationBoundary>
       </RoleGuardProvider>
     </main>

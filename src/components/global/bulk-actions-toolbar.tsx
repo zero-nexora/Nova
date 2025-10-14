@@ -88,7 +88,6 @@ export const BulkActionsToolbar = ({
   if (!hasSelection) {
     return (
       <div className="space-y-4">
-        {/* Search and Filter Controls */}
         <div className="flex items-center gap-4 py-3 px-4 bg-muted/10 rounded-lg border">
           <div className="flex items-center gap-2 flex-1">
             <Search className="w-4 h-4 text-muted-foreground" />

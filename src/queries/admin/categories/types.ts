@@ -1,5 +1,31 @@
 import z from "zod";
 
+export interface Subcategory {
+  name: string;
+  id: string;
+  image_url: string | null;
+  created_at: Date;
+  updated_at: Date;
+  is_deleted: boolean;
+  deleted_at: Date | null;
+  slug: string;
+  category_id: string;
+  public_id: string | null;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image_url: string | null;
+  public_id: string | null;
+  created_at: Date;
+  updated_at: Date;
+  is_deleted: boolean;
+  deleted_at: Date | null;
+  subcategories: Subcategory[];
+}
+
 export const CreateCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   image_url: z.string().url("Invalid image URL format").optional().nullable(),

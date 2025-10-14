@@ -10,10 +10,6 @@ import { ImageUploader } from "../../uploader/image-uploader";
 import { ImagesPreview } from "../../uploader/images-preview";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import {
-  Subcategory,
-  useCategoriesStore,
-} from "@/stores/admin/categories-store";
-import {
   UpdateSubcategorySchema,
   UpdateSubcategoryType,
 } from "@/queries/admin/subcategories/types";
@@ -40,15 +36,16 @@ import {
   useUploadImage,
 } from "@/components/uploader/hooks/use-uploader";
 import { useUpdateSubcategory } from "@/app/(admin)/admin/categories/hooks/subcategories/use-update-subcategory";
+import { Subcategory } from "@/queries/admin/categories/types";
+import { useGetAllCategories } from "@/app/(admin)/admin/categories/hooks/categories/use-get-all-categories";
 
 interface UpdateSubcategoryFormProps {
   data: Subcategory;
 }
 
 export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
-  // States and hooks
   const { close } = useModal();
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useGetAllCategories();
   const [selectedImage, setSelectedImage] = useState<LocalImagePreview | null>(
     null
   );
@@ -155,14 +152,20 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
 
   const renderCategoryOptions = useCallback(() => {
     if (availableCategories.length === 0) {
-      return <div className="text-center p-2 rounded-md">No categories available</div>;
+      return (
+        <div className="text-center p-2 rounded-md">
+          No categories available
+        </div>
+      );
     }
 
-    return availableCategories.filter((category) => !category.is_deleted).map((category) => (
-      <SelectItem key={category.id} value={category.id.toString()}>
-        {category.name}
-      </SelectItem>
-    ));
+    return availableCategories
+      .filter((category) => !category.is_deleted)
+      .map((category) => (
+        <SelectItem key={category.id} value={category.id.toString()}>
+          {category.name}
+        </SelectItem>
+      ));
   }, [availableCategories]);
 
   const renderImageSection = useCallback(() => {

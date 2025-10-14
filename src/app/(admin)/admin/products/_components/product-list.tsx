@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
 import { toast } from "sonner";
+import { useCallback } from "react";
 import { createProductColumns } from "./product-columns";
 import { ProductFiltersComponent } from "./product-filters";
 import { useConfirm } from "@/stores/confirm-store";
@@ -33,7 +33,7 @@ export const ProductList = () => {
   const { deleteProductMultipleAsync } = useDeleteProductMultiple();
   const { deleteImagesAsync } = useDeleteImages();
 
-  const { products, pagination, error } = useGetAllProducts({
+  const { products, pagination, error, isPending } = useGetAllProducts({
     page: filters.page,
     limit: filters.limit,
     search: filters.search || undefined,
@@ -189,9 +189,10 @@ export const ProductList = () => {
 
   if (error) return <Error />;
 
+  if (isPending) return;
+
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      {/* Filters */}
+    <div className="space-y-6">
       <ProductFiltersComponent filters={filters} categories={categories} />
 
       {/* Table */}

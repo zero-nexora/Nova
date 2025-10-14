@@ -6,7 +6,7 @@ import {
   parseAsInteger,
   parseAsStringLiteral,
 } from "nuqs";
-import { DEFAULT_LIMIT } from "@/lib/constants";
+import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
 import { z } from "zod";
 
 export const isDeletedValues = ["true", "false", "all"] as const;
@@ -38,7 +38,7 @@ const params = {
   priceMin: parseAsInteger.withOptions({ clearOnDefault: true }).withDefault(0),
   priceMax: parseAsInteger.withOptions({ clearOnDefault: true }).withDefault(0),
   limit: parseAsInteger.withDefault(DEFAULT_LIMIT),
-  page: parseAsInteger.withDefault(1),
+  page: parseAsInteger.withDefault(DEFAULT_PAGE),
 };
 
 export const useProductFilters = () => {
@@ -49,7 +49,7 @@ export const useProductFilters = () => {
   const resetFilters = () => {
     setFilters({
       limit: DEFAULT_LIMIT,
-      page: 1,
+      page: DEFAULT_PAGE,
       search: "",
       slugCategory: "",
       slugSubcategory: "",

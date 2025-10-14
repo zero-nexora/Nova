@@ -8,9 +8,9 @@ import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageUploader } from "../../uploader/image-uploader";
 import { ImagesPreview } from "../../uploader/images-preview";
-import { Category } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import {
+  Category,
   UpdateCategorySchema,
   UpdateCategoryType,
 } from "@/queries/admin/categories/types";

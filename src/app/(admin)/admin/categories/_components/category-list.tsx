@@ -8,13 +8,14 @@ import { useCallback } from "react";
 import { useModal } from "@/stores/modal-store";
 import { useConfirm } from "@/stores/confirm-store";
 import { SubcategoryList } from "./subcategory-list";
-import { Category } from "@/stores/admin/categories-store";
-import { CategoryDetailCard } from "./category-detail-card";
+import { Category } from "@/queries/admin/categories/types";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
 
 import { Badge } from "@/components/ui/badge";
+import { Empty } from "@/components/global/empty";
 import { placeholderImage } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CategoryDetailCard } from "./category-detail-card";
 import { ActionMenu } from "@/components/global/action-menu";
 import { UpdateCategoryForm } from "@/components/forms/category/update-category-form";
 import {
@@ -30,15 +31,13 @@ import { useToggleCategoryDeleted } from "../hooks/categories/use-toggle-categor
 import { useDeleteImage } from "@/components/uploader/hooks/use-uploader";
 import { useDeleteCategoryMultiple } from "../hooks/categories/use-delete-category-multiple";
 import { useToggleCategoryDeletedMultiple } from "../hooks/categories/use-toggle-category-deleted-multiple";
-import { Empty } from "@/components/global/empty";
+import { useGetAllCategories } from "../hooks/categories/use-get-all-categories";
 
-interface CategoryListProps {
-  categories: Category[];
-}
-
-export const CategoryList = ({ categories }: CategoryListProps) => {
+export const CategoryList = () => {
   const openModal = useModal((state) => state.open);
   const openConfirm = useConfirm((state) => state.open);
+
+  const { categories } = useGetAllCategories();
 
   const { deleteCategoryAsync } = useDeleteCategory();
   const { deleteCategoryMultipleAsync } = useDeleteCategoryMultiple();
@@ -46,26 +45,21 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
   const { toggleCategoryMultipleAsync } = useToggleCategoryDeletedMultiple();
   const { deleteImageAsync } = useDeleteImage();
 
-  // Use new separated category selection hook
   const {
-    // Selection state
     selectedCategories,
     selectedCategoriesData,
-    filteredCategories, // Use filtered data instead of raw categories
+    filteredCategories,
 
-    // Category selection state
     isAllCategoriesSelected,
     isCategoriesIndeterminate,
     selectedCategoriesCount,
     hasCategorySelection,
 
-    // Search and filter state
     searchTerm,
     filterDeleted,
     sortBy,
     sortOrder,
 
-    // Handlers
     handleSelectAllCategories,
     handleSelectCategory,
     clearCategorySelection,
@@ -75,7 +69,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     handleSortOrderChange,
   } = useCategorySelection(categories);
 
-  // Category actions
   const handleUpdateCategory = useCallback(
     (category: Category) => {
       openModal({
@@ -145,7 +138,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     [openModal]
   );
 
-  // Bulk action handler - executes immediately when action is selected
   const handleCategoryBulkAction = useCallback(
     async (action: BulkAction) => {
       if (!hasCategorySelection) {
@@ -185,8 +177,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
     ]
   );
 
-  if (!filteredCategories.length) return <Empty />;
-
   return (
     <div className="space-y-6">
       <BulkActionsToolbar
@@ -209,9 +199,11 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
         onSortOrderChange={handleSortOrderChange}
       />
 
-      {/* Enhanced Categories List */}
       <div className="space-y-3">
         <Accordion type="multiple" className="w-full">
+          {filteredCategories.length === 0 && (
+            <Empty />
+          )}
           {filteredCategories.map((category) => {
             return (
               <AccordionItem key={category.id} value={category.id}>
@@ -246,7 +238,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                           />
                         </div>
 
-                        {/* Enhanced Category Image */}
                         <div className="relative group/image">
                           <div className="w-14 h-14 relative overflow-hidden">
                             <Image
@@ -265,7 +256,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                           </div>
                         </div>
 
-                        {/* Enhanced Category Info */}
                         <div className="flex flex-col items-start space-y-2">
                           <h3
                             className={cn(
@@ -293,7 +283,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        {/* Enhanced Status Badge */}
                         <div>
                           {category.is_deleted ? (
                             <Badge
@@ -312,7 +301,6 @@ export const CategoryList = ({ categories }: CategoryListProps) => {
                           )}
                         </div>
 
-                        {/* Enhanced Action Menu */}
                         <div onClick={(e) => e.stopPropagation()}>
                           <ActionMenu
                             onUpdate={() => handleUpdateCategory(category)}

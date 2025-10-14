@@ -1,6 +1,15 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import React, { useState } from "react";
+import { useUpdatePermissions } from "../hooks/update-permissions";
+import { useGetAllPerrmissions } from "../hooks/get-all-permissions";
+
+import { Button } from "@/components/ui/button";
+import { Error } from "@/components/global/error";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loading } from "@/components/global/loading";
 import {
   Table,
   TableBody,
@@ -9,63 +18,61 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Error } from "@/components/global/error";
-import { RolePermissionData } from "@/queries/admin/roles-permissions/types";
-import { useGetAllRolesAndPerrmissions } from "../hooks/get-all-role-and-permissions";
-import { useUpdateRoleAndPermissions } from "../hooks/update-role-and-permissions";
-import { toast } from "sonner";
-import { Loading } from "@/components/global/loading";
-import { cn } from "@/lib/utils";
-import { useRolePermissionStore } from "@/stores/admin/role-permissions-store";
+import { PermissionUpdate } from "@/queries/admin/permissions/types";
 
-export const RolesAndPermissionsTable = () => {
-  const { rolesAndPermissions, error } = useGetAllRolesAndPerrmissions();
-  const { updateRoleAndPermissionsAsync, isPending } =
-    useUpdateRoleAndPermissions();
+export const PermissionsTable = () => {
+  const { rolesAndPermissions, error } = useGetAllPerrmissions();
+  const { updateRoleAndPermissionsAsync, isPending } = useUpdatePermissions();
 
-  const {
-    data,
-    initialData,
-    setInitialData,
-    setData,
-    updatePermission,
-    getPermissionChanges,
-    commitChanges,
-    resetToInitial,
-  } = useRolePermissionStore();
+  const [pendingChanges, setPendingChanges] = useState<
+    PermissionUpdate[]
+  >([]);
 
-  useEffect(() => {
-    if (rolesAndPermissions && !initialData) {
-      setInitialData(rolesAndPermissions);
-      setData(rolesAndPermissions);
+  const roles = rolesAndPermissions?.roles ?? [];
+  const permissions = rolesAndPermissions?.permissions ?? [];
+
+  const getCheckboxState = (roleId: string, permissionId: string): boolean => {
+    const pendingChange = pendingChanges.find(
+      (change) =>
+        change.roleId === roleId && change.permissionId === permissionId
+    );
+    if (pendingChange) {
+      return pendingChange.assign;
     }
-  }, [rolesAndPermissions, initialData, setInitialData, setData]);
+
+    const role = roles.find((r) => r.id === roleId);
+    const permission = role?.permissions.find((p) => p.id === permissionId);
+    return permission?.isAssigned ?? false;
+  };
 
   const handleTogglePermission = (
     roleId: string,
     permissionId: string,
     currentState: boolean
   ) => {
-    updatePermission(roleId, permissionId, !currentState);
+    setPendingChanges((prev) => {
+      const filteredChanges = prev.filter(
+        (change) =>
+          !(change.roleId === roleId && change.permissionId === permissionId)
+      );
+      return [
+        ...filteredChanges,
+        { roleId, permissionId, assign: !currentState },
+      ];
+    });
   };
 
   const handleSaveChanges = async () => {
-    const changes = getPermissionChanges();
-    if (changes.length === 0) {
-      toast.info("No permission changes to save");
+    if (pendingChanges.length === 0) {
+      toast.info("No changes to save");
       return;
     }
 
     try {
-      await updateRoleAndPermissionsAsync(changes);
-      commitChanges();
-      toast.success("Permissions updated successfully");
-    } catch (err) {
-      resetToInitial();
-      toast.error("Failed to update permissions. Changes rolled back.");
-      console.error(err);
+      await updateRoleAndPermissionsAsync(pendingChanges);
+      setPendingChanges([]);
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -73,27 +80,20 @@ export const RolesAndPermissionsTable = () => {
     return <Error />;
   }
 
-  const { roles, permissions } = (initialData ||
-    rolesAndPermissions || {
-      roles: [],
-      permissions: [],
-    }) as RolePermissionData;
-
-  const getCheckboxState = (roleId: string, permissionId: string) => {
-    const role = data.roles.find((r) => r.id === roleId);
-    const rolePermission = role?.permissions.find((p) => p.id === permissionId);
-    return rolePermission?.isAssigned || false;
-  };
+  if (!rolesAndPermissions) {
+    return <Loading />;
+  }
 
   return (
     <div className="space-y-6 p-6 rounded-lg shadow">
       <div className="flex justify-end items-center">
         <Button
           onClick={handleSaveChanges}
-          disabled={isPending || getPermissionChanges().length === 0}
+          disabled={isPending || pendingChanges.length === 0}
           className={cn(
             "flex items-center gap-2",
-            isPending && "opacity-75 cursor-not-allowed"
+            (isPending || pendingChanges.length === 0) &&
+              "opacity-75 cursor-not-allowed"
           )}
         >
           {isPending ? <Loading /> : "Save Changes"}

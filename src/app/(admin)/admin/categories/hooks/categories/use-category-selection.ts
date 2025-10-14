@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Category } from "@/stores/admin/categories-store";
+import { Category } from "@/queries/admin/categories/types";
 
 export const useCategorySelection = (categories: Category[]) => {
   const router = useRouter();

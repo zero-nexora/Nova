@@ -32,8 +32,6 @@ import { ImagesPreview } from "@/components/uploader/images-preview";
 
 import { Plus, DollarSign, Hash, Warehouse, X } from "lucide-react";
 
-import { useCategoriesStore } from "@/stores/admin/categories-store";
-import { useProductAttributesStore } from "@/stores/admin/product-attribute-store";
 import { useModal } from "@/stores/modal-store";
 
 import {
@@ -50,6 +48,8 @@ import {
 } from "@/components/uploader/hooks/use-uploader";
 import { useUpdateProduct } from "@/app/(admin)/admin/products/hooks/products/use-update-product";
 import { Label } from "@/components/ui/label";
+import { useGetAllProductAttributes } from "@/app/(admin)/admin/products/hooks/products/use-get-all-product-attributes";
+import { useGetAllCategories } from "@/app/(admin)/admin/categories/hooks/categories/use-get-all-categories";
 
 // Types
 interface ProductVariant extends VariantInput {
@@ -62,10 +62,8 @@ interface UpdateProductFormProps {
 
 export function UpdateProductForm({ data }: UpdateProductFormProps) {
   const closeModal = useModal((state) => state.close);
-  const categories = useCategoriesStore((state) => state.categories);
-  const productAttributes = useProductAttributesStore(
-    (state) => state.productAttributes
-  );
+  const { productAttributes } = useGetAllProductAttributes();
+  const { categories } = useGetAllCategories();
 
   const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { updateProductAsync, isPending: isUpdating } = useUpdateProduct();

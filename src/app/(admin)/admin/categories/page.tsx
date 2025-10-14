@@ -1,9 +1,7 @@
 import { Metadata } from "next";
-import { Suspense } from "react";
-import { RoleGuardProvider } from "@/providers/role-guard-provider";
 import { CategoryView } from "./_components/category-view";
 import { PageHeader } from "@/components/global/page-header";
-import { CategoryListSkeleton } from "@/components/global/category-skeleton";
+import { RoleGuardProvider } from "@/providers/role-guard-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +27,7 @@ const CategoriesPage = async () => {
             title="Categories"
             description="Manage and organize your product categories to improve customer navigation and inventory management"
           />
-          <Suspense fallback={<CategoryListSkeleton />}>
-            <CategoryView />
-          </Suspense>
+          <CategoryView />
         </div>
       </RoleGuardProvider>
     </main>

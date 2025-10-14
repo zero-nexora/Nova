@@ -6,6 +6,7 @@ import { ProductFilters as ProductQueryParams } from "@/app/(admin)/admin/produc
 import { RoleName } from "@prisma/client";
 import { User } from "@/queries/client/users/types";
 import { SidebarRoute, sidebarRoutes } from "./constants";
+import { UserRoleFilters } from "@/app/(admin)/admin/roles/hooks/use-user-filters";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -107,6 +108,14 @@ export function cleanProductFilters(
   };
 }
 
+export function cleanUserRoleFilters(filters: UserRoleFilters): UserRoleFilters {
+  return {
+    ...filters,
+    roleId: filters.roleId === "" || "all" ? undefined : filters.roleId,
+    search: filters.search === "" ? undefined : filters.search,
+  };
+}
+
 export function hasAnyRole(user: User): boolean {
   return user.roles.some((role) =>
     Object.values(RoleName).includes(role.role.name)
@@ -169,7 +178,7 @@ export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
       case "Category":
         return isAdminOrManageCategory(user);
 
-      case "Role & Permission":
+      case "Role": case "Permission":
         return isAdminOrManageStaff(user);
 
       case "Order":

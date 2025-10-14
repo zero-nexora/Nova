@@ -7,40 +7,43 @@ import {
   DeleteCategorySchema,
   DeleteMultipleCategoriesSchema,
   ToggleDeletedMultipleCategoriesSchema,
+  Category,
 } from "./types";
 
 export const categoriesRouter = createTRPCRouter({
-  getAll: adminOrManageCategoryProcedure.query(async ({ ctx }) => {
-    const categories = await ctx.db.categories.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        image_url: true,
-        public_id: true,
-        is_deleted: true,
-        deleted_at: true,
-        created_at: true,
-        updated_at: true,
-        subcategories: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            image_url: true,
-            public_id: true,
-            is_deleted: true,
-            deleted_at: true,
-            created_at: true,
-            updated_at: true,
-            category_id: true,
+  getAll: adminOrManageCategoryProcedure.query(
+    async ({ ctx }): Promise<Category[]> => {
+      const categories = await ctx.db.categories.findMany({
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image_url: true,
+          public_id: true,
+          is_deleted: true,
+          deleted_at: true,
+          created_at: true,
+          updated_at: true,
+          subcategories: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              image_url: true,
+              public_id: true,
+              is_deleted: true,
+              deleted_at: true,
+              created_at: true,
+              updated_at: true,
+              category_id: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return categories ?? [];
-  }),
+      return categories ?? [];
+    }
+  ),
 
   create: adminOrManageCategoryProcedure
     .input(CreateCategorySchema)

@@ -10,8 +10,6 @@ import {
 } from "../_components/product-section";
 import { Suspense } from "react";
 
-export const dynamic = "force-dynamic";
-
 interface WishlistPageProps {
   searchParams: Promise<SearchParams>;
 }

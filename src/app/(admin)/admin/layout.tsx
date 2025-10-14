@@ -1,13 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
-import { InfoBar } from "./_components/info-bar";
-import { Sidebar } from "./_components/sidebar";
-import { Unauthorized } from "@/components/global/unauthorized";
-import { getQueryClient, trpc } from "@/trpc/server";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { Suspense } from "react";
+import { auth } from "@clerk/nextjs/server";
+import { Sidebar } from "./_components/sidebar";
+import { InfoBar } from "./_components/info-bar";
+import { getQueryClient, trpc } from "@/trpc/server";
+import { Unauthorized } from "@/components/global/unauthorized";
 import { RoleGuardProvider } from "@/providers/role-guard-provider";
-import Loading from "@/app/loading";
-import { StoreAdminProvider } from "@/providers/store-admin-provider";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +36,7 @@ const LayoutAdmin = async ({ children }: LayoutAdminProps) => {
           <InfoBar />
           <div className="relative p-4 pt-20 h-screen">
             <HydrationBoundary state={dehydrate(queryClient)}>
-              <Suspense fallback={<Loading />}>
-                <StoreAdminProvider>{children}</StoreAdminProvider>
-              </Suspense>
+              <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
             </HydrationBoundary>
           </div>
         </div>

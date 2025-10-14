@@ -22,3 +22,9 @@ export interface RolePermissionData {
     permissions: Permission[];
   }[];
 }
+
+export interface PermissionUpdate {
+  roleId: string;
+  permissionId: string;
+  assign: boolean;
+}

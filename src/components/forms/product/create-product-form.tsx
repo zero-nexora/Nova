@@ -21,8 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CreateProductSchema } from "@/queries/admin/products/types";
-import { useCategoriesStore } from "@/stores/admin/categories-store";
-import { useProductAttributesStore } from "@/stores/admin/product-attribute-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -34,6 +32,8 @@ import { useModal } from "@/stores/modal-store";
 import { useUploadImages } from "@/components/uploader/hooks/use-uploader";
 import { useCreateProduct } from "@/app/(admin)/admin/products/hooks/products/use-create-product";
 import { Label } from "@/components/ui/label";
+import { useGetAllProductAttributes } from "@/app/(admin)/admin/products/hooks/products/use-get-all-product-attributes";
+import { useGetAllCategories } from "@/app/(admin)/admin/categories/hooks/categories/use-get-all-categories";
 
 type ProductVariant = {
   id: string;
@@ -45,11 +45,9 @@ type ProductVariant = {
 
 export const CreateProductForm = () => {
   const closeModal = useModal((state) => state.close);
-  const productAttributes = useProductAttributesStore(
-    (state) => state.productAttributes
-  );
+  const { productAttributes } = useGetAllProductAttributes();
 
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useGetAllCategories();
   const { uploadImagesAsync, isPending: isLoadingUpload } = useUploadImages();
   const { createProductAsync } = useCreateProduct();
 

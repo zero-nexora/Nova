@@ -1,5 +1,5 @@
-import { CreateProduct } from "./create-product";
 import { ProductList } from "./product-list";
+import { CreateProduct } from "./create-product";
 
 export const ProductView = () => {
   return (

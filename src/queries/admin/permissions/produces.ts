@@ -2,8 +2,8 @@ import z from "zod";
 import { RolePermissionData } from "./types";
 import { adminOrManageStaffProcedure, createTRPCRouter } from "@/trpc/init";
 
-export const rolesAndPermissionsRouter = createTRPCRouter({
-  getAllRoleAndPermissions: adminOrManageStaffProcedure.query(
+export const permissionsRouter = createTRPCRouter({
+  getAllPermissions: adminOrManageStaffProcedure.query(
     async ({ ctx }): Promise<RolePermissionData> => {
       const roles = await ctx.db.roles.findMany({
         select: {
@@ -84,7 +84,7 @@ export const rolesAndPermissionsRouter = createTRPCRouter({
     }
   ),
 
-  updateRoleAndPermissions: adminOrManageStaffProcedure
+  updatePermissions: adminOrManageStaffProcedure
     .input(
       z.array(
         z.object({
@@ -99,25 +99,29 @@ export const rolesAndPermissionsRouter = createTRPCRouter({
         for (const change of input) {
           const { roleId, permissionId, assign } = change;
 
-          if (assign) {
-            await tx.role_Permissions.upsert({
+          const existing = await tx.role_Permissions.findUnique({
+            where: {
+              role_id_permission_id: {
+                role_id: roleId,
+                permission_id: permissionId,
+              },
+            },
+          });
+
+          if (assign && !existing) {
+            await tx.role_Permissions.create({
+              data: {
+                role_id: roleId,
+                permission_id: permissionId,
+              },
+            });
+          } else if (!assign && existing) {
+            await tx.role_Permissions.delete({
               where: {
                 role_id_permission_id: {
                   role_id: roleId,
                   permission_id: permissionId,
                 },
-              },
-              create: {
-                role_id: roleId,
-                permission_id: permissionId,
-              },
-              update: {},
-            });
-          } else {
-            await tx.role_Permissions.deleteMany({
-              where: {
-                role_id: roleId,
-                permission_id: permissionId,
               },
             });
           }

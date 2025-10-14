@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/command";
 import { Logo } from "@/components/global/logo";
 import { useUserStore } from "@/stores/client/user-store";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MenuOptionsProps {
   defaultOpen: boolean;
@@ -80,54 +81,56 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
           </SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto py-4">
-          <Command className="rounded-lg bg-background/60 shadow-sm">
+        <div className="flex-1 py-4">
+          <Command className="rounded-lg bg-background/60 shadow-sm h-full flex flex-col">
             <CommandInput placeholder="Search menu..." className="h-10" />
-            <CommandList>
+            <CommandList className="flex-1">
               <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                 No menu items found.
               </CommandEmpty>
 
-              <CommandGroup heading="Navigation" className="px-2">
-                {filteredRoutes.map((route) => {
-                  const isActive = pathname === route.path;
+              <ScrollArea className="h-[500px]">
+                <CommandGroup heading="Navigation" className="px-2">
+                  {filteredRoutes.map((route) => {
+                    const isActive = pathname === route.path;
 
-                  return (
-                    <CommandItem
-                      key={route.path}
-                      value={route.label}
-                      className="p-0"
-                    >
-                      <Link
-                        href={route.path}
-                        className={cn(
-                          "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                          "hover:bg-accent hover:text-accent-foreground",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          isActive &&
-                            "bg-primary text-primary-foreground shadow-md"
-                        )}
-                        onClick={() => setIsOpen(false)}
+                    return (
+                      <CommandItem
+                        key={route.path}
+                        value={route.label}
+                        className="p-0"
                       >
-                        {route.icon && (
-                          <route.icon
-                            className={cn(
-                              "h-5 w-5 transition-colors",
-                              isActive
-                                ? "text-primary-foreground"
-                                : "text-muted-foreground"
-                            )}
-                          />
-                        )}
-                        <span>{route.label}</span>
-                        {isActive && (
-                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/80" />
-                        )}
-                      </Link>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+                        <Link
+                          href={route.path}
+                          className={cn(
+                            "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                            "hover:bg-accent hover:text-accent-foreground",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            isActive &&
+                              "bg-primary text-primary-foreground shadow-md"
+                          )}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          {route.icon && (
+                            <route.icon
+                              className={cn(
+                                "h-5 w-5 transition-colors",
+                                isActive
+                                  ? "text-primary-foreground"
+                                  : "text-muted-foreground"
+                              )}
+                            />
+                          )}
+                          <span>{route.label}</span>
+                          {isActive && (
+                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/80" />
+                          )}
+                        </Link>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </ScrollArea>
             </CommandList>
           </Command>
         </div>

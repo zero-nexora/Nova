@@ -7,7 +7,6 @@ import { useModal } from "@/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useMemo, useState } from "react";
 import { ImageUploader } from "../../uploader/image-uploader";
-import { useCategoriesStore } from "@/stores/admin/categories-store";
 import { LocalImagePreview } from "@/app/(admin)/admin/categories/hooks/types";
 import {
   CreateSubcategorySchema,
@@ -33,11 +32,12 @@ import {
 } from "@/components/ui/form";
 import { useCreateSubcategory } from "@/app/(admin)/admin/categories/hooks/subcategories/use-create-subcategory";
 import { useUploadImage } from "@/components/uploader/hooks/use-uploader";
+import { useGetAllCategories } from "@/app/(admin)/admin/categories/hooks/categories/use-get-all-categories";
 
 export const CreateSubcategoryForm = () => {
   const { close } = useModal();
 
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useGetAllCategories();
 
   const { createSubcategoryAsync } = useCreateSubcategory();
   const { uploadImageAsync, isPending: isUploadingImage } = useUploadImage();
@@ -73,14 +73,20 @@ export const CreateSubcategoryForm = () => {
 
   const renderCategoryOptions = useCallback(() => {
     if (availableCategories.length === 0) {
-      return <div className="text-center p-2 rounded-md">No categories available</div>;
+      return (
+        <div className="text-center p-2 rounded-md">
+          No categories available
+        </div>
+      );
     }
 
-    return availableCategories.filter((category) => !category.is_deleted).map((category) => (
-      <SelectItem key={category.id} value={category.id.toString()}>
-        {category.name}
-      </SelectItem>
-    ));
+    return availableCategories
+      .filter((category) => !category.is_deleted)
+      .map((category) => (
+        <SelectItem key={category.id} value={category.id.toString()}>
+          {category.name}
+        </SelectItem>
+      ));
   }, [availableCategories]);
 
   const handleCategoryChange = useCallback(

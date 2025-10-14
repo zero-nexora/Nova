@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { Subcategory } from "@/stores/admin/categories-store";
 import { Calendar, Tag } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { placeholderImage } from "@/lib/constants";
+import { Subcategory } from "@/queries/admin/categories/types";
 
 interface SubcategoryDetailCardProps {
   subcategory: Subcategory;

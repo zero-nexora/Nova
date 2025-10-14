@@ -10,8 +10,6 @@ export function useGetAllCategories() {
     trpc.admin.categoriesRouter.getAll.queryOptions()
   );
 
- 
-
   return {
     error,
     categories: data,

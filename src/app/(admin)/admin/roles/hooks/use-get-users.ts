@@ -1,19 +1,22 @@
 "use client";
 
+import { cleanUserRoleFilters } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ProductFilters } from "./use-product-fillters";
-import { cleanProductFilters } from "@/lib/utils";
 import { useMemo } from "react";
+import { UserRoleFilters } from "./use-user-filters";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 
-export function useGetAllProducts(params: ProductFilters) {
+export function useGetUsers(params: UserRoleFilters) {
   const trpc = useTRPC();
 
-  const normalizedParams = useMemo(() => cleanProductFilters(params), [params]);
+  const normalizedParams = useMemo(
+    () => cleanUserRoleFilters(params),
+    [params]
+  );
 
   const { data, error, isPending } = useQuery(
-    trpc.admin.productsRouter.getAll.queryOptions(
+    trpc.admin.rolesRouter.getUserByRole.queryOptions(
       {
         ...normalizedParams,
         limit: DEFAULT_LIMIT,
@@ -25,8 +28,8 @@ export function useGetAllProducts(params: ProductFilters) {
   );
 
   return {
-    products: data?.products ?? [],
-    pagination: data?.pagination ?? null,
+    users: data?.users,
+    totalItem: data?.total,
     error,
     isPending,
   };

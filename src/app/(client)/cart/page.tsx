@@ -1,9 +1,7 @@
+import { Suspense } from "react";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { CartView, CartViewSkeleton } from "./_components/cart-view";
-import { Suspense } from "react";
-
-export const dynamic = "force-dynamic";
 
 const CartPage = async () => {
   const queryClient = getQueryClient();

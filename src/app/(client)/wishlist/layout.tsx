@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { Unauthorized } from "@/components/global/unauthorized";
 
+export const dynamic = "force-dynamic";
+
 interface WishlistLayoutProps {
   children: React.ReactNode;
 }

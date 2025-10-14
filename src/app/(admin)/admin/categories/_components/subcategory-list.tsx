@@ -3,17 +3,17 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCallback } from "react";
 import { useModal } from "@/stores/modal-store";
+import { Empty } from "@/components/global/empty";
 import { useConfirm } from "@/stores/confirm-store";
 import { ActionMenu } from "@/components/global/action-menu";
-import { Subcategory } from "@/stores/admin/categories-store";
 import { SubcategoryDetailCard } from "./subcategory-detail-card";
-import { NotFound } from "@/components/global/not-found";
 import { BulkAction } from "@/app/(admin)/admin/categories/hooks/types";
 import { BulkActionsToolbar } from "@/components/global/bulk-actions-toolbar";
 
 import { Badge } from "@/components/ui/badge";
 import { placeholderImage } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Subcategory } from "@/queries/admin/categories/types";
 import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
 import { useDeleteSubcategory } from "../hooks/subcategories/use-delete-subcategory";
 import { useSubcategorySelection } from "../hooks/subcategories/use-subcategory-selection";
@@ -157,8 +157,6 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
     });
   };
 
-  if (subcategories.length === 0) return <NotFound />;
-
   return (
     <div className="space-y-6">
       <BulkActionsToolbar
@@ -182,6 +180,9 @@ export const SubcategoryList = ({ subcategories }: SubcategoryListProps) => {
       />
 
       <div className="grid">
+        {filteredSubcategories.length === 0 && (
+          <Empty />
+        )}
         {filteredSubcategories.map((subcategory: Subcategory) => (
           <div
             key={subcategory.id}

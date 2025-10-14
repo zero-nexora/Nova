@@ -1,6 +1,8 @@
 import { Unauthorized } from "@/components/global/unauthorized";
 import { auth } from "@clerk/nextjs/server";
 
+export const dynamic = "force-dynamic";
+
 interface CartLayoutProps {
   children: React.ReactNode;
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Subcategory } from "@/stores/admin/categories-store";
+import { Subcategory } from "@/queries/admin/categories/types";
 
 export const useSubcategorySelection = (subcategories: Subcategory[]) => {
   const router = useRouter();

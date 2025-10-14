@@ -18,7 +18,7 @@ import {
   useProductFilters,
 } from "../hooks/products/use-product-fillters";
 import { DEFAULT_PAGE } from "@/lib/constants";
-import { Category } from "@/stores/admin/categories-store";
+import { Category } from "@/queries/admin/categories/types";
 
 interface ProductFiltersProps {
   filters: ProductFilters;

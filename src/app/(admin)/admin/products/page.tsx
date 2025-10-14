@@ -1,15 +1,13 @@
 import { Metadata } from "next";
-import { Suspense } from "react";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 import type { SearchParams } from "nuqs/server";
 import { cleanProductFilters } from "@/lib/utils";
-import { RoleGuardProvider } from "@/providers/role-guard-provider";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { ProductView } from "./_components/product-view";
 import { PageHeader } from "@/components/global/page-header";
+import { RoleGuardProvider } from "@/providers/role-guard-provider";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { loaderProductFilters } from "./hooks/products/product-filters";
-import { DataTableSkeleton } from "@/components/global/data-table-skeleton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,9 +48,7 @@ const ProductPage = async ({ searchParams }: ProductPageProps) => {
           description="Manage your product catalog."
         />
         <HydrationBoundary state={dehydrate(queryClient)}>
-          <Suspense fallback={<DataTableSkeleton />}>
-            <ProductView />
-          </Suspense>
+          <ProductView />
         </HydrationBoundary>
       </RoleGuardProvider>
     </main>

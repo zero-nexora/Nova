@@ -3,23 +3,23 @@
 import { useMemo } from "react";
 import { useTRPC } from "@/trpc/client";
 import { DEFAULT_LIMIT } from "@/lib/constants";
-import { cleanProductFilters } from "@/lib/utils";
+import { cleanUserRoleFilters } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { useProductFilters } from "./use-product-fillters";
+import { useUserRoleFilters } from "./use-user-filters";
 
-export function useInvalidateProducts() {
+export function useInvalidateUserRoles() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { filters } = useProductFilters();
+  const { filters } = useUserRoleFilters();
 
   const normalizedParams = useMemo(
-    () => cleanProductFilters(filters),
+    () => cleanUserRoleFilters(filters),
     [filters]
   );
 
   const invalidate = () => {
     return queryClient.invalidateQueries(
-      trpc.admin.productsRouter.getAll.queryOptions({
+      trpc.admin.rolesRouter.getUserByRole.queryOptions({
         ...normalizedParams,
         limit: DEFAULT_LIMIT,
       })
