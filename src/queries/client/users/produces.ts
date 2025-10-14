@@ -1,14 +1,18 @@
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
-import { TRPCError } from "@trpc/server";
 import { User } from "./types";
+import { TRPCError } from "@trpc/server";
+import { auth } from "@clerk/nextjs/server";
+import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 
 export const usersRouter = createTRPCRouter({
-  getCurrentUser: protectedProcedure.query(async ({ ctx }): Promise<User> => {
-    const { db, userId } = ctx;
+  getCurrentUser: baseProcedure.query(async ({ ctx }): Promise<User | null> => {
+    const { db } = ctx;
+    const { userId } = await auth();
+
+    if (!userId) return null;
 
     const user = await db.users.findUnique({
       where: {
-        id: userId,
+        clerkId: userId,
       },
       select: {
         id: true,
