@@ -1,7 +1,7 @@
 "use client";
 
 import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
-import { hasAnyRole } from "@/lib/utils";
+import { getAdminLink, hasAnyRole } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import { LayoutDashboard, User, Home } from "lucide-react";
 
@@ -15,6 +15,8 @@ export const UserButtonCustom = ({
   const { user } = useGetCurrentUser();
 
   if (!user) return null;
+
+  const adminLink = getAdminLink(user);
 
   return (
     <>
@@ -31,7 +33,7 @@ export const UserButtonCustom = ({
           {!isAdminPage && hasAnyRole(user) && (
             <UserButton.Link
               label="Dashboard"
-              href="/admin/dashboard"
+              href={adminLink}
               labelIcon={<LayoutDashboard className="size-4" />}
             />
           )}

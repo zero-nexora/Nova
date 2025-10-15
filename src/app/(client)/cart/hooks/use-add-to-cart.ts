@@ -11,13 +11,17 @@ export function useAddToCart() {
   const { mutate, mutateAsync, isPending, error } = useMutation(
     trpc.client.cartsRouter.addToCart.mutationOptions({
       onSuccess: () => {
+        toast.success("Product added to cart successfully");
         queryClient.invalidateQueries(
           trpc.client.usersRouter.getCurrentUser.queryOptions()
         );
-        toast.success("Product added to cart successfully");
+        queryClient.invalidateQueries(
+          trpc.client.cartsRouter.getCart.queryOptions()
+        );
       },
-      onError: (err) => {
-        toast.error(err.message || "Failed to add product to cart");
+      onError: (error) => {
+        toast.error("Something went wrong.");
+        console.log("Failed to useAddToCart ", error.message);
       },
     })
   );

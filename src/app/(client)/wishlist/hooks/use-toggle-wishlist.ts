@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { DEFAULT_LIMIT } from "@/lib/constants";
 
 export function useToggleWishlist() {
   const trpc = useTRPC();
@@ -15,6 +16,7 @@ export function useToggleWishlist() {
           data.action === "added"
             ? "Product added to wishlist successfully"
             : "Product removed from wishlist successfully";
+        toast.success(message);
         queryClient.invalidateQueries(
           trpc.client.productsRouterClient.getBySlug.queryOptions({
             slug: data.data,
@@ -23,10 +25,16 @@ export function useToggleWishlist() {
         queryClient.invalidateQueries(
           trpc.client.usersRouter.getCurrentUser.queryOptions()
         );
-        toast.success(message);
+        queryClient.invalidateQueries(
+          trpc.client.productsRouterClient.getAll.infiniteQueryOptions({
+            wishlist: true,
+            limit: DEFAULT_LIMIT,
+          })
+        );
       },
       onError: (error: any) => {
-        toast.error(error?.message || "Failed to toggle wishlist");
+        toast.error("Something went wrong.");
+        console.log("Failed to useToggleWishlist ", error.message);
       },
     })
   );

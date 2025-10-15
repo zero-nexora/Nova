@@ -44,20 +44,31 @@ export const PermissionsTable = () => {
     return permission?.isAssigned ?? false;
   };
 
+  const getOriginalState = (roleId: string, permissionId: string): boolean => {
+    const role = roles.find((r) => r.id === roleId);
+    const permission = role?.permissions.find((p) => p.id === permissionId);
+    return permission?.isAssigned ?? false;
+  };
+
   const handleTogglePermission = (
     roleId: string,
     permissionId: string,
     currentState: boolean
   ) => {
+    const originalState = getOriginalState(roleId, permissionId);
+    const newState = !currentState;
+
     setPendingChanges((prev) => {
       const filteredChanges = prev.filter(
         (change) =>
           !(change.roleId === roleId && change.permissionId === permissionId)
       );
-      return [
-        ...filteredChanges,
-        { roleId, permissionId, assign: !currentState },
-      ];
+
+      if (newState === originalState) {
+        return filteredChanges;
+      }
+
+      return [...filteredChanges, { roleId, permissionId, assign: newState }];
     });
   };
 

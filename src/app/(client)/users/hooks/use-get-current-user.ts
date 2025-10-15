@@ -6,12 +6,13 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 export function useGetCurrentUser() {
   const trpc = useTRPC();
 
-  const { data, error } = useSuspenseQuery(
+  const { data, error, refetch } = useSuspenseQuery(
     trpc.client.usersRouter.getCurrentUser.queryOptions()
   );
 
   return {
     user: data,
     error,
+    refetch
   };
 }

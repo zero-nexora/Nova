@@ -28,7 +28,8 @@ export function useDeleteWishlistMultiple() {
         toast.success(message);
       },
       onError: (error: any) => {
-        toast.error(error?.message || "Failed to delete wishlist items");
+        toast.error("Something went wrong.");
+        console.log("Failed to useToggleWishlist ", error.message);
       },
     })
   );

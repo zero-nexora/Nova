@@ -5,7 +5,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useConfirm } from "@/stores/confirm-store";
 import { formatUSD } from "@/lib/utils";
-import { placeholderImage } from "@/lib/constants";
+import { DEBOUNCED_UPDATE_CART, placeholderImage } from "@/lib/constants";
 import { CartItem as CartItemType } from "@/queries/client/carts/types";
 import { useUpdateCartItem } from "../hooks/use-update-cart-item";
 import { useDeleteCartItem } from "../hooks/use-delete-cart-item";
@@ -25,7 +25,7 @@ export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
   const { open } = useConfirm();
   const [localQuantity, setLocalQuantity] = useState(item.quantity);
 
-  const debouncedQuantity = useDebounce(localQuantity, 500);
+  const debouncedQuantity = useDebounce(localQuantity, DEBOUNCED_UPDATE_CART);
 
   useEffect(() => {
     if (debouncedQuantity !== item.quantity) {

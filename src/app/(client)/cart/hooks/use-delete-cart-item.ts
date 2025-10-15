@@ -11,11 +11,17 @@ export function useDeleteCartItem() {
   const { mutate, mutateAsync, isPending, error } = useMutation(
     trpc.client.cartsRouter.deleteCartItem.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries(trpc.client.usersRouter.getCurrentUser.queryOptions());
         toast.success("Item removed from cart");
+        queryClient.invalidateQueries(
+          trpc.client.usersRouter.getCurrentUser.queryOptions()
+        );
+        queryClient.invalidateQueries(
+          trpc.client.cartsRouter.getCart.queryOptions()
+        );
       },
-      onError: (err) => {
-        toast.error(err.message || "Failed to remove item");
+      onError: (error) => {
+        toast.error("Something went wrong.");
+        console.log("Failed to useClearCart ", error.message);
       },
     })
   );

@@ -5,7 +5,7 @@ import { ProductFilters } from "@/app/(client)/hooks/products/use-product-fillte
 import { ProductFilters as ProductQueryParams } from "@/app/(admin)/admin/products/hooks/products/use-product-fillters";
 import { RoleName } from "@prisma/client";
 import { User } from "@/queries/client/users/types";
-import { SidebarRoute, sidebarRoutes } from "./constants";
+import { PREFIX, SidebarRoute, sidebarRoutes } from "./constants";
 import { UserRoleFilters } from "@/app/(admin)/admin/roles/hooks/use-user-filters";
 import { toast } from "sonner";
 import { ProductResponse } from "@/queries/admin/products/types";
@@ -309,3 +309,18 @@ export const extractProductImagePublicIds = (
     .map((image) => image.public_id)
     .filter((id): id is string => Boolean(id));
 };
+
+
+export function getAdminLink(user: User): string {
+  if (!user?.roles?.length) return "/";
+
+  const roleNames = user.roles.map((r: any) => r.role.name);
+
+  if (roleNames.includes(RoleName.ADMIN)) return `${PREFIX}/dashboard`;
+  if (roleNames.includes(RoleName.MANAGE_CATEGORY)) return `${PREFIX}/categories`;
+  if (roleNames.includes(RoleName.MANAGE_PRODUCT)) return `${PREFIX}/products`;
+  if (roleNames.includes(RoleName.MANAGE_STAFF)) return `${PREFIX}/roles`;
+  if (roleNames.includes(RoleName.MANAGE_ORDER)) return `${PREFIX}/orders`;
+
+  return "/";
+}

@@ -8,6 +8,7 @@ import { TRPCReactProvider } from "@/trpc/client";
 import { ModalProvider } from "@/providers/modal-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { UserProvider } from "@/providers/user-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,7 @@ export default function RootLayout({
               <NuqsAdapter>
                 {children}
                 <Toaster />
+                <UserProvider />
                 <ModalProvider />
               </NuqsAdapter>
             </TRPCReactProvider>

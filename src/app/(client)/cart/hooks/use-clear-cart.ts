@@ -10,14 +10,18 @@ export function useClearCart() {
 
   const { mutate, mutateAsync, isPending, error } = useMutation(
     trpc.client.cartsRouter.clearCart.mutationOptions({
-      onError: (err) => {
+      onSuccess: () => {
+        toast.error("Clear cart successfully.");
         queryClient.invalidateQueries(
           trpc.client.usersRouter.getCurrentUser.queryOptions()
         );
-        toast.error(err.message || "Failed to clear cart");
         queryClient.invalidateQueries(
           trpc.client.cartsRouter.getCart.queryOptions()
         );
+      },
+      onError: (error) => {
+        toast.error("Something went wrong.");
+        console.log("Failed to useClearCart ", error.message);
       },
     })
   );

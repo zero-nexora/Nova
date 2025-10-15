@@ -8,12 +8,13 @@ import {
   Users,
 } from "lucide-react";
 
-const PREFIX = "/admin";
+export const PREFIX = "/admin";
 export const MAX_FILES = 10;
 export const MAX_FILE_CATEGORY = 1;
 export const DEFAULT_LIMIT = 10;
 export const DEFAULT_PAGE = 1;
 export const DEBOUNCEDSEARCH = 300;
+export const DEBOUNCED_UPDATE_CART = 400;
 export const placeholderImage = "/placeholder.png";
 
 export interface SidebarRoute {
