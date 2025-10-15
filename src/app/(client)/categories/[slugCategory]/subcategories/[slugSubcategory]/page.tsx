@@ -11,8 +11,6 @@ import {
   ProductSectionSkeleton,
 } from "@/app/(client)/_components/product-section";
 
-export const dynamic = "force-dynamic";
-
 interface CategoriesPageProps {
   params: Promise<{ slugCategory: string; slugSubcategory: string }>;
   searchParams: Promise<SearchParams>;

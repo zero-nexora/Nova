@@ -1,7 +1,8 @@
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
+import { Category } from "./types";
 
 export const categoriesRouter = createTRPCRouter({
-  getAll: baseProcedure.query(async ({ ctx }) => {
+  getAll: baseProcedure.query(async ({ ctx }): Promise<Category[]> => {
     const categories = await ctx.db.categories.findMany({
       select: {
         id: true,

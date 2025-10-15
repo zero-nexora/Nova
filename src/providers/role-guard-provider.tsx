@@ -1,5 +1,6 @@
 "use client";
 
+import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
 import { Forbidden } from "@/components/global/forbidden";
 import {
   hasAnyRole,
@@ -9,7 +10,6 @@ import {
   isAdminOrManageProduct,
   isAdminOrManageStaff,
 } from "@/lib/utils";
-import { useUserStore } from "@/stores/client/user-store";
 
 type RoleCheckType =
   | "hasAnyRole"
@@ -25,7 +25,7 @@ interface RoleGuardProps {
 }
 
 export const RoleGuardProvider = ({ check, children }: RoleGuardProps) => {
-  const { user } = useUserStore();
+  const { user } = useGetCurrentUser();
 
   if (!user) return null;
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useUserStore } from "@/stores/client/user-store";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, Search } from "lucide-react";
@@ -11,11 +10,12 @@ import { ActionButtons, ActionButtonsSkeleton } from "./action-buttons";
 import { MobileSearchSheet } from "./mobile-search-sheet";
 import { MobileMenuSheet } from "./mobile-menu-sheet";
 import { Input } from "@/components/ui/input";
+import { useGetCurrentUser } from "../../users/hooks/use-get-current-user";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const { user } = useUserStore();
+  const { user } = useGetCurrentUser();
 
   const handleMobileMenuToggle = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev);

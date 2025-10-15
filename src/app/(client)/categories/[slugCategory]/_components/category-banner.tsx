@@ -1,17 +1,17 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { placeholderImage } from "@/lib/constants";
-import { useCategoriesStore } from "@/stores/client/categories-store";
 import Image from "next/image";
+import { placeholderImage } from "@/lib/constants";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { useGetAllCategories } from "@/app/(client)/hooks/categories/use-get-all-categories";
 
 interface CategoryBannerProps {
   slugCategory: string;
 }
 
 export const CategoryBanner = ({ slugCategory }: CategoryBannerProps) => {
-  const { categories } = useCategoriesStore();
+  const { categories } = useGetAllCategories();
   const category = categories.find((cat) => cat.slug === slugCategory);
 
   if (!category) return;
@@ -31,7 +31,6 @@ export const CategoryBanner = ({ slugCategory }: CategoryBannerProps) => {
             />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <div className="text-center text-white p-6">
-                {/* Small Image */}
                 <div className="mb-4 flex justify-center">
                   <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-border">
                     <Image

@@ -23,8 +23,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Logo } from "@/components/global/logo";
-import { useUserStore } from "@/stores/client/user-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
 
 interface MenuOptionsProps {
   defaultOpen: boolean;
@@ -34,7 +34,7 @@ export const MenuOptions = ({ defaultOpen }: MenuOptionsProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
-  const user = useUserStore((state) => state.user);
+  const { user } = useGetCurrentUser();
 
   const filteredRoutes = useMemo(() => restrictSidebarRoutes(user), [user]);
 

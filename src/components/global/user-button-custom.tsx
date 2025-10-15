@@ -1,7 +1,7 @@
 "use client";
 
+import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
 import { hasAnyRole } from "@/lib/utils";
-import { useUserStore } from "@/stores/client/user-store";
 import { UserButton } from "@clerk/nextjs";
 import { LayoutDashboard, User, Home } from "lucide-react";
 
@@ -12,7 +12,7 @@ interface UserButtonCustomProps {
 export const UserButtonCustom = ({
   isAdminPage = false,
 }: UserButtonCustomProps) => {
-  const { user } = useUserStore();
+  const { user } = useGetCurrentUser();
 
   if (!user) return null;
 

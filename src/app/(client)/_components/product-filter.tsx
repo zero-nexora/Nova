@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useCategoriesStore } from "@/stores/client/categories-store";
 import {
   Select,
   SelectContent,
@@ -12,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGetAllCategories } from "../hooks/categories/use-get-all-categories";
 
 interface ProductFilterProps {
   onClose?: () => void;
@@ -55,7 +55,7 @@ type SortOrderValue = (typeof SORT_ORDER_VALUES)[number];
 
 export default function ProductFilter({ onClose }: ProductFilterProps) {
   const { filters, setFilters, resetFilters } = useProductFilters();
-  const { categories } = useCategoriesStore();
+  const { categories } = useGetAllCategories();
 
   const [tempFilters, setTempFilters] = useState({
     sortBy: filters.sortBy,

@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useCartStore } from "@/stores/client/carts-store";
 import { useConfirm } from "@/stores/confirm-store";
 import { formatUSD } from "@/lib/utils";
 import { placeholderImage } from "@/lib/constants";
@@ -21,7 +20,6 @@ interface CartItemProps {
 }
 
 export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
-  const { updateCartItemQuantity, deleteCartItem } = useCartStore();
   const { updateCartItemAsync } = useUpdateCartItem();
   const { deleteCartItemAsync, isPending: isDeleting } = useDeleteCartItem();
   const { open } = useConfirm();
@@ -31,16 +29,9 @@ export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
 
   useEffect(() => {
     if (debouncedQuantity !== item.quantity) {
-      updateCartItemQuantity(item.id, debouncedQuantity);
       updateCartItemAsync({ cartItemId: item.id, quantity: debouncedQuantity });
     }
-  }, [
-    debouncedQuantity,
-    item.id,
-    item.quantity,
-    updateCartItemAsync,
-    updateCartItemQuantity,
-  ]);
+  }, [debouncedQuantity, item.id, item.quantity, updateCartItemAsync]);
 
   const handleQuantityChange = async (change: number) => {
     const newQuantity = localQuantity + change;
@@ -55,7 +46,6 @@ export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
       title: "Remove Item",
       description: `Are you sure you want to remove "${item.productVariant.product.name}" from your cart?`,
       onConfirm: async () => {
-        deleteCartItem(item.id);
         await deleteCartItemAsync({ cartItemId: item.id });
       },
     });

@@ -1,24 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Empty } from "@/components/global/empty";
 import { useGetCart } from "../hooks/use-get-cart";
 import { OrderSummary, OrderSummarySkeleton } from "./order-summary";
 import { CartItem, CartItemSkeleton } from "./cart-item";
 import { CartHeader, CartHeaderSkeleton } from "./cart-header";
-import { useCartStore } from "@/stores/client/carts-store";
 import { Error } from "@/components/global/error";
 
 export const CartView = () => {
   const { cart, error } = useGetCart();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-
-  const { setCart, clearCart, cart: cartState } = useCartStore();
-
-  useEffect(() => {
-    if (cart) setCart(cart);
-    else clearCart();
-  }, [cart]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -37,9 +29,9 @@ export const CartView = () => {
   };
 
   const totals = useMemo(() => {
-    if (!cartState?.items.length) return { subtotal: 0, itemCount: 0 };
+    if (!cart?.items.length) return { subtotal: 0, itemCount: 0 };
 
-    return cartState.items.reduce(
+    return cart.items.reduce(
       (acc, item) => {
         if (selectedItems.includes(item.id)) {
           acc.subtotal += item.quantity * item.productVariant.price;
@@ -49,7 +41,7 @@ export const CartView = () => {
       },
       { subtotal: 0, itemCount: 0 }
     );
-  }, [cartState, selectedItems]);
+  }, [cart, selectedItems]);
 
   if (error) return <Error />;
 

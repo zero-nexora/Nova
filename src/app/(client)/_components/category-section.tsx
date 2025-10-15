@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { Menu, ChevronRight, Grid3X3, Filter } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,7 +34,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Category, useCategoriesStore } from "@/stores/client/categories-store";
 import { cn } from "@/lib/utils";
 import { placeholderImage } from "@/lib/constants";
 import ProductFilter from "./product-filter";
@@ -42,6 +41,7 @@ import { useGetAllCategories } from "../hooks/categories/use-get-all-categories"
 import { Error } from "@/components/global/error";
 import { CategoryBannerSkeleton } from "../categories/[slugCategory]/_components/category-banner";
 import { SubcategoryBannerSkeleton } from "../categories/[slugCategory]/subcategories/[slugSubcategory]/_components/subcategory-banner";
+import { Category } from "@/queries/client/categories/types";
 
 const CATEGORY_LIMITS = {
   DESKTOP: 9,
@@ -86,13 +86,6 @@ export const CategorySection = () => {
   const { categories, error } = useGetAllCategories();
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-  const setCategories = useCategoriesStore((state) => state.setCategories);
-
-  useEffect(() => {
-    if (categories) {
-      setCategories(categories);
-    }
-  }, [categories]);
 
   const handleCategoryClick = useCallback(
     (categorySlug: string) => {

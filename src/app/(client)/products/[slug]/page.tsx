@@ -15,8 +15,6 @@ import { DEFAULT_LIMIT } from "@/lib/constants";
 import { Suspense } from "react";
 import type { SearchParams } from "nuqs";
 
-export const dynamic = "force-dynamic";
-
 interface ProductDetailPageProps {
   searchParams: Promise<SearchParams>;
   params: Promise<{ slug: string }>;

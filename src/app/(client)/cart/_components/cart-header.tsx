@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/stores/confirm-store";
-import { useCartStore } from "@/stores/client/carts-store";
 import { Cart } from "@/queries/client/carts/types";
 import { useClearCart } from "../hooks/use-clear-cart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +17,6 @@ export const CartHeader = ({
   selectedItems,
   onSelectAll,
 }: CartHeaderProps) => {
-  const { clearCart } = useCartStore();
   const { clearCartAsync, isPending: isClearing } = useClearCart();
   const { open } = useConfirm();
 
@@ -27,7 +25,6 @@ export const CartHeader = ({
       title: "Clear Cart",
       description: "Are you sure you want to remove all items from your cart?",
       onConfirm: async () => {
-        clearCart();
         await clearCartAsync();
       },
     });

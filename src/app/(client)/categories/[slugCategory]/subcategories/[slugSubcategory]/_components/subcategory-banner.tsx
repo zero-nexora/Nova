@@ -1,21 +1,21 @@
 "use client";
 
+import { useGetAllCategories } from "@/app/(client)/hooks/categories/use-get-all-categories";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { placeholderImage } from "@/lib/constants";
-import { useCategoriesStore } from "@/stores/client/categories-store";
 import Image from "next/image";
 
 interface SubcategoryBannerProps {
   slugCategory: string;
-  slugSubcategory: string; // Changed to slugSubcategory
+  slugSubcategory: string; 
 }
 
 export const SubcategoryBanner = ({
   slugCategory,
   slugSubcategory,
 }: SubcategoryBannerProps) => {
-  const { categories } = useCategoriesStore();
+  const { categories } = useGetAllCategories();
   const category = categories.find((cat) => cat.slug === slugCategory);
   const subcategory = category?.subcategories.find(
     (sub) => sub.slug === slugSubcategory
@@ -41,7 +41,7 @@ export const SubcategoryBanner = ({
               priority
             />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="text-center text-white p-6">
+              <div className="text-center p-6">
                 {/* Small Image */}
                 <div className="mb-4 flex justify-center">
                   <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-border">
