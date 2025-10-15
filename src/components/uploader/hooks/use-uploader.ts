@@ -103,7 +103,8 @@ export function useUploadImage() {
         toast.success("Image uploaded successfully");
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to upload images");
+        toast.error("Something went wrong.");
+        console.log("Failed to useUploadImage ", error.message);
       },
     })
   );
@@ -125,7 +126,8 @@ export function useUploadImages() {
         toast.success(`${data.data.length} Images uploaded successfully`);
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to upload images");
+        toast.error("Something went wrong.");
+        console.log("Failed to useUploadImages ", error.message);
       },
     })
   );
@@ -147,7 +149,8 @@ export function useDeleteImage() {
         toast.success("Image deleted successfully");
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to remove images");
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteImage ", error.message);
       },
     })
   );
@@ -171,7 +174,8 @@ export function useDeleteImages() {
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to remove images");
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteImages ", error.message);
       },
     })
   );

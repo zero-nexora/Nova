@@ -11,8 +11,8 @@ export function useCreateProduct() {
 
   const mutation = useMutation(
     trpc.admin.productsRouter.create.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`Product "${data.data.name}" created successfully`);
+      onSuccess: () => {
+        toast.success(`Product created successfully`);
 
         queryClient.invalidateQueries(
           trpc.admin.productsRouter.getAll.queryOptions({
@@ -22,7 +22,8 @@ export function useCreateProduct() {
         );
       },
       onError: (error: any) => {
-        toast.error(error?.message || "Failed to create product");
+        toast.error("Something went wrong.");
+        console.log("Failed to useCreateProduct ", error.message);
       },
     })
   );

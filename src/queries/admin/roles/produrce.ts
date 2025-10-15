@@ -1,8 +1,9 @@
 import z from "zod";
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { adminOrManageStaffProcedure, createTRPCRouter } from "@/trpc/init";
 import { UserByRoleResponse } from "./types";
+import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
+import { adminOrManageStaffProcedure, createTRPCRouter } from "@/trpc/init";
 
 export const rolesRouter = createTRPCRouter({
   getUserByRole: adminOrManageStaffProcedure
@@ -10,8 +11,8 @@ export const rolesRouter = createTRPCRouter({
       z.object({
         roleId: z.string().uuid().optional(),
         search: z.string().optional(),
-        limit: z.number().int().positive().optional().default(DEFAULT_LIMIT),
-        page: z.number().int().nonnegative().optional().default(DEFAULT_PAGE),
+        limit: z.number().int().positive().default(DEFAULT_LIMIT),
+        page: z.number().int().nonnegative().default(DEFAULT_PAGE),
       })
     )
     .query(async ({ ctx, input }): Promise<UserByRoleResponse> => {
@@ -19,32 +20,38 @@ export const rolesRouter = createTRPCRouter({
       const skip = (page - 1) * limit;
 
       if (roleId) {
-        const role = await ctx.db.roles.findUnique({
+        const exists = await ctx.db.roles.findUnique({
           where: { id: roleId },
           select: { id: true },
         });
-        if (!role) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
+
+        if (!exists) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Role not found",
+          });
         }
       }
 
-      const where: any = {};
-      if (roleId) {
-        where.roles = {
-          some: {
-            role_id: roleId,
-          },
-        };
-      }
-      if (search) {
-        where.OR = [
-          { first_name: { contains: search, mode: "insensitive" } },
-          { last_name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-        ];
-      }
+      const where: Prisma.UsersWhereInput = {
+        id: { not: ctx.userId },
 
-      const [users, total] = await Promise.all([
+        ...(roleId && {
+          roles: {
+            some: { role_id: roleId },
+          },
+        }),
+
+        ...(search && {
+          OR: [
+            { first_name: { contains: search, mode: "insensitive" } },
+            { last_name: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+          ],
+        }),
+      };
+
+      const [users, totalItems] = await Promise.all([
         ctx.db.users.findMany({
           where,
           select: {
@@ -64,18 +71,24 @@ export const rolesRouter = createTRPCRouter({
                   },
                 },
               },
-              ...(roleId ? { where: { role_id: roleId } } : {}),
+              ...(roleId && { where: { role_id: roleId } }),
             },
           },
-          take: limit,
-          skip,
           orderBy: { email: "asc" },
+          skip,
+          take: limit,
         }),
         ctx.db.users.count({ where }),
       ]);
 
-      return { users, total };
+      return {
+        items: users,
+        totalItems,
+        limit,
+        page,
+      };
     }),
+
   updateUserRole: adminOrManageStaffProcedure
     .input(
       z.object({

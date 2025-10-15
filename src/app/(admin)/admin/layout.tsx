@@ -28,7 +28,7 @@ const LayoutAdmin = async ({ children }: LayoutAdminProps) => {
       trpc.admin.productsRouter.getAllProductAttributes.queryOptions()
     ),
     queryClient.prefetchQuery(
-      trpc.admin.permissionsRouter.getAllPermissions.queryOptions()
+      trpc.admin.permissionsRouter.getAllRolePermissions.queryOptions()
     ),
   ]);
 

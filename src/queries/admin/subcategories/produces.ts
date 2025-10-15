@@ -28,7 +28,7 @@ export const subcategoriesRouter = createTRPCRouter({
 
       const slug = await generateCategorySlug(ctx.db, name, "subcategories");
 
-      const subcategory = await ctx.db.subcategories.create({
+      await ctx.db.subcategories.create({
         data: {
           name,
           category_id,
@@ -42,7 +42,7 @@ export const subcategoriesRouter = createTRPCRouter({
         },
       });
 
-      return subcategory;
+      return { success: true };
     }),
 
   update: adminOrManageCategoryProcedure
@@ -88,7 +88,7 @@ export const subcategoriesRouter = createTRPCRouter({
         );
       }
 
-      const subcategory = await ctx.db.subcategories.update({
+      await ctx.db.subcategories.update({
         where: { id },
         data: {
           ...updateData,
@@ -100,7 +100,7 @@ export const subcategoriesRouter = createTRPCRouter({
         },
       });
 
-      return subcategory;
+      return { success: true };
     }),
 
   toggleDeleted: adminOrManageCategoryProcedure
@@ -135,13 +135,13 @@ export const subcategoriesRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-          "Cannot restore subcategory because parent category is deleted",
+            "Cannot restore subcategory because parent category is deleted",
         });
       }
 
       const newDeletedStatus = !subcategory.is_deleted;
 
-      const result = await ctx.db.subcategories.update({
+      await ctx.db.subcategories.update({
         where: { id },
         data: {
           is_deleted: newDeletedStatus,
@@ -156,7 +156,6 @@ export const subcategoriesRouter = createTRPCRouter({
 
       return {
         success: true,
-        data: result,
         action: newDeletedStatus ? "deleted" : "restored",
       };
     }),
@@ -172,40 +171,22 @@ export const subcategoriesRouter = createTRPCRouter({
           id: true,
           name: true,
           is_deleted: true,
-          category: {
-            select: {
-              id: true,
-              name: true,
-              is_deleted: true,
-            },
-          },
+          category: { select: { is_deleted: true } },
         },
       });
 
-      if (subcategories.length === 0) {
-        return {
-          success: true,
-          count: 0,
-          data: [],
-          notFoundIds: ids,
-          violatingSubcategories: [],
-        };
+      if (!subcategories.length) {
+        return { success: true, updated: 0, notFound: ids.length };
       }
 
-      const validSubcategories = subcategories.filter((sc) => {
-        return !sc.category.is_deleted;
-      });
-
-      const violatingSubcategories = subcategories.filter(
-        (sc) => sc.is_deleted && sc.category.is_deleted
+      const validSubcategories = subcategories.filter(
+        (sc) => !sc.category.is_deleted
       );
 
-      let result: Array<{ id: string; name: string; action: string }> = [];
-
+      let updated: Array<{ id: string; name: string; action: string }> = [];
       if (validSubcategories.length > 0) {
-        result = await ctx.db.$transaction(async (tx) => {
+        updated = await ctx.db.$transaction(async (tx) => {
           const results = [];
-
           for (const subcategory of validSubcategories) {
             const newDeletedStatus = !subcategory.is_deleted;
 
@@ -215,36 +196,26 @@ export const subcategoriesRouter = createTRPCRouter({
                 is_deleted: newDeletedStatus,
                 deleted_at: newDeletedStatus ? new Date() : null,
               },
-              select: {
-                id: true,
-                name: true,
-              },
+              select: { id: true, name: true },
             });
 
             results.push({
-              ...updatedSubcategory,
+              id: updatedSubcategory.id,
+              name: updatedSubcategory.name,
               action: newDeletedStatus ? "deleted" : "restored",
             });
           }
-
           return results;
         });
       }
 
       const foundIds = subcategories.map((sc) => sc.id);
-      const notFoundIds = ids.filter((id) => !foundIds.includes(id));
+      const notFound = ids.filter((id) => !foundIds.includes(id)).length;
 
       return {
         success: true,
-        count: result.length,
-        data: result,
-        notFoundIds,
-        violatingSubcategories: violatingSubcategories.map((sc) => ({
-          id: sc.id,
-          name: sc.name,
-          categoryName: sc.category.name,
-          reason: "Parent category is deleted",
-        })),
+        updated: updated.length,
+        notFound,
       };
     }),
 
@@ -278,7 +249,7 @@ export const subcategoriesRouter = createTRPCRouter({
         });
       }
 
-      const deletedSubcategory = await ctx.db.subcategories.delete({
+      await ctx.db.subcategories.delete({
         where: { id },
         select: {
           id: true,
@@ -288,7 +259,6 @@ export const subcategoriesRouter = createTRPCRouter({
 
       return {
         success: true,
-        data: deletedSubcategory,
       };
     }),
 
@@ -299,63 +269,35 @@ export const subcategoriesRouter = createTRPCRouter({
 
       const subcategories = await ctx.db.subcategories.findMany({
         where: { id: { in: ids } },
-        select: {
-          id: true,
-          name: true,
-          products: {
-            select: { id: true, name: true },
-          },
-        },
+        select: { id: true, name: true, products: { select: { id: true } } },
       });
 
-      if (subcategories.length === 0) {
-        return {
-          success: true,
-          count: 0,
-          deletedSubcategories: [],
-          notFoundIds: ids,
-          subcategoriesWithProducts: [],
-        };
+      if (!subcategories.length) {
+        return { success: true, deleted: 0, notFound: ids.length };
       }
-
-      const subcategoriesWithProducts = subcategories.filter(
-        (sc) => sc.products.length > 0
-      );
 
       const subcategoriesToDelete = subcategories.filter(
         (sc) => sc.products.length === 0
       );
 
-      let deletedCount = 0;
-      let deletedSubcategories: Array<{ id: string; name: string }> = [];
-
+      let deleted: Array<{ id: string; name: string }> = [];
       if (subcategoriesToDelete.length > 0) {
         await ctx.db.subcategories.deleteMany({
-          where: {
-            id: { in: subcategoriesToDelete.map((sc) => sc.id) },
-          },
+          where: { id: { in: subcategoriesToDelete.map((sc) => sc.id) } },
         });
-
-        deletedCount = subcategoriesToDelete.length;
-        deletedSubcategories = subcategoriesToDelete.map((sc) => ({
+        deleted = subcategoriesToDelete.map((sc) => ({
           id: sc.id,
           name: sc.name,
         }));
       }
 
       const foundIds = subcategories.map((sc) => sc.id);
-      const notFoundIds = ids.filter((id) => !foundIds.includes(id));
+      const notFound = ids.filter((id) => !foundIds.includes(id)).length;
 
       return {
         success: true,
-        count: deletedCount,
-        deletedSubcategories,
-        notFoundIds,
-        subcategoriesWithProducts: subcategoriesWithProducts.map((sc) => ({
-          id: sc.id,
-          name: sc.name,
-          productsCount: sc.products.length,
-        })),
+        deleted: deleted.length,
+        notFound: notFound,
       };
     }),
 });

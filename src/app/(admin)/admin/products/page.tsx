@@ -9,8 +9,6 @@ import { RoleGuardProvider } from "@/providers/role-guard-provider";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { loaderProductFilters } from "./hooks/products/product-filters";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "Product Management | Admin Dashboard",
   description:
@@ -41,7 +39,7 @@ const ProductPage = async ({ searchParams }: ProductPageProps) => {
   );
 
   return (
-    <main className="space-y-8">
+    <main>
       <RoleGuardProvider check="adminOrManageProduct">
         <PageHeader
           title="Products"

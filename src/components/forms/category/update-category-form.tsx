@@ -98,24 +98,19 @@ export const UpdateCategoryForm = ({ data }: UpdateCategoryFormProps) => {
   };
 
   const handleFormSubmit = async (values: UpdateCategoryType) => {
-    try {
-      if (selectedImage) {
-        const uploadResult = await uploadImageAsync({
-          image: selectedImage.base64Url,
-        });
-        const uploadedImage = uploadResult.data;
-        values.image_url = uploadedImage.imageUrl;
-        values.public_id = uploadedImage.publicId;
-      }
-
-      await updateCategoryAsync(values);
-
-      formReset();
-      close();
-    } catch (error) {
-      console.error("Error updating category:", error);
-      toast.error("Failed to update category. Please try again.");
+    if (selectedImage) {
+      const uploadResult = await uploadImageAsync({
+        image: selectedImage.base64Url,
+      });
+      const uploadedImage = uploadResult.data;
+      values.image_url = uploadedImage.imageUrl;
+      values.public_id = uploadedImage.publicId;
     }
+
+    await updateCategoryAsync(values);
+
+    formReset();
+    close();
   };
 
   const renderImageSection = useCallback(() => {

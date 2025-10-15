@@ -127,25 +127,20 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
 
   const handleFormSubmit = useCallback(
     async (values: UpdateSubcategoryType) => {
-      try {
-        if (selectedImage) {
-          const uploadResult = await uploadImageAsync({
-            image: selectedImage.base64Url,
-          });
+      if (selectedImage) {
+        const uploadResult = await uploadImageAsync({
+          image: selectedImage.base64Url,
+        });
 
-          const uploadedImage = uploadResult.data;
-          values.image_url = uploadedImage.imageUrl;
-          values.public_id = uploadedImage.publicId;
-        }
-
-        await updateSubcategoryAsync(values);
-
-        resetForm();
-        close();
-      } catch (error) {
-        console.error("Error updating subcategory:", error);
-        toast.error("Failed to update subcategory. Please try again.");
+        const uploadedImage = uploadResult.data;
+        values.image_url = uploadedImage.imageUrl;
+        values.public_id = uploadedImage.publicId;
       }
+
+      await updateSubcategoryAsync(values);
+
+      resetForm();
+      close();
     },
     [selectedImage, uploadImageAsync, updateSubcategoryAsync, resetForm, close]
   );

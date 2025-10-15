@@ -17,7 +17,7 @@ import {
   ProductFilters,
   useProductFilters,
 } from "../hooks/products/use-product-fillters";
-import { DEFAULT_PAGE } from "@/lib/constants";
+import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
 import { Category } from "@/queries/admin/categories/types";
 
 interface ProductFiltersProps {
@@ -73,8 +73,8 @@ export const ProductFiltersComponent = ({
 
   const handleClearFilters = () => {
     setTempFilters({
-      limit: filters.limit,
-      page: 1,
+      limit: DEFAULT_LIMIT,
+      page: DEFAULT_PAGE,
       search: "",
       slugCategory: "",
       slugSubcategory: "",

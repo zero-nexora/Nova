@@ -3,7 +3,10 @@
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PermissionUpdate, RolePermissionData } from "@/queries/admin/permissions/types";
+import {
+  PermissionUpdate,
+  RolePermissionData,
+} from "@/queries/admin/permissions/types";
 
 export function useUpdatePermissions() {
   const trpc = useTRPC();
@@ -11,19 +14,17 @@ export function useUpdatePermissions() {
 
   const mutation = useMutation(
     trpc.admin.permissionsRouter.updatePermissions.mutationOptions({
-      onMutate: async (
-        variables: PermissionUpdate[]
-      ) => {
-        await queryClient.cancelQueries({
-          queryKey: trpc.admin.permissionsRouter.getAllPermissions.queryKey(),
-        });
+      onMutate: async (variables: PermissionUpdate[]) => {
+        await queryClient.cancelQueries(
+          trpc.admin.permissionsRouter.getAllRolePermissions.queryOptions()
+        );
 
         const previousPermissions = queryClient.getQueryData(
-          trpc.admin.permissionsRouter.getAllPermissions.queryKey()
+          trpc.admin.permissionsRouter.getAllRolePermissions.queryKey()
         );
 
         queryClient.setQueryData<RolePermissionData>(
-          trpc.admin.permissionsRouter.getAllPermissions.queryKey(),
+          trpc.admin.permissionsRouter.getAllRolePermissions.queryKey(),
           (oldData) =>
             oldData
               ? {
@@ -52,20 +53,22 @@ export function useUpdatePermissions() {
 
         return { previousPermissions };
       },
-      onError: (_, __, context) => {
+      onError: (error, __, context) => {
         queryClient.setQueryData(
-          trpc.admin.permissionsRouter.getAllPermissions.queryKey(),
+          trpc.admin.permissionsRouter.getAllRolePermissions.queryKey(),
           context?.previousPermissions
         );
-        toast.error("Something wrong");
+
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteProduct ", error.message);
       },
       onSuccess: () => {
         toast.success("Permissions updated successfully");
       },
       onSettled: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.admin.permissionsRouter.getAllPermissions.queryKey(),
-        });
+        queryClient.invalidateQueries(
+          trpc.admin.permissionsRouter.getAllRolePermissions.queryOptions()
+        );
       },
     })
   );

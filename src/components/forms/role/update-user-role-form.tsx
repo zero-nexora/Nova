@@ -4,8 +4,6 @@ import React, { useState, useMemo } from "react";
 import { X } from "lucide-react";
 import { Error } from "@/components/global/error";
 import { Loading } from "@/components/global/loading";
-import { UserByRole } from "@/queries/admin/roles/types";
-import { useGetAllPerrmissions } from "@/app/(admin)/admin/permissions/hooks/get-all-permissions";
 import { useUpdateUserRoles } from "@/app/(admin)/admin/roles/hooks/use-update-user-roles";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,19 +16,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useModal } from "@/stores/modal-store";
+import { useGetAllRolePermissions } from "@/app/(admin)/admin/permissions/hooks/get-all-role-permissions";
+import { User } from "@/queries/admin/roles/types";
 
 interface UpdateUserRoleFormProps {
-  user: UserByRole;
+  user: User;
 }
 
 export const UpdateUserRoleForm = ({ user }: UpdateUserRoleFormProps) => {
-  const { rolesAndPermissions, error: rolesError } = useGetAllPerrmissions();
+  const { roleAndPermissions, error: rolesError } = useGetAllRolePermissions();
   const { updateUserRoleAsync, isPending: isUpdating } = useUpdateUserRoles();
   const [localRoles, setLocalRoles] = useState<string[]>(
     user.roles.map((r) => r.role.id)
   );
 
-  const roles = rolesAndPermissions?.roles ?? [];
+  const close = useModal((state) => state.close);
+
+  const roles = roleAndPermissions?.roles ?? [];
   const isAdmin = useMemo(
     () =>
       localRoles.some((roleId) => {
@@ -40,34 +43,27 @@ export const UpdateUserRoleForm = ({ user }: UpdateUserRoleFormProps) => {
     [localRoles, roles]
   );
 
-  // Filter available roles (exclude already assigned roles)
   const availableRoles = useMemo(() => {
     return roles.filter((role) => !localRoles.includes(role.id));
   }, [roles, localRoles]);
 
-  // Handle role selection
   const handleRoleChange = (roleId: string) => {
     if (!roleId) return;
     const selectedRole = roles.find((r) => r.id === roleId);
     if (selectedRole?.name.toLowerCase() === "admin") {
-      setLocalRoles([roleId]); // Set only Admin role
+      setLocalRoles([roleId]);
     } else {
-      setLocalRoles((prev) => [...prev, roleId]); // Add selected role
+      setLocalRoles((prev) => [...prev, roleId]);
     }
   };
 
-  // Handle removing a role
   const handleRemoveRole = (roleId: string) => {
     setLocalRoles((prev) => prev.filter((id) => id !== roleId));
   };
 
-  // Handle form submission
   const handleSubmit = async () => {
-    try {
-      await updateUserRoleAsync({ userId: user.id, roleIds: localRoles });
-    } catch (error) {
-      console.error("Error updating roles:", error);
-    }
+    await updateUserRoleAsync({ userId: user.id, roleIds: localRoles });
+    close();
   };
 
   if (rolesError) return <Error />;
@@ -100,7 +96,6 @@ export const UpdateUserRoleForm = ({ user }: UpdateUserRoleFormProps) => {
         </div>
       </div>
 
-      {/* Current Roles Section */}
       <div className="space-y-3">
         <Label className="font-semibold text-sm">Current Roles</Label>
         <div className="flex flex-wrap gap-2">

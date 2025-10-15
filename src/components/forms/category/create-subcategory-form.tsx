@@ -115,24 +115,19 @@ export const CreateSubcategoryForm = () => {
       return;
     }
 
-    try {
-      const uploadResult = await uploadImageAsync({
-        image: selectedImage.base64Url,
-      });
+    const uploadResult = await uploadImageAsync({
+      image: selectedImage.base64Url,
+    });
 
-      const uploadedImage = uploadResult.data;
+    const uploadedImage = uploadResult.data;
 
-      values.image_url = uploadedImage.imageUrl;
-      values.public_id = uploadedImage.publicId;
+    values.image_url = uploadedImage.imageUrl;
+    values.public_id = uploadedImage.publicId;
 
-      await createSubcategoryAsync(values);
+    await createSubcategoryAsync(values);
 
-      resetForm();
-      close();
-    } catch (error) {
-      console.error("Error creating subcategory:", error);
-      toast.error("Failed to create subcategory. Please try again.");
-    }
+    resetForm();
+    close();
   };
 
   return (

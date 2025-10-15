@@ -7,6 +7,8 @@ import { RoleName } from "@prisma/client";
 import { User } from "@/queries/client/users/types";
 import { SidebarRoute, sidebarRoutes } from "./constants";
 import { UserRoleFilters } from "@/app/(admin)/admin/roles/hooks/use-user-filters";
+import { toast } from "sonner";
+import { ProductResponse } from "@/queries/admin/products/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -102,16 +104,20 @@ export function cleanProductFilters(
       params.slugSubcategory?.trim() === "all"
         ? undefined
         : params.slugSubcategory,
-    isDeleted: params.isDeleted === "all" ? undefined : params.isDeleted,
     priceMin: params.priceMin === 0 ? undefined : params.priceMin,
     priceMax: params.priceMax === 0 ? undefined : params.priceMax,
   };
 }
 
-export function cleanUserRoleFilters(filters: UserRoleFilters): UserRoleFilters {
+export function cleanUserRoleFilters(
+  filters: UserRoleFilters
+): UserRoleFilters {
   return {
     ...filters,
-    roleId: filters.roleId === "" || "all" ? undefined : filters.roleId,
+    roleId:
+      (filters.roleId === "" || filters.roleId === "all")
+        ? undefined
+        : filters.roleId,
     search: filters.search === "" ? undefined : filters.search,
   };
 }
@@ -178,7 +184,8 @@ export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
       case "Category":
         return isAdminOrManageCategory(user);
 
-      case "Role": case "Permission":
+      case "Role":
+      case "Permission":
         return isAdminOrManageStaff(user);
 
       case "Order":
@@ -191,3 +198,114 @@ export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
     }
   });
 }
+
+export interface ProductVariant {
+  id: string;
+  sku: string;
+  price: number;
+  stock_quantity: number;
+  attributeValueIds: string[];
+  isExisting?: boolean;
+}
+
+export const generateSKU = (baseProductName: string, index: number): string => {
+  const productPrefix = baseProductName
+    .toUpperCase()
+    .replace(/\s+/g, "-")
+    .substring(0, 6);
+  return `${productPrefix}-${String(index + 1).padStart(3, "0")}`;
+};
+
+export const createDefaultVariant = (isExisting = false): ProductVariant => ({
+  id: isExisting ? `existing_${Date.now()}` : `new_${Date.now()}`,
+  sku: "",
+  price: 0,
+  stock_quantity: 0,
+  attributeValueIds: [],
+  isExisting,
+});
+
+export const validateVariants = (variants: ProductVariant[]): boolean => {
+  if (variants.length === 0) {
+    toast.error("Please create at least one product variant");
+    return false;
+  }
+
+  for (const variant of variants) {
+    if (!variant.sku.trim()) {
+      toast.error("All variants must have a SKU");
+      return false;
+    }
+    if (variant.price <= 0) {
+      toast.error("All variants must have a valid price");
+      return false;
+    }
+    if (variant.stock_quantity < 0) {
+      toast.error("Stock quantity cannot be negative");
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export const deduplicateVariants = (
+  variants: ProductVariant[]
+): ProductVariant[] => {
+  const uniqueVariantsMap = new Map<string, ProductVariant>();
+
+  variants.forEach((variant) => {
+    const key = variant.attributeValueIds.sort().join(",");
+    uniqueVariantsMap.set(key, variant);
+  });
+
+  const uniqueVariants = Array.from(uniqueVariantsMap.values());
+
+  if (uniqueVariants.length < variants.length) {
+    toast.info(
+      `Merged ${variants.length - uniqueVariants.length} duplicate variant(s)`
+    );
+  }
+
+  return uniqueVariants;
+};
+
+export const isValidUUID = (id: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id
+  );
+};
+
+export const extractProductIds = (products: ProductResponse[]): string[] => {
+  return products.map((product) => product.id).filter(Boolean);
+};
+
+export const extractAllImagePublicIds = (
+  products: ProductResponse[]
+): string[] => {
+  const publicIds: string[] = [];
+
+  products.forEach((product) => {
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach((image) => {
+        if (image.public_id) {
+          publicIds.push(image.public_id);
+        }
+      });
+    }
+  });
+
+  return publicIds;
+};
+
+export const extractProductImagePublicIds = (
+  product: ProductResponse
+): string[] => {
+  if (!product.images || !Array.isArray(product.images)) {
+    return [];
+  }
+
+  return product.images
+    .map((image) => image.public_id)
+    .filter((id): id is string => Boolean(id));
+};

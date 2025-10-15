@@ -1,14 +1,22 @@
 "use client";
 
-import React from "react";
+import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { Download, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Empty } from "@/components/global/empty";
+import { Separator } from "@/components/ui/separator";
+import { ProductResponse } from "@/queries/admin/products/types";
+import { useProductFilters } from "../hooks/products/use-product-fillters";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  RowSelectionState,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -18,96 +26,83 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Download, Trash2 } from "lucide-react";
-import { Pagination, Product } from "@/queries/admin/products/types";
-import { useRouter, usePathname } from "next/navigation";
-import { NotFound } from "@/components/global/not-found";
-import { useProductFilters } from "../hooks/products/use-product-fillters";
 
 interface ProductTableProps {
-  products: Product[];
-  columns: ColumnDef<Product>[];
-  pagination: Pagination | null;
-  onBulkDelete?: () => Promise<void>;
-  onBulkToggle?: () => Promise<void>;
+  products: ProductResponse[];
+  columns: ColumnDef<ProductResponse>[];
+  totalProducts: number;
+  currentPage: number;
+  pageSize: number;
+  isRefetching: boolean;
+  onBulkDelete?: (selectedProducts: ProductResponse[]) => Promise<void>;
+  onBulkToggle?: (selectedIds: string[]) => Promise<void>;
 }
 
 export const ProductTable = ({
   products,
   columns,
-  pagination,
+  totalProducts,
+  currentPage,
+  pageSize,
   onBulkDelete,
   onBulkToggle,
+  isRefetching,
 }: ProductTableProps) => {
-  const { filters, updateFilter } = useProductFilters();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { updateFilter } = useProductFilters();
 
-  const table = useReactTable<Product>({
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const totalPages = useMemo(
+    () => Math.ceil(totalProducts / pageSize),
+    [totalProducts, pageSize]
+  );
+
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
+
+  const table = useReactTable<ProductResponse>({
     data: products,
     columns,
     state: {
-      rowSelection: {},
+      rowSelection,
       pagination: {
-        pageIndex: filters.page - 1,
-        pageSize: filters.limit,
+        pageIndex: currentPage - 1,
+        pageSize: pageSize,
       },
     },
-    onRowSelectionChange: (updater) => {
-      if (typeof updater === "function") {
-        table.setRowSelection(updater);
-      }
-    },
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     manualPagination: true,
-    pageCount: pagination?.totalPages || 0,
+    pageCount: totalPages,
     enableRowSelection: true,
     getRowId: (row) => row.id,
   });
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
+  const selectedProducts = selectedRows.map((row) => row.original);
+  const selectedIds = selectedProducts.map((p) => p.id);
 
   const handleBulkDelete = async () => {
-    if (onBulkDelete) {
-      await onBulkDelete();
-      table.setRowSelection({});
+    if (onBulkDelete && selectedProducts.length > 0) {
+      await onBulkDelete(selectedProducts);
+      setRowSelection({});
     }
   };
 
   const handleBulkToggle = async () => {
-    if (onBulkToggle) {
-      await onBulkToggle();
-      table.setRowSelection({});
+    if (onBulkToggle && selectedIds.length > 0) {
+      await onBulkToggle(selectedIds);
+      setRowSelection({});
     }
   };
 
-  const createQueryString = (name: string, value: string) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, val]) => {
-      if (val !== undefined && val !== "" && val !== "all" && val !== 0) {
-        params.set(key, val.toString());
-      }
-    });
-    params.set(name, value);
-    return params.toString();
-  };
-
   const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+
     updateFilter("page", newPage);
-    table.setRowSelection({});
-    router.push(
-      `${pathname}?${createQueryString("page", newPage.toString())}`,
-      {
-        scroll: false,
-      }
-    );
   };
 
   return (
@@ -115,15 +110,15 @@ export const ProductTable = ({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>
-            Products ({pagination?.totalCount || 0})
+            Products ({totalProducts})
             {selectedCount > 0 && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
                 ({selectedCount} selected)
               </span>
             )}
           </CardTitle>
+
           <div className="flex items-center gap-2">
-            {/* Bulk Actions */}
             {selectedCount > 0 && (
               <div className="flex items-center gap-2 mr-2 border-r pr-2">
                 <Button
@@ -145,7 +140,8 @@ export const ProductTable = ({
                 </Button>
               </div>
             )}
-            {/* Export */}
+
+            {/* Export Button */}
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -153,8 +149,10 @@ export const ProductTable = ({
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
-        <div>
+        {/* Table */}
+        <div className={cn(isRefetching && "opacity-80 pointer-events-none")}>
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -175,6 +173,7 @@ export const ProductTable = ({
                 </TableRow>
               ))}
             </TableHeader>
+
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
@@ -200,9 +199,9 @@ export const ProductTable = ({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center"
+                    className="text-center"
                   >
-                    <NotFound />
+                    <Empty />
                   </TableCell>
                 </TableRow>
               )}
@@ -212,7 +211,7 @@ export const ProductTable = ({
 
         {/* Selection Info */}
         {selectedCount > 0 && (
-          <div className="flex items-center justify-between py-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-between py-3 text-sm text-muted-foreground">
             <span>
               {selectedCount} of {table.getFilteredRowModel().rows.length}{" "}
               row(s) selected
@@ -220,7 +219,7 @@ export const ProductTable = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => table.setRowSelection({})}
+              onClick={() => setRowSelection({})}
             >
               Clear selection
             </Button>
@@ -228,44 +227,51 @@ export const ProductTable = ({
         )}
 
         {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
+        {totalPages > 1 && (
           <>
-            <Separator className="my-4" />
-            <div className="flex items-center justify-end">
+            <Separator className="mb-4" />
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalProducts)} of{" "}
+                {totalProducts} products
+              </div>
+
               <div className="flex items-center space-x-6 lg:space-x-8">
                 <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                  Page {pagination.page} of {pagination.totalPages}
+                  Page {currentPage} of {totalPages}
                 </div>
+
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
                     onClick={() => handlePageChange(1)}
-                    disabled={!pagination.hasPreviousPage}
+                    disabled={!hasPreviousPage}
                   >
                     <span className="sr-only">Go to first page</span>⟪
                   </Button>
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(filters.page - 1)}
-                    disabled={!pagination.hasPreviousPage}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!hasPreviousPage}
                   >
                     <span className="sr-only">Go to previous page</span>⟨
                   </Button>
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(filters.page + 1)}
-                    disabled={!pagination.hasNextPage}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!hasNextPage}
                   >
                     <span className="sr-only">Go to next page</span>⟩
                   </Button>
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(pagination.totalPages)}
-                    disabled={!pagination.hasNextPage}
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={!hasNextPage}
                   >
                     <span className="sr-only">Go to last page</span>⟫
                   </Button>

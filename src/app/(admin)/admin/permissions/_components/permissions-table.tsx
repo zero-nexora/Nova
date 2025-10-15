@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import { useUpdatePermissions } from "../hooks/update-permissions";
-import { useGetAllPerrmissions } from "../hooks/get-all-permissions";
+import { useGetAllRolePermissions } from "../hooks/get-all-role-permissions";
 
 import { Button } from "@/components/ui/button";
 import { Error } from "@/components/global/error";
@@ -19,17 +19,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PermissionUpdate } from "@/queries/admin/permissions/types";
+import { Empty } from "@/components/global/empty";
 
 export const PermissionsTable = () => {
-  const { rolesAndPermissions, error } = useGetAllPerrmissions();
+  const { roleAndPermissions, error } = useGetAllRolePermissions();
   const { updateRoleAndPermissionsAsync, isPending } = useUpdatePermissions();
 
-  const [pendingChanges, setPendingChanges] = useState<
-    PermissionUpdate[]
-  >([]);
+  const [pendingChanges, setPendingChanges] = useState<PermissionUpdate[]>([]);
 
-  const roles = rolesAndPermissions?.roles ?? [];
-  const permissions = rolesAndPermissions?.permissions ?? [];
+  const roles = roleAndPermissions?.roles ?? [];
+  const permissions = roleAndPermissions?.permissions ?? [];
 
   const getCheckboxState = (roleId: string, permissionId: string): boolean => {
     const pendingChange = pendingChanges.find(
@@ -76,13 +75,9 @@ export const PermissionsTable = () => {
     }
   };
 
-  if (error) {
-    return <Error />;
-  }
+  if (error) return <Error />;
 
-  if (!rolesAndPermissions) {
-    return <Loading />;
-  }
+  if (!roleAndPermissions) return <Empty />;
 
   return (
     <div className="space-y-6 rounded-lg shadow">

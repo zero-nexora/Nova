@@ -9,7 +9,7 @@ import { useEffect } from "react";
 export const UserProvider = () => {
   const { isSignedIn, isLoaded } = useAuth();
   const { user, error } = useGetCurrentUser();
-  const { setUser, clearUser } = useUserStore();
+  const { setUser, clearUser, } = useUserStore();
 
   useEffect(() => {
     if (!isLoaded) return;

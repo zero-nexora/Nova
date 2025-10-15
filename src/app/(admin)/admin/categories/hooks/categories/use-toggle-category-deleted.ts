@@ -11,18 +11,19 @@ export function useToggleCategoryDeleted() {
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.categoriesRouter.toggleDeleted.mutationOptions({
       onSuccess: (data) => {
-        if (data.success) {
-          const action =
-            data.action === "deleted" ? "moved to trash" : "restored";
-          toast.success(`Category "${data.data.name}" ${action} successfully`);
-        }
+        const message =
+          data.action === "deleted"
+            ? `Category moved to trash successfully`
+            : `Category restored successfully`;
+        toast.success(message);
 
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to toggle category");
+        toast.error("Something went wrong.");
+        console.log("Failed to useToggleCategoryDeleted ", error.message);
       },
     })
   );

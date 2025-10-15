@@ -10,14 +10,15 @@ export function useUpdateCategory() {
 
   const { mutateAsync, mutate, error, isPending } = useMutation(
     trpc.admin.categoriesRouter.update.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`Category ${data.name} updated successfully`);
+      onSuccess: () => {
+        toast.success(`Category updated successfully`);
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to update category");
+        toast.error("Something went wrong.");
+        console.log("Failed to useUpdateCategory ", error.message);
       },
     })
   );

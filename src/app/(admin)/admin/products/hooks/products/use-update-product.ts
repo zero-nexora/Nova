@@ -11,13 +11,13 @@ export function useUpdateProduct() {
 
   const mutation = useMutation(
     trpc.admin.productsRouter.update.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`Product "${data.data.name}" updated successfully`);
-
+      onSuccess: () => {
+        toast.success(`Product updated successfully`);
         invalidate();
       },
       onError: (error: any) => {
-        toast.error(error?.message || "Failed to update product");
+        toast.error("Something went wrong.");
+        console.log("Failed to useUpdateProduct ", error.message);
       },
     })
   );

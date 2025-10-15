@@ -17,8 +17,8 @@ export function useInvalidateProducts() {
     [filters]
   );
 
-  const invalidate = () => {
-    return queryClient.invalidateQueries(
+  const invalidate = async () => {
+    return await queryClient.invalidateQueries(
       trpc.admin.productsRouter.getAll.queryOptions({
         ...normalizedParams,
         limit: DEFAULT_LIMIT,

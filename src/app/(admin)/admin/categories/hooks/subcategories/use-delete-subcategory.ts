@@ -10,19 +10,16 @@ export function useDeleteSubcategory() {
 
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.subcategoriesRouter.delete.mutationOptions({
-      onSuccess: (data) => {
-        if (data.success) {
-          toast.success(
-            `Subcategory "${data.data.name}" has been deleted successfully`
-          );
-        }
+      onSuccess: () => {
+        toast.success(`Subcategory deleted permanently`);
 
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to delete subcategory");
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteSubcategory ", error.message);
       },
     })
   );

@@ -10,14 +10,15 @@ export function useUpdateSubcategory() {
 
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.subcategoriesRouter.update.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`Subcategory "${data.name}" updated successfully`);
+      onSuccess: () => {
+        toast.success(`Subcategory updated successfully`);
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to update subcategory");
+        toast.error("Something went wrong.");
+        console.log("Failed to useUpdateSubcategory ", error.message);
       },
     })
   );

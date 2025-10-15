@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Error } from "@/components/global/error";
 import { useUserRoleFilters } from "../hooks/use-user-filters";
-import { useGetAllPerrmissions } from "../../permissions/hooks/get-all-permissions";
 import {
   Select,
   SelectContent,
@@ -14,26 +13,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useGetAllRolePermissions } from "../../permissions/hooks/get-all-role-permissions";
 
 export const UserFilter = () => {
   const { filters, updateFilter, resetFilters } = useUserRoleFilters();
-  const { rolesAndPermissions, error: rolesError } = useGetAllPerrmissions();
+  const { roleAndPermissions, error: rolesError } = useGetAllRolePermissions();
   const [tempFilters, setTempFilters] = useState({
     search: filters.search ?? "",
     roleId: filters.roleId ?? "",
   });
 
-  const roles = rolesAndPermissions?.roles ?? [];
-
-  if (rolesError) return <Error />;
+  const roles = roleAndPermissions?.roles ?? [];
 
   const handleApply = () => {
     updateFilter("search", tempFilters.search || "");
     updateFilter(
       "roleId",
-      tempFilters.roleId === "all" ? "" : tempFilters.roleId || ""
+      (tempFilters.roleId === "all" || tempFilters.roleId === "") ? undefined : tempFilters.roleId
     );
   };
+
+  if (rolesError) return <Error />;
 
   return (
     <div className="flex gap-4 items-center">

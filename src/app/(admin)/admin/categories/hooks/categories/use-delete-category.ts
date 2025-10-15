@@ -10,17 +10,16 @@ export function useDeleteCategory() {
 
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.categoriesRouter.delete.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(
-          `Category "${data.data.name}" has been deleted successfully`
-        );
+      onSuccess: () => {
+        toast.success(`Category deleted permanently`);
 
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to delete category");
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteCategory ", error.message);
       },
     })
   );

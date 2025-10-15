@@ -3,7 +3,7 @@ import { RolePermissionData } from "./types";
 import { adminOrManageStaffProcedure, createTRPCRouter } from "@/trpc/init";
 
 export const permissionsRouter = createTRPCRouter({
-  getAllPermissions: adminOrManageStaffProcedure.query(
+  getAllRolePermissions: adminOrManageStaffProcedure.query(
     async ({ ctx }): Promise<RolePermissionData> => {
       const roles = await ctx.db.roles.findMany({
         select: {

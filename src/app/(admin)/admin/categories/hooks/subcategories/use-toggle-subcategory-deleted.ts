@@ -11,18 +11,19 @@ export function useToggleSubcategoryDeleted() {
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.subcategoriesRouter.toggleDeleted.mutationOptions({
       onSuccess: (data) => {
-        if (data.success) {
-          toast.success(
-            `Subcategory "${data.data.name}" has been ${data.action} successfully`
-          );
-        }
+        const message =
+          data.action === "deleted"
+            ? `Subcategory moved to trash successfully`
+            : `Subcategory restored successfully`;
+        toast.success(message);
 
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to toggle subcategory");
+        toast.error("Something went wrong.");
+        console.log("Failed to useToggleSubcategoryDeleted ", error.message);
       },
     })
   );

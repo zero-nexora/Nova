@@ -1,26 +1,40 @@
 "use client";
 
-import { toast } from "sonner";
 import { useCallback } from "react";
 import { createProductColumns } from "./product-columns";
 import { ProductFiltersComponent } from "./product-filters";
-import { useConfirm } from "@/stores/confirm-store";
-import { useModal } from "@/stores/modal-store";
+import { ProductTable } from "./product-table";
 import { ProductDetailCard } from "./product-details-card";
 import { UpdateProductForm } from "@/components/forms/product/update-product-form";
+
+import { useConfirm } from "@/stores/confirm-store";
+import { useModal } from "@/stores/modal-store";
 import { useDeleteImages } from "@/components/uploader/hooks/use-uploader";
-import { useGetAllProducts } from "../hooks/products/use-get-all-products";
 import { useToggleProductDeletedMultiple } from "../hooks/products/use-toggle-product-deleted-multiple";
 import { useDeleteProductMultiple } from "../hooks/products/use-delete-product-multiple";
-import { Product } from "@/queries/admin/products/types";
 import { useToggleProductDeleted } from "../hooks/products/use-toggle-product-deleted";
 import { useDeleteProduct } from "../hooks/products/use-delete-product";
-import { ProductTable } from "./product-table";
-import { Error } from "@/components/global/error";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
 import { useGetAllCategories } from "../../categories/hooks/categories/use-get-all-categories";
 
-export const ProductList = () => {
+import { ProductResponse } from "@/queries/admin/products/types";
+import { extractAllImagePublicIds } from "@/lib/utils";
+
+interface ProductListProps {
+  products: ProductResponse[];
+  totalProducts: number;
+  currentPage: number;
+  pageSize: number;
+  isRefetching: boolean;
+}
+
+export const ProductList = ({
+  products,
+  currentPage,
+  pageSize,
+  totalProducts,
+  isRefetching,
+}: ProductListProps) => {
   const { filters } = useProductFilters();
   const { categories } = useGetAllCategories();
   const openConfirm = useConfirm((state) => state.open);
@@ -33,82 +47,48 @@ export const ProductList = () => {
   const { deleteProductMultipleAsync } = useDeleteProductMultiple();
   const { deleteImagesAsync } = useDeleteImages();
 
-  const { products, pagination, error, isPending } = useGetAllProducts({
-    page: filters.page,
-    limit: filters.limit,
-    search: filters.search || undefined,
-    slugCategory: filters.slugCategory || undefined,
-    slugSubcategory: filters.slugSubcategory || undefined,
-    isDeleted: filters.isDeleted,
-    priceMin: filters.priceMin || undefined,
-    priceMax: filters.priceMax || undefined,
-  });
+  const handleBulkToggle = useCallback(
+    async (selectedIds: string[]) => {
+      if (selectedIds.length === 0) return;
 
-  const handleBulkToggle = useCallback(async () => {
-    const selectedIds = Object.keys(
-      products.reduce((acc, product) => {
-        if (product.id) acc[product.id] = true;
-        return acc;
-      }, {} as Record<string, boolean>)
-    );
-
-    if (selectedIds.length === 0) return;
-
-    openConfirm({
-      title: `Toggle ${selectedIds.length} Products`,
-      description: `Are you sure you want to toggle the status of ${selectedIds.length} selected products? This will move active products to trash and restore deleted products.`,
-      onConfirm: async () => {
-        try {
+      openConfirm({
+        title: `Toggle ${selectedIds.length} Products`,
+        description: `Are you sure you want to toggle the status of ${selectedIds.length} selected products? This will move active products to trash and restore deleted products.`,
+        onConfirm: async () => {
           await toggleProductDeletedMultipleAsync({ ids: selectedIds });
-        } catch (error: any) {
-          toast.error(error?.message || "Failed to toggle products");
-          console.error("Bulk toggle error:", error);
-        }
-      },
-    });
-  }, [toggleProductDeletedMultipleAsync, openConfirm, products]);
+        },
+      });
+    },
+    [toggleProductDeletedMultipleAsync, openConfirm]
+  );
 
-  const handleBulkDelete = useCallback(async () => {
-    const selectedIds = Object.keys(
-      products.reduce((acc, product) => {
-        if (product.id) acc[product.id] = true;
-        return acc;
-      }, {} as Record<string, boolean>)
-    );
+  // Bulk Delete Handler
+  const handleBulkDelete = useCallback(
+    async (selectedProducts: ProductResponse[]) => {
+      if (selectedProducts.length === 0) return;
 
-    if (selectedIds.length === 0) return;
+      const selectedIds = selectedProducts.map((p) => p.id);
 
-    openConfirm({
-      title: `Permanently Delete ${selectedIds.length} Products`,
-      description: `Permanently delete "${selectedIds.length}" products? This cannot be undone.`,
-      onConfirm: async () => {
-        try {
-          const allImagePublicIds: string[] = [];
-          products.forEach((product) => {
-            if (product.images && Array.isArray(product.images)) {
-              product.images.forEach((image) => {
-                if (image.public_id) {
-                  allImagePublicIds.push(image.public_id);
-                }
-              });
-            }
-          });
+      openConfirm({
+        title: `Permanently Delete ${selectedIds.length} Products`,
+        description: `Permanently delete ${selectedIds.length} products? This cannot be undone.`,
+        onConfirm: async () => {
+          const allImagePublicIds: string[] =
+            extractAllImagePublicIds(selectedProducts);
 
           if (allImagePublicIds.length > 0) {
             await deleteImagesAsync({ publicIds: allImagePublicIds });
           }
 
           await deleteProductMultipleAsync({ ids: selectedIds });
-        } catch (error: any) {
-          toast.error(error?.message || "Failed to delete products");
-          console.error("Bulk delete error:", error);
-        }
-      },
-    });
-  }, [deleteProductMultipleAsync, deleteImagesAsync, openConfirm, products]);
+        },
+      });
+    },
+    [deleteProductMultipleAsync, deleteImagesAsync, openConfirm]
+  );
 
   const handleUpdateProduct = useCallback(
-    (product: Product) => {
+    (product: ProductResponse) => {
       openModal({
         children: <UpdateProductForm data={product} />,
         title: "Update Product",
@@ -119,59 +99,43 @@ export const ProductList = () => {
   );
 
   const handleToggleProduct = useCallback(
-    async (product: Product) => {
-      try {
-        openConfirm({
-          title: product.is_deleted ? "Restore product" : "Move to Trash",
-          description: product.is_deleted
-            ? "Are you sure you want to restore this product?"
-            : "Are you sure you want to move this product to trash?",
-          onConfirm: async () => {
-            await toggleProductDeletedAsync({ id: product.id });
-          },
-        });
-      } catch (error: any) {
-        toast.dismiss();
-        toast.error(error?.message || "Failed to toggle product status");
-      }
+    async (product: ProductResponse) => {
+      openConfirm({
+        title: product.is_deleted ? "Restore product" : "Move to Trash",
+        description: product.is_deleted
+          ? "Are you sure you want to restore this product?"
+          : "Are you sure you want to move this product to trash?",
+        onConfirm: async () => {
+          await toggleProductDeletedAsync({ id: product.id });
+        },
+      });
     },
     [toggleProductDeletedAsync, openConfirm]
   );
 
   const handleDeleteProduct = useCallback(
-    async (product: Product) => {
-      try {
-        openConfirm({
-          title: "Permanent Deletion Warning",
-          description: `Permanently delete "${product.name}"? This cannot be undone.`,
-          onConfirm: async () => {
-            try {
-              if (product.images?.length > 0) {
-                await deleteImagesAsync({
-                  publicIds: product.images
-                    .map((image) => image.public_id)
-                    .filter((id): id is string => Boolean(id)),
-                });
-              }
-              await deleteProductAsync({ id: product.id });
-            } catch (error: any) {
-              toast.dismiss();
-              toast.error(
-                error?.message || "Failed to permanently delete product"
-              );
-            }
-          },
-        });
-      } catch (error: any) {
-        toast.dismiss();
-        toast.error(error?.message || "Failed to delete product");
-      }
+    async (product: ProductResponse) => {
+      openConfirm({
+        title: "Permanent Deletion Warning",
+        description: `Permanently delete "${product.name}"? This cannot be undone.`,
+        onConfirm: async () => {
+          if (product.images && product.images.length > 0) {
+            await deleteImagesAsync({
+              publicIds: product.images
+                .map((image) => image.public_id)
+                .filter((id): id is string => Boolean(id)),
+            });
+          }
+
+          await deleteProductAsync({ id: product.id });
+        },
+      });
     },
     [deleteProductAsync, deleteImagesAsync, openConfirm]
   );
 
   const handleViewProduct = useCallback(
-    (product: Product) => {
+    (product: ProductResponse) => {
       openModal({
         title: "Product Details",
         children: <ProductDetailCard product={product} />,
@@ -187,21 +151,19 @@ export const ProductList = () => {
     onView: handleViewProduct,
   });
 
-  if (error) return <Error />;
-
-  if (isPending) return;
-
   return (
     <div className="space-y-6">
       <ProductFiltersComponent filters={filters} categories={categories} />
 
-      {/* Table */}
       <ProductTable
         products={products}
         columns={columns}
-        pagination={pagination}
+        totalProducts={totalProducts}
+        currentPage={currentPage}
+        pageSize={pageSize}
         onBulkDelete={handleBulkDelete}
         onBulkToggle={handleBulkToggle}
+        isRefetching={isRefetching}
       />
     </div>
   );

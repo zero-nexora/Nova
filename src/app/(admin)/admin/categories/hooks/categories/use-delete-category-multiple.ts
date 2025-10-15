@@ -11,44 +11,13 @@ export function useDeleteCategoryMultiple() {
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.categoriesRouter.deleteMultiple.mutationOptions({
       onSuccess: (data) => {
-        const messages = [];
+        const { deleted, notFound } = data;
 
-        if (data.count > 0) {
-          messages.push(`${data.count} category(ies) deleted successfully`);
+        if (deleted) {
+          toast.success(`${deleted} category(s) deleted.`);
         }
-
-        if (data.notFoundIds.length > 0) {
-          messages.push(`${data.notFoundIds.length} category(ies) not found`);
-        }
-
-        if (data.categoriesWithSubcategories.length > 0) {
-          const subcategoryDetails = data.categoriesWithSubcategories
-            .map(
-              (cat) => `"${cat.name}" (${cat.subcategoriesCount} subcategories)`
-            )
-            .join(", ");
-          messages.push(
-            `${data.categoriesWithSubcategories.length} category(ies) cannot be deleted (has subcategories): ${subcategoryDetails}`
-          );
-        }
-
-        if (data.categoriesWithProducts.length > 0) {
-          const productDetails = data.categoriesWithProducts
-            .map((cat) => `"${cat.name}" (${cat.productsCount} products)`)
-            .join(", ");
-          messages.push(
-            `${data.categoriesWithProducts.length} category(ies) cannot be deleted (has products): ${productDetails}`
-          );
-        }
-
-        if (messages.length > 0) {
-          if (data.count > 0) {
-            toast.success(messages.join("; "));
-          } else {
-            toast.info(messages.join("; "));
-          }
-        } else {
-          toast.info("No categories were processed");
+        if (notFound) {
+          toast.warning(`${notFound} category(s) not found.`);
         }
 
         queryClient.invalidateQueries(
@@ -56,7 +25,8 @@ export function useDeleteCategoryMultiple() {
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to delete categories");
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteCategoryMultiple ", error.message);
       },
     })
   );

@@ -11,48 +11,14 @@ export function useToggleCategoryDeletedMultiple() {
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.categoriesRouter.toggleDeletedMultiple.mutationOptions({
       onSuccess: (data) => {
-        if (!data.success) return;
+        const { notFound, updated } = data;
 
-        const messages = [];
-
-        if (data.count > 0) {
-          const deletedCount = data.data.filter(
-            (cat) => cat.action === "deleted"
-          ).length;
-          const restoredCount = data.data.filter(
-            (cat) => cat.action === "restored"
-          ).length;
-
-          if (deletedCount > 0) {
-            messages.push(`${deletedCount} category(ies) moved to trash`);
-          }
-          if (restoredCount > 0) {
-            messages.push(`${restoredCount} category(ies) restored`);
-          }
+        if (updated) {
+          toast.success(`${updated} category(s) status changed successfully`);
         }
 
-        if (data.notFoundIds.length > 0) {
-          messages.push(`${data.notFoundIds.length} category(ies) not found`);
-        }
-
-        if (data.affectedSubcategories > 0) {
-          messages.push(
-            `${data.affectedSubcategories} subcategory(ies) affected`
-          );
-        }
-
-        if (data.affectedProducts > 0) {
-          messages.push(`${data.affectedProducts} product(s) affected`);
-        }
-
-        if (messages.length > 0) {
-          if (data.count > 0) {
-            toast.success(messages.join(", "));
-          } else {
-            toast.info(messages.join(", "));
-          }
-        } else {
-          toast.info("No categories were processed");
+        if (notFound) {
+          toast.error(`${notFound} category(s) not found`);
         }
 
         queryClient.invalidateQueries(
@@ -60,7 +26,11 @@ export function useToggleCategoryDeletedMultiple() {
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to toggle categories");
+        toast.error("Something went wrong.");
+        console.log(
+          "Failed to useToggleCategoryDeletedMultiple ",
+          error.message
+        );
       },
     })
   );

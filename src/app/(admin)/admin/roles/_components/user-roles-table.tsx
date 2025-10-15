@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -11,91 +12,177 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Error } from "@/components/global/error";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { UserByRole } from "@/queries/admin/roles/types";
 import { ActionMenu } from "@/components/global/action-menu";
+import { NotFound } from "@/components/global/not-found";
 import { useUserRoleFilters } from "../hooks/use-user-filters";
-import { useGetUsers } from "../hooks/use-get-users";
-import { Empty } from "@/components/global/empty";
-import { useModal } from "@/stores/modal-store";
-import { UpdateUserRoleForm } from "@/components/forms/role/update-user-role-form";
+import { User } from "@/queries/admin/roles/types";
+import { Download, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export const UserRolesTable = () => {
+interface UserRolesTableProps {
+  users: User[];
+  totalUsers: number;
+  currentPage: number;
+  pageSize: number;
+  onUpdateRoles?: (user: User) => void;
+  isRefetching?: boolean;
+}
+
+export const UserRolesTable = ({
+  users,
+  totalUsers,
+  currentPage,
+  pageSize,
+  onUpdateRoles,
+  isRefetching = false,
+}: UserRolesTableProps) => {
   const { filters, updateFilter } = useUserRoleFilters();
-  const { open } = useModal();
-  const { users, totalItem, error } = useGetUsers(filters);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const totalPages = Math.ceil(totalItem / filters.limit);
-  const hasPreviousPage = filters.page > 1;
-  const hasNextPage = filters.page < totalPages;
+  // Calculate pagination
+  const totalPages = useMemo(
+    () => Math.ceil(totalUsers / pageSize),
+    [totalUsers, pageSize]
+  );
 
-  const handlePageChange = (page: number) => {
-    updateFilter("page", page);
-  };
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
 
-  const handleUpdateRoles = (user: UserByRole) => {
-    open({
-      title: "Update User Roles",
-      description: `Modify the roles for ${user.email}`,
-      children: <UpdateUserRoleForm user={user} />,
+  // Pagination handlers
+  const createQueryString = (name: string, value: string) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== undefined && val !== "" && val !== "all" && val !== 0) {
+        params.set(key, val.toString());
+      }
     });
+    params.set(name, value);
+    return params.toString();
   };
 
-  if (users.length === 0 && !error) return <Empty />;
-  if (error) return <Error />;
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+
+    updateFilter("page", newPage);
+    router.push(
+      `${pathname}?${createQueryString("page", newPage.toString())}`,
+      {
+        scroll: false,
+      }
+    );
+  };
+
+  // Format user name
+  const getUserName = (user: User) => {
+    if (user.first_name || user.last_name) {
+      return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+    }
+    return "N/A";
+  };
 
   return (
-    <div className="space-y-4 rounded-lg shadow">
-      <div className="border rounded-lg overflow-x-auto shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold py-4">Email</TableHead>
-              <TableHead className="font-semibold py-4">Name</TableHead>
-              <TableHead className="font-semibold py-4">Roles</TableHead>
-              <TableHead className="font-semibold py-4 text-right">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="py-3">{user.email}</TableCell>
-                <TableCell className="py-3">
-                  {user.first_name || user.last_name
-                    ? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()
-                    : "N/A"}
-                </TableCell>
-                <TableCell className="py-3">
-                  {user.roles.length > 0 ? (
-                    user.roles.map((r) => (
-                      <Badge key={r.id} variant="secondary" className="mr-2">
-                        {r.role.name}
-                      </Badge>
-                    ))
-                  ) : (
-                    <Badge variant="outline">None</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="py-3 text-right">
-                  <ActionMenu onUpdate={() => handleUpdateRoles(user)} />
-                </TableCell>
+    <Card className="bg-muted/10 border">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>
+            Users ({totalUsers})
+            {isRefetching && (
+              <RefreshCw className="inline-block ml-2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </CardTitle>
+
+          <div className="flex items-center gap-2">
+            {/* Export Button */}
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        {/* Table */}
+        <div className={cn(isRefetching && "opacity-80 pointer-events-none")}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold">Email</TableHead>
+                <TableHead className="font-semibold">Name</TableHead>
+                <TableHead className="font-semibold">Roles</TableHead>
+                <TableHead className="font-semibold text-right">
+                  Actions
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex justify-between items-center">
+            </TableHeader>
+
+            <TableBody>
+              {users.length > 0 ? (
+                users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="font-medium">{user.email}</div>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="text-sm">{getUserName(user)}</span>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.length > 0 ? (
+                          user.roles.map((r) => (
+                            <Badge
+                              key={r.id}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {r.role.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            No roles
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <ActionMenu onUpdate={() => onUpdateRoles?.(user)} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    <NotFound />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
         {totalPages > 1 && (
           <>
             <Separator className="my-4" />
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers}{" "}
+                users
+              </div>
+
               <div className="flex items-center space-x-6 lg:space-x-8">
                 <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                  Page {filters.page} of {totalPages}
+                  Page {currentPage} of {totalPages}
                 </div>
+
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
@@ -103,26 +190,23 @@ export const UserRolesTable = () => {
                     onClick={() => handlePageChange(1)}
                     disabled={!hasPreviousPage}
                   >
-                    <span className="sr-only">Go to first page</span>
-                    <span>⟪</span>
+                    <span className="sr-only">Go to first page</span>⟪
                   </Button>
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(filters.page - 1)}
+                    onClick={() => handlePageChange(currentPage - 1)}
                     disabled={!hasPreviousPage}
                   >
-                    <span className="sr-only">Go to previous page</span>
-                    <span>⟨</span>
+                    <span className="sr-only">Go to previous page</span>⟨
                   </Button>
                   <Button
                     variant="outline"
                     className="h-8 w-8 p-0"
-                    onClick={() => handlePageChange(filters.page + 1)}
+                    onClick={() => handlePageChange(currentPage + 1)}
                     disabled={!hasNextPage}
                   >
-                    <span className="sr-only">Go to next page</span>
-                    <span>⟩</span>
+                    <span className="sr-only">Go to next page</span>⟩
                   </Button>
                   <Button
                     variant="outline"
@@ -130,15 +214,14 @@ export const UserRolesTable = () => {
                     onClick={() => handlePageChange(totalPages)}
                     disabled={!hasNextPage}
                   >
-                    <span className="sr-only">Go to last page</span>
-                    <span>⟫</span>
+                    <span className="sr-only">Go to last page</span>⟫
                   </Button>
                 </div>
               </div>
             </div>
           </>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

@@ -11,40 +11,14 @@ export function useToggleSubcategoryDeletedMultiple() {
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.subcategoriesRouter.toggleDeletedMultiple.mutationOptions({
       onSuccess: (data) => {
-        if (data.success) {
-          const messages = [];
+        const { notFound, updated } = data;
 
-          if (data.count > 0) {
-            const deletedCount = data.data.filter(
-              (item) => item.action === "deleted"
-            ).length;
-            const restoredCount = data.data.filter(
-              (item) => item.action === "restored"
-            ).length;
+        if (updated) {
+          toast.success(`${updated} category(s) status changed successfully`);
+        }
 
-            if (deletedCount > 0) {
-              messages.push(`${deletedCount} subcategory(ies) deleted`);
-            }
-            if (restoredCount > 0) {
-              messages.push(`${restoredCount} subcategory(ies) restored`);
-            }
-          }
-
-          if (data.notFoundIds.length > 0) {
-            messages.push(
-              `${data.notFoundIds.length} subcategory(ies) not found`
-            );
-          }
-
-          if (data.violatingSubcategories.length > 0) {
-            messages.push(
-              `${data.violatingSubcategories.length} subcategory(ies) cannot be restored (parent category deleted)`
-            );
-          }
-
-          if (messages.length > 0) {
-            toast.success(messages.join(", "));
-          }
+        if (notFound) {
+          toast.error(`${notFound} category(s) not found`);
         }
 
         queryClient.invalidateQueries(
@@ -52,7 +26,11 @@ export function useToggleSubcategoryDeletedMultiple() {
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to toggle subcategory multiple");
+        toast.error("Something went wrong.");
+        console.log(
+          "Failed to useToggleSubcategoryDeletedMultiple ",
+          error.message
+        );
       },
     })
   );

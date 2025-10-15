@@ -3,15 +3,15 @@
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-export function useGetAllPerrmissions() {
+export function useGetAllRolePermissions() {
   const trpc = useTRPC();
 
   const { data, error } = useSuspenseQuery(
-    trpc.admin.permissionsRouter.getAllPermissions.queryOptions()
+    trpc.admin.permissionsRouter.getAllRolePermissions.queryOptions()
   );
 
   return {
-    rolesAndPermissions: data,
+    roleAndPermissions: data,
     error,
   };
 }

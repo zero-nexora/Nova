@@ -22,6 +22,9 @@ export function useDeleteWishlistMultiple() {
             sortBy: "curated",
           })
         );
+        queryClient.invalidateQueries(
+          trpc.client.usersRouter.getCurrentUser.queryOptions()
+        );
         toast.success(message);
       },
       onError: (error: any) => {

@@ -12,15 +12,17 @@ export function useToggleProductDeleted() {
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.productsRouter.toggleDeleted.mutationOptions({
       onSuccess: (data) => {
-        const message = data.data.is_deleted
-          ? `Product "${data.data.name}" moved to trash successfully`
-          : `Product "${data.data.name}" restored successfully`;
+        const message =
+          data.action === "deleted"
+            ? `Product moved to trash successfully`
+            : `Product restored successfully`;
         toast.success(message);
 
         invalidate();
       },
       onError: (error: any) => {
-        toast.error(error?.message || "Failed to toggle product status");
+        toast.error("Something went wrong.");
+        console.log("Failed to useToggleProductDeleted ", error.message);
       },
     })
   );

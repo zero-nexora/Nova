@@ -12,30 +12,24 @@ export function useToggleProductDeletedMultiple() {
   const { mutate, mutateAsync, error, isPending } = useMutation(
     trpc.admin.productsRouter.toggleDeletedMultiple.mutationOptions({
       onSuccess: (data) => {
-        const { count, skippedIds, notFoundIds } = data;
+        const { updated, notFound } = data;
 
-        if (count > 0) {
-          toast.success(`${count} product(s) status changed successfully`);
+        if (updated) {
+          toast.success(`${updated} product(s) status changed successfully`);
         }
 
-        if (skippedIds.length > 0) {
-          toast.warning(
-            `${skippedIds.length} product(s) skipped due to deleted category/subcategory`
-          );
-        }
-
-        if (notFoundIds.length > 0) {
-          toast.error(`${notFoundIds.length} product(s) not found`);
-        }
-
-        if (count === 0 && skippedIds.length === 0 && notFoundIds.length > 0) {
-          toast.error("No products found to update");
+        if (notFound) {
+          toast.error(`${notFound} product(s) not found`);
         }
 
         invalidate();
       },
-      onError: (error: any) => {
-        toast.error(error?.message || "Failed to toggle products status");
+      onError: (error) => {
+        toast.error("Something went wrong.");
+        console.log(
+          "Failed to useToggleProductDeletedMultiple ",
+          error.message
+        );
       },
     })
   );

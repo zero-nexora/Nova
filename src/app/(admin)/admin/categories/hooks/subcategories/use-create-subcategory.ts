@@ -10,14 +10,15 @@ export function useCreateSubcategory() {
 
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.subcategoriesRouter.create.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`Subcategory "${data.name}" created successfully`);
+      onSuccess: () => {
+        toast.success(`Subcategory created successfully`);
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to create subcategory");
+        toast.error("Something went wrong.");
+        console.log("Failed to useCreateSubcategory ", error.message);
       },
     })
   );

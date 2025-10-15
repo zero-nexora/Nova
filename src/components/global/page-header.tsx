@@ -13,7 +13,7 @@ export const PageHeader = memo<PageHeaderProps>(({ title, description }) => {
           {title}
         </h1>
         {description && (
-          <p className="text-base text-muted-foreground sm:text-lg max-w-2xl">
+          <p className="text-base text-muted-foreground sm:text-lg max-w-2xl mb-8">
             {description}
           </p>
         )}

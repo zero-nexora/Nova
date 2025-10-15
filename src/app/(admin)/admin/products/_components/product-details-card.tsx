@@ -11,17 +11,19 @@ import {
   Layers,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { Product } from "@/queries/admin/products/types";
+import { ProductResponse } from "@/queries/admin/products/types";
+import { placeholderImage } from "@/lib/constants";
 
 interface ProductDetailCardProps {
-  product: Product;
+  product: ProductResponse;
 }
 
 export const ProductDetailCard = ({ product }: ProductDetailCardProps) => {
-  const mainImage = product.images[0]?.image_url;
+  const mainImage =
+    (product.images && product.images[0]?.image_url) || placeholderImage;
 
   return (
-    <div className="overflow-hidden rounded-2xl shadow-lg border border-border bg-background hover:shadow-xl transition-shadow duration-300">
+    <div className="overflow-hidden border rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
       {/* Header with Image */}
       <div className="relative">
         {mainImage ? (
@@ -108,14 +110,14 @@ export const ProductDetailCard = ({ product }: ProductDetailCardProps) => {
             <Hash className="w-5 h-5 text-orange-500" />
             <div>
               <span className="font-medium">Variants:</span>{" "}
-              <b>{product._count?.variants ?? product.variants.length}</b>
+              <b>{product.variantCount ?? 0}</b>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Package className="w-5 h-5 text-teal-500" />
             <div>
               <span className="font-medium">Reviews:</span>{" "}
-              <b>{product._count?.reviews ?? 0}</b>
+              <b>{product.reviewCount ?? 0}</b>
             </div>
           </div>
         </div>
@@ -165,7 +167,7 @@ export const ProductDetailCard = ({ product }: ProductDetailCardProps) => {
         )}
 
         {/* Extra Images */}
-        {product.images.length > 1 && (
+        {product.images && product.images.length > 1 && (
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-foreground">
               Additional Images

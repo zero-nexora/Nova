@@ -18,17 +18,12 @@ export function useInvalidateUserRoles() {
   );
 
   const invalidate = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: trpc.admin.rolesRouter.getUserByRole.queryKey({
-          ...normalizedParams,
-          limit: DEFAULT_LIMIT,
-        }),
+    await queryClient.invalidateQueries({
+      queryKey: trpc.admin.rolesRouter.getUserByRole.queryKey({
+        ...normalizedParams,
+        limit: DEFAULT_LIMIT,
       }),
-      queryClient.invalidateQueries({
-        queryKey: trpc.admin.permissionsRouter.getAllPermissions.queryKey(),
-      }),
-    ]);
+    });
   };
 
   return { invalidate };

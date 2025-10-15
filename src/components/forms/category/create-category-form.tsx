@@ -70,23 +70,19 @@ export const CreateCategoryForm = () => {
       return;
     }
 
-    try {
-      const uploadResult = await uploadImageAsync({
-        image: selectedImage.base64Url,
-      });
+    const uploadResult = await uploadImageAsync({
+      image: selectedImage.base64Url,
+    });
 
-      const uploadedImage = uploadResult.data;
+    const uploadedImage = uploadResult.data;
 
-      values.image_url = uploadedImage.imageUrl;
-      values.public_id = uploadedImage.publicId;
+    values.image_url = uploadedImage.imageUrl;
+    values.public_id = uploadedImage.publicId;
 
-      await createCategoryAsync(values);
+    await createCategoryAsync(values);
 
-      resetForm();
-      close();
-    } catch (error) {
-      console.error("Error creating category:", error);
-    }
+    resetForm();
+    close();
   };
 
   return (

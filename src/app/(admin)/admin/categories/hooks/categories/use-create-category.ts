@@ -10,14 +10,15 @@ export function useCreateCategory() {
 
   const { mutateAsync, mutate, isPending, error } = useMutation(
     trpc.admin.categoriesRouter.create.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`Category "${data.name}" created successfully`);
+      onSuccess: () => {
+        toast.success(`Category created successfully`);
         queryClient.invalidateQueries(
           trpc.admin.categoriesRouter.getAll.queryOptions()
         );
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to create category");
+        toast.error("Something went wrong.");
+        console.log("Failed to useCreateCategory ", error.message);
       },
     })
   );

@@ -1,5 +1,7 @@
 import slugify from "slugify";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
+import { CreateProductInput, UpdateProductInput } from "./types";
 
 export const generateProductSlug = async (
   db: PrismaClient,
@@ -32,51 +34,255 @@ export const generateProductSlug = async (
   return slug;
 };
 
-// Helper function to calculate average rating
-export function calculateAverageRating(
-  reviews: Array<{ rating: number | null }>
-): number {
-  if (!reviews.length) return 0;
+export async function validateCategory(db: PrismaClient, categoryId: string) {
+  const category = await db.categories.findFirst({
+    where: { id: categoryId, is_deleted: false },
+    select: { id: true },
+  });
 
-  const validRatings = reviews
-    .map((r) => r.rating)
-    .filter((rating): rating is number => rating !== null && rating > 0);
-
-  if (!validRatings.length) return 0;
-
-  const sum = validRatings.reduce((acc, rating) => acc + rating, 0);
-  return Math.round((sum / validRatings.length) * 100) / 100;
+  if (!category) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Category not found or has been deleted",
+    });
+  }
 }
 
-// Helper function to get price range for a product
-export function getPriceRange(variants: Array<{ price: number }>): {
-  min: number;
-  max: number;
-  hasRange: boolean;
-} {
-  if (!variants.length) {
-    return { min: 0, max: 0, hasRange: false };
+export async function validateSubcategory(
+  db: PrismaClient,
+  subcategoryId: string,
+  categoryId: string
+) {
+  const subcategory = await db.subcategories.findFirst({
+    where: {
+      id: subcategoryId,
+      category_id: categoryId,
+      is_deleted: false,
+    },
+    select: { id: true },
+  });
+
+  if (!subcategory) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message:
+        "Subcategory not found, deleted, or doesn't belong to the specified category",
+    });
+  }
+}
+
+export async function validateVariants(
+  db: PrismaClient,
+  variants: CreateProductInput["variants"],
+  productId: string | null
+) {
+  const allAttributeValueIds = [
+    ...new Set(variants.flatMap((v) => v.attributeValueIds)),
+  ];
+  if (allAttributeValueIds.length > 0) {
+    const attributeValues = await db.product_Attribute_Values.findMany({
+      where: { id: { in: allAttributeValueIds }, is_deleted: false },
+      select: { id: true },
+    });
+
+    if (attributeValues.length !== allAttributeValueIds.length) {
+      const foundIds = attributeValues.map((av) => av.id);
+      const missingIds = allAttributeValueIds.filter(
+        (id) => !foundIds.includes(id)
+      );
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Some attribute values not found or deleted: ${missingIds.join(
+          ", "
+        )}`,
+      });
+    }
   }
 
-  const prices = variants.map((v) => v.price).sort((a, b) => a - b);
-  const min = prices[0];
-  const max = prices[prices.length - 1];
+  const skuList = variants.map((v) => v.sku);
+  if (new Set(skuList).size !== skuList.length) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Duplicate SKUs found in variant data",
+    });
+  }
 
-  return {
-    min,
-    max,
-    hasRange: min !== max,
+  const whereClause: Prisma.Product_VariantsWhereInput = {
+    sku: { in: skuList },
+    ...(productId && { product: { id: { not: productId } } }),
   };
+  const existingVariants = await db.product_Variants.findMany({
+    where: whereClause,
+    select: { sku: true },
+  });
+
+  if (existingVariants.length > 0) {
+    const existingSkus = existingVariants.map((v) => v.sku);
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: `SKU(s) already exist: ${existingSkus.join(", ")}`,
+    });
+  }
+
+  const invalidVariants = variants.filter(
+    (v) => v.price < 0 || v.stock_quantity < 0
+  );
+  if (invalidVariants.length > 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Price and stock quantity must be non-negative",
+    });
+  }
 }
 
-// Helper function to check if product has stock
-export function hasStock(variants: Array<{ stock_quantity: number }>): boolean {
-  return variants.some((variant) => variant.stock_quantity > 0);
+export function getUniqueVariants(
+  variants: {
+    sku: string;
+    price: number;
+    stock_quantity: number;
+    attributeValueIds: string[];
+    id?: string;
+  }[]
+) {
+  const seen = new Map<string, (typeof variants)[0]>();
+  for (const variant of variants) {
+    const key = variant.attributeValueIds.sort().join(",");
+    if (seen.has(key)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Duplicate variants detected",
+      });
+    }
+    seen.set(key, variant);
+  }
+  return Array.from(seen.values());
 }
 
-// Helper function to get total stock quantity
-export function getTotalStock(
-  variants: Array<{ stock_quantity: number }>
-): number {
-  return variants.reduce((total, variant) => total + variant.stock_quantity, 0);
+export async function createVariants(
+  tx: PrismaClient,
+  productId: string,
+  variants: CreateProductInput["variants"]
+) {
+  for (const variant of variants) {
+    const createdVariant = await tx.product_Variants.create({
+      data: {
+        product_id: productId,
+        sku: variant.sku,
+        price: variant.price,
+        stock_quantity: variant.stock_quantity,
+      },
+      select: { id: true },
+    });
+
+    if (variant.attributeValueIds?.length) {
+      await tx.product_Variant_Attributes.createMany({
+        data: variant.attributeValueIds.map((attrValueId) => ({
+          product_variant_id: createdVariant.id,
+          attribute_value_id: attrValueId,
+        })),
+      });
+    }
+  }
+}
+
+export async function createOrUpdateVariants(
+  tx: PrismaClient,
+  productId: string,
+  variants: UpdateProductInput["variants"],
+  existingVariantIds: Set<string>
+) {
+  for (const variant of variants) {
+    if (variant.id && existingVariantIds.has(variant.id)) {
+      await tx.product_Variants.update({
+        where: { id: variant.id },
+        data: {
+          sku: variant.sku,
+          price: variant.price,
+          stock_quantity: variant.stock_quantity,
+          updated_at: new Date(),
+        },
+      });
+
+      await tx.product_Variant_Attributes.deleteMany({
+        where: { product_variant_id: variant.id },
+      });
+
+      if (variant.attributeValueIds.length > 0) {
+        await tx.product_Variant_Attributes.createMany({
+          data: variant.attributeValueIds.map((attrValueId) => ({
+            product_variant_id: variant.id!,
+            attribute_value_id: attrValueId,
+          })),
+        });
+      }
+    } else {
+      const newVariant = await tx.product_Variants.create({
+        data: {
+          product_id: productId,
+          sku: variant.sku,
+          price: variant.price,
+          stock_quantity: variant.stock_quantity,
+        },
+        select: { id: true },
+      });
+
+      if (variant.attributeValueIds.length > 0) {
+        await tx.product_Variant_Attributes.createMany({
+          data: variant.attributeValueIds.map((attrValueId) => ({
+            product_variant_id: newVariant.id,
+            attribute_value_id: attrValueId,
+          })),
+        });
+      }
+    }
+  }
+}
+
+export async function fetchProductWithRelations(db: PrismaClient, id: string) {
+  return db.products.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      is_deleted: true,
+      category: { select: { id: true, is_deleted: true } },
+      subcategory: { select: { id: true, is_deleted: true } },
+    },
+  });
+}
+
+export function validateCategoryAndSubcategory(
+  product: NonNullable<Awaited<ReturnType<typeof fetchProductWithRelations>>>
+) {
+  if (product.category.is_deleted || product.subcategory?.is_deleted) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message:
+        "Cannot toggle product status because its category or subcategory is deleted",
+    });
+  }
+}
+
+export async function deleteProductDependencies(
+  tx: PrismaClient,
+  productIds: string | string[],
+  variantIds: string[]
+) {
+  if (Array.isArray(productIds)) {
+    if (variantIds.length) {
+      await tx.cart_Items.deleteMany({
+        where: { product_variant_id: { in: variantIds } },
+      });
+    }
+    await tx.wishlists.deleteMany({
+      where: { product_id: { in: productIds } },
+    });
+  } else {
+    if (variantIds.length) {
+      await tx.cart_Items.deleteMany({
+        where: { product_variant_id: { in: variantIds } },
+      });
+    }
+    await tx.wishlists.deleteMany({ where: { product_id: productIds } });
+  }
 }

@@ -1,6 +1,6 @@
 import { RoleName } from "@prisma/client";
 
-export interface UserByRole {
+export interface User {
   id: string;
   first_name: string | null;
   last_name: string | null;
@@ -17,6 +17,8 @@ export interface UserByRole {
 }
 
 export interface UserByRoleResponse {
-  users: UserByRole[];
-  total: number;
+  items: User[];
+  totalItems: number;
+  page: number;
+  limit: number;
 }

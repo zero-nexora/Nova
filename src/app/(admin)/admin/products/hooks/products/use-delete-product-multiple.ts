@@ -2,39 +2,30 @@
 
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useInvalidateProducts } from "./use-invalidate-products";
 
 export function useDeleteProductMultiple() {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const { invalidate } = useInvalidateProducts();
 
   const { mutate, mutateAsync, error, isPending } = useMutation(
     trpc.admin.productsRouter.deleteMultiple.mutationOptions({
       onSuccess: (data) => {
-        const { count, notFoundIds } = data;
+        const { deleted, notFound } = data;
 
-        if (count > 0) {
-          toast.success(`${count} product(s) deleted permanently`);
+        if (deleted) {
+          toast.success(`${deleted} product(s) deleted.`);
+        }
+        if (notFound) {
+          toast.warning(`${notFound} product(s) not found.`);
         }
 
-        if (notFoundIds.length > 0) {
-          toast.warning(`${notFoundIds.length} product(s) not found`);
-        }
-
-        if (count === 0 && notFoundIds.length > 0) {
-          toast.error("No products found to delete");
-        }
-
-        queryClient.invalidateQueries(
-          trpc.admin.productsRouter.getAll.queryOptions({
-            limit: DEFAULT_LIMIT,
-            page: DEFAULT_PAGE,
-          })
-        );
+        invalidate();
       },
       onError: (error: any) => {
-        toast.error(error?.message || "Failed to delete products");
+        toast.error("Something went wrong.");
+        console.log("Failed to useDeleteProductMultiple ", error.message);
       },
     })
   );
