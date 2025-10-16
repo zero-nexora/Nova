@@ -30,17 +30,17 @@ export const sidebarRoutes: SidebarRoute[] = [
     icon: Home,
   },
   {
+    label: "Category & Subcategory",
+    path: `${PREFIX}/categories`,
+    icon: Tag,
+  },
+  {
     label: "Product",
     path: `${PREFIX}/products`,
     icon: Box,
   },
   {
-    label: "Category",
-    path: `${PREFIX}/categories`,
-    icon: Tag,
-  },
-  {
-    label: "Role",
+    label: "User & Role",
     path: `${PREFIX}/roles`,
     icon: Users,
   },

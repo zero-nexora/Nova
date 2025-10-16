@@ -6,6 +6,7 @@ import { getQueryClient, trpc } from "@/trpc/server";
 import { Unauthorized } from "@/components/global/unauthorized";
 import { RoleGuardProvider } from "@/providers/role-guard-provider";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { LoadingPage } from "@/components/global/loading-page";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +39,9 @@ const LayoutAdmin = async ({ children }: LayoutAdminProps) => {
         <Sidebar />
         <div className="md:pl-[300px]">
           <InfoBar />
-          <div className="relative p-4 pt-20 h-screen">
+          <div className="relative p-4 py-20 h-screen">
             <HydrationBoundary state={dehydrate(queryClient)}>
-              <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+              <Suspense fallback={<LoadingPage />}>{children}</Suspense>
             </HydrationBoundary>
           </div>
         </div>

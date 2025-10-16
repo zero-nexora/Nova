@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -18,7 +17,7 @@ import { ActionMenu } from "@/components/global/action-menu";
 import { NotFound } from "@/components/global/not-found";
 import { useUserRoleFilters } from "../hooks/use-user-filters";
 import { User } from "@/queries/admin/roles/types";
-import { Download, RefreshCw } from "lucide-react";
+import { Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserRolesTableProps {
@@ -38,11 +37,8 @@ export const UserRolesTable = ({
   onUpdateRoles,
   isRefetching = false,
 }: UserRolesTableProps) => {
-  const { filters, updateFilter } = useUserRoleFilters();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { updateFilter } = useUserRoleFilters();
 
-  // Calculate pagination
   const totalPages = useMemo(
     () => Math.ceil(totalUsers / pageSize),
     [totalUsers, pageSize]
@@ -51,31 +47,12 @@ export const UserRolesTable = ({
   const hasPreviousPage = currentPage > 1;
   const hasNextPage = currentPage < totalPages;
 
-  // Pagination handlers
-  const createQueryString = (name: string, value: string) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, val]) => {
-      if (val !== undefined && val !== "" && val !== "all" && val !== 0) {
-        params.set(key, val.toString());
-      }
-    });
-    params.set(name, value);
-    return params.toString();
-  };
-
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
 
     updateFilter("page", newPage);
-    router.push(
-      `${pathname}?${createQueryString("page", newPage.toString())}`,
-      {
-        scroll: false,
-      }
-    );
   };
 
-  // Format user name
   const getUserName = (user: User) => {
     if (user.first_name || user.last_name) {
       return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
@@ -87,12 +64,7 @@ export const UserRolesTable = ({
     <Card className="bg-muted/10 border">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>
-            Users ({totalUsers})
-            {isRefetching && (
-              <RefreshCw className="inline-block ml-2 h-4 w-4 animate-spin text-muted-foreground" />
-            )}
-          </CardTitle>
+          <CardTitle>Users ({totalUsers})</CardTitle>
 
           <div className="flex items-center gap-2">
             {/* Export Button */}
@@ -158,7 +130,7 @@ export const UserRolesTable = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={4} className="text-center">
                     <NotFound />
                   </TableCell>
                 </TableRow>

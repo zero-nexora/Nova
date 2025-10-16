@@ -1,10 +1,10 @@
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/stores/confirm-store";
 import { Cart } from "@/queries/client/carts/types";
-import { useClearCart } from "../hooks/use-clear-cart";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useClearCart } from "../hooks/use-clear-cart";
 
 interface CartHeaderProps {
   cart: Cart;
@@ -56,11 +56,8 @@ export const CartHeader = ({
 
 export const CartHeaderSkeleton = () => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-5 w-5" />
-        <Skeleton className="h-4 w-24" />
-      </div>
+    <div className="flex sm:flex-row sm:items-center flex-wrap gap-4 mb-6 justify-between">
+      <Skeleton className="h-10 w-40 sm:w-24" />
       <Skeleton className="h-10 w-full sm:w-24" />
     </div>
   );

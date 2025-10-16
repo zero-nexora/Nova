@@ -9,8 +9,11 @@ export interface Subcategory {
   is_deleted: boolean;
   deleted_at: Date | null;
   slug: string;
-  category_id: string;
   public_id: string | null;
+  category: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Category {

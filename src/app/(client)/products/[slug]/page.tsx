@@ -14,6 +14,7 @@ import { normalizeFilters } from "@/lib/utils";
 import { DEFAULT_LIMIT } from "@/lib/constants";
 import { Suspense } from "react";
 import type { SearchParams } from "nuqs";
+import { PageHeader } from "@/components/global/page-header";
 
 interface ProductDetailPageProps {
   searchParams: Promise<SearchParams>;
@@ -46,13 +47,15 @@ const ProductDetailPage = async ({
   return (
     <main>
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <Suspense fallback={<ProductDetailPageSkeleton />}>
+        <Suspense fallback={<ProductDetailSkeleton />}>
           <ProductDetail slug={slug} />
-          <ProductSection
-            excludeSlugs={[slug]}
-            title="You may also like"
-            description="Discover more products that might interest you."
-          />
+        </Suspense>
+        <PageHeader
+          title="Related Products"
+          description="You may also like these products that complement your current selection."
+        />
+        <Suspense fallback={<ProductSectionSkeleton />}>
+          <ProductSection excludeSlugs={[slug]} />
         </Suspense>
       </HydrationBoundary>
     </main>
@@ -60,10 +63,3 @@ const ProductDetailPage = async ({
 };
 
 export default ProductDetailPage;
-
-const ProductDetailPageSkeleton = () => (
-  <>
-    <ProductDetailSkeleton />
-    <ProductSectionSkeleton />
-  </>
-);

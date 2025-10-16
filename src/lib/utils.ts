@@ -181,10 +181,10 @@ export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
       case "Product":
         return isAdminOrManageProduct(user);
 
-      case "Category":
+      case "Category & Subcategory":
         return isAdminOrManageCategory(user);
 
-      case "Role":
+      case "User & Role":
       case "Permission":
         return isAdminOrManageStaff(user);
 

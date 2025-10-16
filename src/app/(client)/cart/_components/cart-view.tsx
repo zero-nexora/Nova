@@ -1,12 +1,13 @@
 "use client";
 
+import { CartItem } from "./cart-item";
 import { useMemo, useState } from "react";
 import { Empty } from "@/components/global/empty";
-import { useGetCart } from "../hooks/use-get-cart";
-import { OrderSummary, OrderSummarySkeleton } from "./order-summary";
-import { CartItem, CartItemSkeleton } from "./cart-item";
-import { CartHeader, CartHeaderSkeleton } from "./cart-header";
 import { Error } from "@/components/global/error";
+import { useGetCart } from "../hooks/use-get-cart";
+import { Skeleton } from "@/components/ui/skeleton";
+import { OrderSummary, OrderSummarySkeleton } from "./order-summary";
+import { CartHeader, CartHeaderSkeleton } from "./cart-header";
 
 export const CartView = () => {
   const { cart, error } = useGetCart();
@@ -45,7 +46,7 @@ export const CartView = () => {
 
   if (error) return <Error />;
 
-  if (!cart || !cart.items.length) return <Empty />;
+  if (!cart.items.length) return <Empty />;
 
   return (
     <div>
@@ -77,8 +78,8 @@ export const CartViewSkeleton = () => {
       <CartHeaderSkeleton />
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          {[...Array(4)].map((_, index) => (
-            <CartItemSkeleton key={index} />
+          {[...Array(5)].map((_, index) => (
+            <Skeleton key={index} className="h-20 w-full" />
           ))}
         </div>
         <OrderSummarySkeleton />

@@ -3,7 +3,6 @@
 import { ProductList } from "./product-list";
 import { CreateProduct } from "./create-product";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useGetAllProducts } from "../hooks/products/use-get-all-products";
 import { Error } from "@/components/global/error";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
@@ -58,35 +57,27 @@ export const ProductViewSkeleton = () => {
         <Skeleton className="h-10 w-40 rounded-md ml-auto" />
       </div>
 
-      <Card className="bg-muted/10 border">
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div>
           <Skeleton className="h-32 w-full" />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-muted/10 border">
-        <CardHeader>
-          <Skeleton className="h-6 w-40" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div>
+          <Skeleton className="h-96 w-full" />
           <div className="mt-4 flex items-center justify-between">
-            <Skeleton className="h-5 w-48" />
-            <div className="flex items-center space-x-2">
-              <Skeleton className="h-8 w-20" />
-              <div className="flex space-x-2">
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-8 w-8" />
-              </div>
-            </div>
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-56" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

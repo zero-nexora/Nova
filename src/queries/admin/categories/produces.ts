@@ -35,7 +35,12 @@ export const categoriesRouter = createTRPCRouter({
               deleted_at: true,
               created_at: true,
               updated_at: true,
-              category_id: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                }
+              }
             },
           },
         },

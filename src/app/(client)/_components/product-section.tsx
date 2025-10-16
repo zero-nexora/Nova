@@ -3,16 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Error } from "@/components/global/error";
 import { Empty } from "@/components/global/empty";
-import { ProductSectionHeader } from "./product-section-header";
 import { ProductGrid, ProductGridSkeleton } from "./product-grid";
 import { InfiniteScroll } from "@/components/global/infinite-scroll";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
 import { useInfiniteProducts } from "../hooks/products/use-infinity-products";
-import { useDeleteWishlistMultiple } from "../wishlist/hooks/use-delete-wishlist-multiple";
+import { useDeleteWishlistMultiple } from "../wishlist/hooks/use-delete-wishlist-multiple"
 
 interface ProductSectionProps {
-  title?: string;
-  description?: string;
   slugCategories?: string[];
   slugSubcategories?: string[];
   excludeSlugs?: string[];
@@ -20,8 +17,6 @@ interface ProductSectionProps {
 }
 
 export const ProductSection = ({
-  title,
-  description,
   slugCategories,
   slugSubcategories,
   excludeSlugs,
@@ -55,7 +50,6 @@ export const ProductSection = ({
   return (
     <div className="container mx-auto mb-8">
       <div className="flex justify-between items-center">
-        <ProductSectionHeader title={title} description={description} />
         {wishlist && products && products.length > 0 && (
           <Button
             disabled={deleteWishlistMultiplePending}
@@ -83,10 +77,5 @@ export const ProductSection = ({
 };
 
 export const ProductSectionSkeleton = () => {
-  return (
-    <div className="container mx-auto mb-8">
-      <ProductSectionHeader />
-      <ProductGridSkeleton />
-    </div>
-  );
+  return <ProductGridSkeleton />;
 };

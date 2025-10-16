@@ -46,8 +46,6 @@ const CategoriesPage = async ({
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Suspense fallback={<ProductSectionSkeleton />}>
           <ProductSection
-            title="Our Products"
-            description="Discover our curated selection of products in this subcategory. Find the perfect items that match your style and needs."
             slugCategories={[slugCategory]}
             slugSubcategories={[slugSubcategory]}
           />

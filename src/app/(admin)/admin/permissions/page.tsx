@@ -1,6 +1,10 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/global/page-header";
-import { PermissionsTable } from "./_components/permissions-table";
 import { RoleGuardProvider } from "@/providers/role-guard-provider";
+import {
+  PermissionsTable,
+  PermissionsTableSkeleton,
+} from "./_components/permissions-table";
 
 const RolesPage = () => {
   return (
@@ -8,9 +12,11 @@ const RolesPage = () => {
       <RoleGuardProvider check="adminOrManageStaff">
         <PageHeader
           title="Permissions"
-          description="Manage user permissions."
+          description="Control user access and roles."
         />
-        <PermissionsTable />
+        <Suspense fallback={<PermissionsTableSkeleton />}>
+          <PermissionsTable />
+        </Suspense>
       </RoleGuardProvider>
     </main>
   );

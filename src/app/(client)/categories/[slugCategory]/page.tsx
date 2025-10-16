@@ -41,11 +41,7 @@ const CategoriesPage = async ({
       <CategoryBanner slugCategory={slugCategory} />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Suspense fallback={<ProductSectionSkeleton />}>
-          <ProductSection
-            title="Our Products"
-            description="Browse through our wide range of categories and discover the products you love."
-            slugCategories={[slugCategory]}
-          />
+          <ProductSection slugCategories={[slugCategory]} />
         </Suspense>
       </HydrationBoundary>
     </main>

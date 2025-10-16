@@ -60,7 +60,7 @@ export const createProductColumns = ({
       const productName = row.original.name;
 
       return (
-        <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100">
+        <div className="relative w-12 h-12 rounded-md overflow-hidden">
           <Image
             src={firstImage}
             alt={productName}

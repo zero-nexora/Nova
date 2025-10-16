@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { PermissionUpdate } from "@/queries/admin/permissions/types";
 import { Empty } from "@/components/global/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const PermissionsTable = () => {
   const { roleAndPermissions, error } = useGetAllRolePermissions();
@@ -173,3 +174,14 @@ export const PermissionsTable = () => {
     </div>
   );
 };
+
+export const PermissionsTableSkeleton = () => {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <Skeleton className="h-10 w-36" />
+      </div>
+      <Skeleton className="h-96 w-full" />
+    </div>
+  )
+}

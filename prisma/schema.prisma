@@ -78,7 +78,7 @@ model Users {
   last_name     String?
   image_url     String?
   roles         User_Roles[]
-  cart          Carts?           @relation("UserToCart") // Changed to singular, optional cart
+  cart          Carts?           @relation("UserToCart")
   orders        Orders[]
   addresses     User_Addresses[]
   reviews       Reviews[]

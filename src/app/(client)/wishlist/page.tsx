@@ -9,6 +9,7 @@ import {
   ProductSectionSkeleton,
 } from "../_components/product-section";
 import { Suspense } from "react";
+import { ProductSectionHeader } from "../_components/product-section-header";
 
 interface WishlistPageProps {
   searchParams: Promise<SearchParams>;
@@ -29,13 +30,13 @@ const WishlistPage = async ({ searchParams }: WishlistPageProps) => {
 
   return (
     <main>
+      <ProductSectionHeader
+        title="Your Wishlist"
+        description="All the products you love, saved in one place for easy access and quick shopping."
+      />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Suspense fallback={<ProductSectionSkeleton />}>
-          <ProductSection
-            title="Your Wishlist"
-            description="Save the products you love to revisit later. Easily manage, compare, and purchase your favorite items when you&#39;re ready."
-            wishlist={true}
-          />
+          <ProductSection wishlist={true} />
         </Suspense>
       </HydrationBoundary>
     </main>

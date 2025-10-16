@@ -49,7 +49,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
     useToggleWishlist();
 
   const { product, error } = useGetProductBySlug(slug);
-  
+
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedAttributes, setSelectedAttributes] = useState<
@@ -235,9 +235,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   return (
     <div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Left side - Images */}
         <div className="space-y-4">
-          {/* Main Image */}
           <Card className="overflow-hidden mb-5">
             <CardContent className="p-0">
               <div className="aspect-square relative">
@@ -256,7 +254,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </CardContent>
           </Card>
 
-          {/* Thumbnail Carousel */}
           {product.images && product.images.length > 1 && (
             <ImageCarousel
               images={product.images}
@@ -265,9 +262,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           )}
         </div>
 
-        {/* Right side - Product Info */}
         <div className="space-y-6">
-          {/* Breadcrumb */}
           <div className="text-sm">
             <Breadcrumb>
               <BreadcrumbList>
@@ -299,11 +294,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </Breadcrumb>
           </div>
 
-          {/* Product Title */}
           <div>
-            <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+            <h2 className="text-3xl font-bold mb-2">{product.name}</h2>
 
-            {/* Rating */}
             <div className="flex items-center gap-2 mb-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -317,7 +310,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           </div>
 
-          {/* Price & Stock Status */}
           <div className="min-h-[5rem] space-y-3">
             <div className="flex items-center">
               {allAttributesSelected && currentVariant ? (
@@ -360,7 +352,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
-          {/* Description */}
           {product.description && (
             <div>
               <p className="text-muted-foreground leading-relaxed">
@@ -369,7 +360,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           )}
 
-          {/* Attributes Selection */}
           {product.attributes && product.attributes.length > 0 && (
             <div className="space-y-4">
               {product.attributes.map((attribute: ProductAttribute) => {
@@ -421,7 +411,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
-          {/* Quantity and Add to Cart */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <Label className="text-sm font-medium">Quantity:</Label>
@@ -486,7 +475,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           </div>
 
-          {/* Product Meta */}
           <Separator />
           <div className="text-sm text-muted-foreground">
             Updated: {new Date(product.updated_at).toLocaleDateString()}
@@ -499,7 +487,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
 export const ProductDetailSkeleton = () => {
   return (
-    <div className="container mx-auto">
+    <div className="mb-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         <div className="space-y-4">
           <Card className="overflow-hidden">
@@ -510,66 +498,13 @@ export const ProductDetailSkeleton = () => {
           <ImageCarousel isLoading />
         </div>
 
-        <div className="space-y-6">
-          <Skeleton className="h-4 w-1/2" />
+        <div className="space-y-6 h-full flex flex-col justify-between">
+          <Skeleton className="flex-1" />
 
-          <div>
-            <Skeleton className="h-9 w-3/4 mb-2" />
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Skeleton key={star} className="w-4 h-4" />
-                ))}
-              </div>
-              <Skeleton className="h-4 w-20" />
-            </div>
+          <div className="flex gap-3">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-10" />
           </div>
-
-          <div className="min-h-[5rem] space-y-3">
-            <Skeleton className="h-9 w-1/4" />
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-
-          <div className="space-y-4">
-            {[1, 2].map((attr) => (
-              <div key={attr}>
-                <Skeleton className="h-4 w-20 mb-2" />
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3, 4].map((val) => (
-                    <Skeleton key={val} className="h-9 w-20" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-10 w-32" />
-            </div>
-
-            <div className="flex gap-3">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 w-10" />
-            </div>
-          </div>
-
-          <Separator />
-          <Skeleton className="h-4 w-40" />
         </div>
       </div>
     </div>

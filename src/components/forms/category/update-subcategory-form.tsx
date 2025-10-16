@@ -60,7 +60,7 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
     defaultValues: {
       id: data.id,
       name: data.name,
-      category_id: data.category_id?.toString(),
+      category_id: data.category.id?.toString(),
       public_id: data.public_id || null,
       image_url: data.image_url || null,
     },
@@ -118,7 +118,7 @@ export const UpdateSubcategoryForm = ({ data }: UpdateSubcategoryFormProps) => {
     form.reset({
       id: data.id,
       name: data.name || "",
-      category_id: data.category_id?.toString() || "",
+      category_id: data.category.id?.toString() || "",
       public_id: null,
       image_url: null,
     });

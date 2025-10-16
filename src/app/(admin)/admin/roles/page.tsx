@@ -27,7 +27,10 @@ const RolesPage = async ({ searchParams }: ProductPageProps) => {
   return (
     <main className="space-y-4">
       <RoleGuardProvider check="adminOrManageStaff">
-        <PageHeader title="Roles" description="Manage your roles." />
+        <PageHeader
+          title="User Roles"
+          description="Configure roles for user access."
+        />
         <HydrationBoundary state={dehydrate(queryClient)}>
           <UserRoleView />
         </HydrationBoundary>

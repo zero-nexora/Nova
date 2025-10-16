@@ -1,17 +1,16 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useConfirm } from "@/stores/confirm-store";
 import { formatUSD } from "@/lib/utils";
-import { DEBOUNCED_UPDATE_CART, placeholderImage } from "@/lib/constants";
-import { CartItem as CartItemType } from "@/queries/client/carts/types";
-import { useUpdateCartItem } from "../hooks/use-update-cart-item";
-import { useDeleteCartItem } from "../hooks/use-delete-cart-item";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Minus, Plus, Trash2 } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/stores/confirm-store";
+import { Card, CardContent } from "@/components/ui/card";
+import { useDeleteCartItem } from "../hooks/use-delete-cart-item";
+import { useUpdateCartItem } from "../hooks/use-update-cart-item";
+import { CartItem as CartItemType } from "@/queries/client/carts/types";
+import { DEBOUNCED_UPDATE_CART, placeholderImage } from "@/lib/constants";
 
 interface CartItemProps {
   item: CartItemType;
@@ -132,26 +131,5 @@ export const CartItem = ({ item, isSelected, onSelectItem }: CartItemProps) => {
         </div>
       </CardContent>
     </Card>
-  );
-};
-
-export const CartItemSkeleton = () => {
-  return (
-    <div className="border shadow-sm rounded-md p-2">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-5 w-5" />
-        <Skeleton className="w-20 h-20 rounded-md" />
-        <div className="flex-1 flex items-center justify-between gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-8 w-8" />
-            <Skeleton className="h-8 w-8" />
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };
