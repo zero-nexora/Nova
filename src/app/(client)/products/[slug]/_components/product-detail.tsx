@@ -19,7 +19,6 @@ import {
   ProductAttribute,
   ProductAttributeValue,
   Variant,
-  VariantAttribute,
 } from "@/queries/client/products/types";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -215,13 +214,14 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   };
 
   if (error) return <Error />;
+
   if (!product) return <NotFound />;
 
   return (
     <div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <div className="space-y-4">
-          <Card className="overflow-hidden mb-5">
+        <div className="flex flex-col gap-4">
+          <Card className="overflow-hidden mb-5 flex-1">
             <CardContent className="p-0">
               <div className="aspect-square relative">
                 <img

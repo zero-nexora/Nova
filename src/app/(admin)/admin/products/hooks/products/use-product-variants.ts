@@ -1,4 +1,3 @@
-// Custom hook for managing product variants
 import { createDefaultVariant, ProductVariant } from "@/lib/utils";
 import { useCallback, useState } from "react";
 

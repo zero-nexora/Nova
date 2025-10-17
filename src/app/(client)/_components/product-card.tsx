@@ -29,7 +29,6 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <Link href={`/products/${product.slug}`}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full flex flex-col">
-        {/* Image */}
         <div className="relative h-52 overflow-hidden">
           <Image
             src={image}
@@ -47,28 +46,23 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
 
-        {/* Content */}
         <div className="p-3 flex-1 flex flex-col justify-between space-y-3">
           <div className="space-y-3">
-            {/* Categories */}
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className="text-xs">{product.category.name}</Badge>
               <Badge className="text-xs">{product.subcategory?.name}</Badge>
             </div>
 
-            {/* Title */}
             <h3 className="font-semibold text-lg line-clamp-2 leading-tight">
               {product.name}
             </h3>
 
-            {/* Description */}
             {product.description && (
               <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                 {product.description}
               </p>
             )}
 
-            {/* Rating */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -80,7 +74,6 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="space-y-3">
             <div className="flex items-end justify-between">
               <div className="font-bold text-xl">

@@ -352,7 +352,6 @@ export const productsRouter = createTRPCRouter({
         });
       }
 
-      // Validate category and subcategory
       if (categoryId || subcategoryId) {
         await validateCategory(
           ctx.db,
@@ -366,7 +365,7 @@ export const productsRouter = createTRPCRouter({
           );
         }
       }
-      
+
       await validateVariants(ctx.db, variants, id);
 
       const uniqueVariants = getUniqueVariants(variants);

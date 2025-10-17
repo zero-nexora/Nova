@@ -153,12 +153,6 @@ export function getUniqueVariants(
   const seen = new Map<string, (typeof variants)[0]>();
   for (const variant of variants) {
     const key = variant.attributeValueIds.sort().join(",");
-    if (seen.has(key)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Duplicate variants detected",
-      });
-    }
     seen.set(key, variant);
   }
   return Array.from(seen.values());
