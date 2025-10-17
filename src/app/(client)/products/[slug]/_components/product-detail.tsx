@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Heart,
   ShoppingCart,
@@ -44,6 +44,36 @@ interface ProductDetailProps {
 
 type SelectedAttributes = Record<string, string>;
 
+const createVariantAttributeMap = (variant: Variant): Map<string, string> => {
+  return new Map(
+    variant.attributes.map((attr) => [
+      attr.attributeValue.attribute.id,
+      attr.attributeValue.id,
+    ])
+  );
+};
+
+const variantsMatch = (
+  variant: Variant,
+  selections: SelectedAttributes
+): boolean => {
+  if (Object.keys(selections).length === 0) return false;
+
+  const variantAttrMap = createVariantAttributeMap(variant);
+
+  const allSelectionsMatch = Object.entries(selections).every(
+    ([attrId, valueId]) => variantAttrMap.get(attrId) === valueId
+  );
+
+  if (!allSelectionsMatch) return false;
+
+  const isSingleAttr = variant.attributes.length === 1;
+  const sameAttrCount =
+    variant.attributes.length === Object.keys(selections).length;
+
+  return isSingleAttr || sameAttrCount;
+};
+
 export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const { addToCartAsync, isPending: addToCartIsPending } = useAddToCart();
   const { toggleWishlistAsync, isPending: wishlistIsPending } =
@@ -55,167 +85,179 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const [selectedAttributes, setSelectedAttributes] =
     useState<SelectedAttributes>({});
 
-  const findMatchingVariant = (
-    selections: SelectedAttributes
-  ): Variant | undefined => {
-    return product.variants.find((variant) => {
-      const variantAttributeMap = new Map(
-        variant.attributes.map((attr) => [
-          attr.attributeValue.attribute.id,
-          attr.attributeValue.id,
-        ])
-      );
+  const findMatchingVariant = useCallback(
+    (selections: SelectedAttributes): Variant | undefined => {
+      if (!product?.variants?.length) return undefined;
+      return product.variants.find((v) => variantsMatch(v, selections));
+    },
+    [product?.variants]
+  );
 
-      for (const [attrId, valueId] of Object.entries(selections)) {
-        if (variantAttributeMap.get(attrId) !== valueId) {
-          return false;
-        }
-      }
+  const getAvailableValues = useCallback(
+    (attributeId: string, tempSelections: SelectedAttributes): Set<string> => {
+      if (!product?.variants?.length) return new Set();
 
-      if (variant.attributes.length === 1) {
-        const [variantAttrId, variantValueId] = Array.from(
-          variantAttributeMap.entries()
-        )[0];
-        return selections[variantAttrId] === variantValueId;
-      }
+      const availableValueIds = new Set<string>();
 
-      if (variant.attributes.length !== Object.keys(selections).length) {
-        return false;
-      }
-
-      return true;
-    });
-  };
-
-  const getAvailableValues = (
-    attributeId: string,
-    tempSelections: SelectedAttributes
-  ): Set<string> => {
-    const availableValueIds = new Set<string>();
-
-    const singleAttrVariant = product.variants.find(
-      (v) =>
-        v.attributes.length === 1 &&
-        tempSelections[v.attributes[0].attributeValue.attribute.id] ===
-          v.attributes[0].attributeValue.id
-    );
-
-    if (
-      singleAttrVariant &&
-      singleAttrVariant.attributes[0].attributeValue.attribute.id ===
-        attributeId
-    ) {
-      availableValueIds.add(singleAttrVariant.attributes[0].attributeValue.id);
-      return availableValueIds;
-    }
-
-    const matchingVariants = product.variants.filter((variant) => {
-      const hasAttribute = variant.attributes.some(
-        (attr) => attr.attributeValue.attribute.id === attributeId
-      );
-      if (!hasAttribute) return false;
-
-      const matchesSelection = variant.attributes.every((variantAttr) => {
-        const variantAttrId = variantAttr.attributeValue.attribute.id;
-        if (variantAttrId === attributeId) return true;
-
-        const selectedValue = tempSelections[variantAttrId];
+      const singleAttrVariant = product.variants.find((v) => {
+        if (v.attributes.length !== 1) return false;
+        const attr = v.attributes[0];
         return (
-          !selectedValue || selectedValue === variantAttr.attributeValue.id
+          tempSelections[attr.attributeValue.attribute.id] ===
+          attr.attributeValue.id
         );
       });
 
-      if (!matchesSelection) return false;
-
-      const allSelectionsCovered = Object.keys(tempSelections).every(
-        (selectedAttrId) =>
-          selectedAttrId === attributeId ||
-          variant.attributes.some(
-            (attr) => attr.attributeValue.attribute.id === selectedAttrId
-          )
-      );
-
-      return allSelectionsCovered;
-    });
-
-    matchingVariants.forEach((variant) => {
-      variant.attributes.forEach((variantAttr) => {
-        if (variantAttr.attributeValue.attribute.id === attributeId) {
-          availableValueIds.add(variantAttr.attributeValue.id);
-        }
-      });
-    });
-
-    return availableValueIds;
-  };
-
-  const handleAttributeChange = (attributeId: string, valueId: string) => {
-    setSelectedAttributes((prev) => {
-      if (prev[attributeId] === valueId) {
-        const updated = { ...prev };
-        delete updated[attributeId];
-        return updated;
+      if (
+        singleAttrVariant &&
+        singleAttrVariant.attributes[0]?.attributeValue?.attribute?.id ===
+          attributeId
+      ) {
+        const valueId = singleAttrVariant.attributes[0]?.attributeValue?.id;
+        if (valueId) availableValueIds.add(valueId);
+        return availableValueIds;
       }
 
-      const updated = { ...prev, [attributeId]: valueId };
+      const compatibleVariants = product.variants.filter((variant) => {
+        const hasAttribute = variant.attributes?.some?.(
+          (attr) => attr?.attributeValue?.attribute?.id === attributeId
+        );
 
-      Object.keys(updated).forEach((attrId) => {
-        if (attrId !== attributeId) {
-          const available = getAvailableValues(attrId, updated);
-          if (!available.has(updated[attrId])) {
-            delete updated[attrId];
-          }
-        }
+        if (!hasAttribute) return false;
+
+        const matchesSelections = variant.attributes?.every?.((variantAttr) => {
+          const variantAttrId = variantAttr?.attributeValue?.attribute?.id;
+          if (!variantAttrId) return false;
+
+          if (variantAttrId === attributeId) return true;
+
+          const selectedValue = tempSelections[variantAttrId];
+          return (
+            !selectedValue || selectedValue === variantAttr?.attributeValue?.id
+          );
+        });
+
+        return !!matchesSelections;
       });
 
-      return updated;
-    });
-  };
+      compatibleVariants.forEach((variant) => {
+        variant.attributes?.forEach?.((variantAttr) => {
+          if (variantAttr?.attributeValue?.attribute?.id === attributeId) {
+            const valueId = variantAttr?.attributeValue?.id;
+            if (valueId) availableValueIds.add(valueId);
+          }
+        });
+      });
 
-  const currentVariant = findMatchingVariant(selectedAttributes);
-  const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
-  const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
+      return availableValueIds;
+    },
+    [product?.variants]
+  );
 
-  const hasEnoughSelections = (): boolean => {
+  const handleAttributeChange = useCallback(
+    (attributeId: string, valueId: string) => {
+      setSelectedAttributes((prev) => {
+        if (prev[attributeId] === valueId) {
+          const updated = { ...prev };
+          delete updated[attributeId];
+          return updated;
+        }
+
+        const updated = { ...prev, [attributeId]: valueId };
+
+        Object.keys(updated).forEach((attrId) => {
+          if (attrId !== attributeId) {
+            const available = getAvailableValues(attrId, updated);
+            if (!available.has(updated[attrId])) {
+              delete updated[attrId];
+            }
+          }
+        });
+
+        return updated;
+      });
+    },
+    [getAvailableValues]
+  );
+
+  const currentVariant = useMemo(
+    () => findMatchingVariant(selectedAttributes),
+    [selectedAttributes, findMatchingVariant]
+  );
+
+  const currentPrice = useMemo(
+    () => (currentVariant?.price ? currentVariant.price / 100 : 0),
+    [currentVariant?.price]
+  );
+
+  const currentStock = useMemo(
+    () => currentVariant?.stock_quantity ?? 0,
+    [currentVariant?.stock_quantity]
+  );
+
+  const hasEnoughSelections = useMemo(() => {
     if (!currentVariant) return false;
 
-    const requiredAttrIds = new Set(
-      currentVariant.attributes.map((attr) => attr.attributeValue.attribute.id)
-    );
+    const requiredAttrCount = currentVariant.attributes?.length ?? 0;
+    const selectedAttrCount = Object.keys(selectedAttributes).length;
 
-    if (currentVariant.attributes.length === 1) {
-      return !!selectedAttributes[
-        currentVariant.attributes[0].attributeValue.attribute.id
-      ];
+    if (requiredAttrCount === 1) {
+      const attrId =
+        currentVariant.attributes?.[0]?.attributeValue?.attribute?.id;
+      return attrId ? !!selectedAttributes[attrId] : false;
     }
 
-    return Array.from(requiredAttrIds).every((id) => selectedAttributes[id]);
-  };
+    return selectedAttrCount === requiredAttrCount;
+  }, [currentVariant, selectedAttributes]);
 
-  const allAttributesSelected = hasEnoughSelections();
-  const canAddToCart =
-    allAttributesSelected && currentVariant && currentStock > 0;
+  const canAddToCart = useMemo(
+    () =>
+      hasEnoughSelections &&
+      !!currentVariant &&
+      currentStock > 0 &&
+      quantity > 0,
+    [hasEnoughSelections, currentVariant, currentStock, quantity]
+  );
 
-  const handleQuantityChange = (type: "increment" | "decrement") => {
-    if (type === "increment" && currentVariant && quantity < currentStock) {
-      setQuantity((prev) => prev + 1);
-    } else if (type === "decrement" && quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
+  const handleQuantityChange = useCallback(
+    (type: "increment" | "decrement") => {
+      setQuantity((prev) => {
+        if (type === "increment") {
+          return currentVariant && prev < currentStock ? prev + 1 : prev;
+        }
+        return prev > 1 ? prev - 1 : prev;
+      });
+    },
+    [currentVariant, currentStock]
+  );
 
-  const handleAddToCart = async () => {
-    if (!currentVariant) return;
-    await addToCartAsync({ productVariantId: currentVariant.id, quantity });
-  };
+  const handleAddToCart = useCallback(async () => {
+    if (!currentVariant || !canAddToCart) return;
+    await addToCartAsync({
+      productVariantId: currentVariant.id,
+      quantity,
+    });
+  }, [currentVariant, canAddToCart, quantity, addToCartAsync]);
 
-  const handleToggleWishlist = async () => {
+  const handleToggleWishlist = useCallback(async () => {
+    if (!product?.id) return;
     await toggleWishlistAsync({ productId: product.id });
-  };
+  }, [product?.id, toggleWishlistAsync]);
 
   if (error) return <Error />;
-
   if (!product) return <NotFound />;
+
+  const productImages = product.images ?? [];
+  const currentImageUrl =
+    productImages[selectedImageIndex]?.image_url ?? placeholderImage;
+  const hasMultipleImages = productImages.length > 1;
+  const productAttributes = product.attributes ?? [];
+
+  const addToCartButtonText = !hasEnoughSelections
+    ? "Select Options"
+    : currentStock === 0
+    ? "Out of Stock"
+    : "Add to Cart";
 
   return (
     <div>
@@ -225,20 +267,17 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             <CardContent className="p-0">
               <div className="aspect-square relative">
                 <img
-                  src={
-                    product.images?.[selectedImageIndex]?.image_url ||
-                    placeholderImage
-                  }
-                  alt={product.name}
+                  src={currentImageUrl}
+                  alt={product.name ?? "Product"}
                   className="w-full h-full object-cover"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {product.images && product.images.length > 1 && (
+          {hasMultipleImages && (
             <ImageCarousel
-              images={product.images}
+              images={productImages}
               onSelect={setSelectedImageIndex}
             />
           )}
@@ -250,8 +289,8 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/categories/${product.category.slug}`}>
-                      {product.category.name}
+                    <Link href={`/categories/${product.category?.slug ?? ""}`}>
+                      {product.category?.name ?? "Category"}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
@@ -264,7 +303,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link
-                          href={`/categories/${product.category.slug}/subcategories/${product.subcategory.slug}`}
+                          href={`/categories/${
+                            product.category?.slug ?? ""
+                          }/subcategories/${product.subcategory.slug}`}
                         >
                           {product.subcategory.name}
                         </Link>
@@ -277,7 +318,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           </div>
 
           <div>
-            <h2 className="text-3xl font-bold mb-2">{product.name}</h2>
+            <h2 className="text-3xl font-bold mb-2">
+              {product.name ?? "Product"}
+            </h2>
             <div className="flex items-center gap-2 mb-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -293,7 +336,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <div className="min-h-[5rem] space-y-3">
             <div className="flex items-center">
-              {allAttributesSelected && currentVariant ? (
+              {hasEnoughSelections && currentVariant ? (
                 <div className="text-3xl font-bold">
                   {formatUSD(currentPrice)}
                 </div>
@@ -304,7 +347,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
               )}
             </div>
 
-            {allAttributesSelected && currentVariant && (
+            {hasEnoughSelections && currentVariant && (
               <div className="flex items-center gap-2">
                 {currentStock > 0 ? (
                   <>
@@ -341,48 +384,52 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           )}
 
-          {product.attributes && product.attributes.length > 0 && (
+          {productAttributes.length > 0 && (
             <div className="space-y-4">
-              {product.attributes.map((attribute: ProductAttribute) => {
+              {productAttributes.map((attribute: ProductAttribute) => {
                 const availableValues = getAvailableValues(
                   attribute.id,
                   selectedAttributes
                 );
-                const selectedValue = selectedAttributes[attribute.id];
-                const selectedLabel = selectedValue
-                  ? attribute.values.find((v) => v.id === selectedValue)?.value
-                  : null;
+                const selectedValueId = selectedAttributes[attribute.id];
+                const selectedValueLabel =
+                  selectedValueId && attribute.values
+                    ? attribute.values.find((v) => v.id === selectedValueId)
+                        ?.value
+                    : null;
 
                 return (
                   <div key={attribute.id}>
                     <Label className="text-sm font-medium mb-2 block">
                       {attribute.name}
-                      {selectedLabel && (
+                      {selectedValueLabel && (
                         <span className="text-muted-foreground font-normal ml-2">
-                          ({selectedLabel})
+                          ({selectedValueLabel})
                         </span>
                       )}
                     </Label>
                     <div className="flex gap-2 flex-wrap">
-                      {attribute.values.map((value: ProductAttributeValue) => {
-                        const isAvailable = availableValues.has(value.id);
-                        const isSelected = selectedValue === value.id;
+                      {(attribute.values ?? []).map(
+                        (value: ProductAttributeValue) => {
+                          const isAvailable = availableValues.has(value.id);
+                          const isSelected = selectedValueId === value.id;
 
-                        return (
-                          <Button
-                            key={value.id}
-                            variant={isSelected ? "default" : "outline"}
-                            size="sm"
-                            disabled={!isAvailable}
-                            onClick={() =>
-                              handleAttributeChange(attribute.id, value.id)
-                            }
-                            className="min-w-fit"
-                          >
-                            {value.value}
-                          </Button>
-                        );
-                      })}
+                          return (
+                            <Button
+                              key={value.id}
+                              variant={isSelected ? "default" : "outline"}
+                              size="sm"
+                              disabled={!isAvailable}
+                              onClick={() =>
+                                handleAttributeChange(attribute.id, value.id)
+                              }
+                              className="min-w-fit"
+                            >
+                              {value.value}
+                            </Button>
+                          );
+                        }
+                      )}
                     </div>
                   </div>
                 );
@@ -392,7 +439,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
-          {/* QUANTITY & ACTIONS */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <Label className="text-sm font-medium">Quantity:</Label>
@@ -427,11 +473,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                {!allAttributesSelected
-                  ? "Select Options"
-                  : currentStock === 0
-                  ? "Out of Stock"
-                  : "Add to Cart"}
+                {addToCartButtonText}
               </Button>
               <Button
                 variant="outline"
@@ -439,7 +481,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 disabled={wishlistIsPending}
                 onClick={handleToggleWishlist}
                 className={cn(
-                  "relative group transition-all duration-300 ",
+                  "relative group transition-all duration-300",
                   product.wishlist &&
                     "border-destructive hover:bg-destructive/80"
                 )}
@@ -458,9 +500,11 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
-          {/* METADATA */}
           <div className="text-sm text-muted-foreground">
-            Updated: {new Date(product.updated_at).toLocaleDateString()}
+            Updated:{" "}
+            {product.updated_at
+              ? new Date(product.updated_at).toLocaleDateString()
+              : "N/A"}
           </div>
         </div>
       </div>

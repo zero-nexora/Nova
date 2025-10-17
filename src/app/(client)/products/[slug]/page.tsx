@@ -1,5 +1,11 @@
-// src/app/products/[slug]/page.tsx
+import { Suspense } from "react";
+import type { SearchParams } from "nuqs";
+import { normalizeFilters } from "@/lib/utils";
+import { DEFAULT_LIMIT } from "@/lib/constants";
 import { getQueryClient, trpc } from "@/trpc/server";
+import { PageHeader } from "@/components/global/page-header";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { loaderProductFilters } from "../../hooks/products/product-filters";
 import {
   ProductDetail,
   ProductDetailSkeleton,
@@ -8,13 +14,6 @@ import {
   ProductSection,
   ProductSectionSkeleton,
 } from "../../_components/product-section";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { loaderProductFilters } from "../../hooks/products/product-filters";
-import { normalizeFilters } from "@/lib/utils";
-import { DEFAULT_LIMIT } from "@/lib/constants";
-import { Suspense } from "react";
-import type { SearchParams } from "nuqs";
-import { PageHeader } from "@/components/global/page-header";
 
 interface ProductDetailPageProps {
   searchParams: Promise<SearchParams>;
