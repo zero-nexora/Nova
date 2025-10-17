@@ -40,6 +40,11 @@ export const sidebarRoutes: SidebarRoute[] = [
     icon: Box,
   },
   {
+    label: "Product Attribute",
+    path: `${PREFIX}/product-attributes`,
+    icon: Box,
+  },
+  {
     label: "User & Role",
     path: `${PREFIX}/roles`,
     icon: Users,

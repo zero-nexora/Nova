@@ -218,29 +218,6 @@ export const productsRouter = createTRPCRouter({
       return products;
     }),
 
-  getAllProductAttributes: adminOrManageProductProcedure.query(
-    async ({ ctx }) => {
-      const productAttributes = await ctx.db.product_Attributes.findMany({
-        where: { is_deleted: false },
-        select: {
-          id: true,
-          name: true,
-          values: {
-            select: {
-              id: true,
-              value: true,
-            },
-            where: { is_deleted: false },
-            orderBy: { value: "asc" },
-          },
-        },
-        orderBy: { name: "asc" },
-      });
-
-      return productAttributes;
-    }
-  ),
-
   create: adminOrManageProductProcedure
     .input(CreateProductSchema)
     .mutation(async ({ input, ctx }) => {

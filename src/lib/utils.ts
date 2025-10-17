@@ -179,6 +179,7 @@ export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
       case "Dashboard":
         return isAdmin(user);
       case "Product":
+      case "Product Attribute":
         return isAdminOrManageProduct(user);
 
       case "Category & Subcategory":

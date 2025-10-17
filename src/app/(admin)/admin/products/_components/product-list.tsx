@@ -20,7 +20,7 @@ import { useGetAllCategories } from "../../categories/hooks/categories/use-get-a
 import { ProductResponse } from "@/queries/admin/products/types";
 import { extractAllImagePublicIds } from "@/lib/utils";
 
-interface ProductListProps {
+interface ProductSectionProps {
   products: ProductResponse[];
   totalProducts: number;
   currentPage: number;
@@ -28,13 +28,13 @@ interface ProductListProps {
   isRefetching: boolean;
 }
 
-export const ProductList = ({
+export const ProductSection = ({
   products,
   currentPage,
   pageSize,
   totalProducts,
   isRefetching,
-}: ProductListProps) => {
+}: ProductSectionProps) => {
   const { filters } = useProductFilters();
   const { categories } = useGetAllCategories();
   const openConfirm = useConfirm((state) => state.open);

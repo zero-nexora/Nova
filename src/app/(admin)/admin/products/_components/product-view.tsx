@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductList } from "./product-list";
+import { ProductSection } from "./product-list";
 import { CreateProduct } from "./create-product";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetAllProducts } from "../hooks/products/use-get-all-products";
@@ -39,7 +39,7 @@ export const ProductView = () => {
           <CreateProduct />
         </div>
       </div>
-      <ProductList
+      <ProductSection
         products={products}
         currentPage={page}
         pageSize={limit}

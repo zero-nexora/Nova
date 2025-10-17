@@ -7,7 +7,7 @@ export function useGetAllProductAttributes() {
   const trpc = useTRPC();
   
   const { data, error } = useSuspenseQuery(
-    trpc.admin.productsRouter.getAllProductAttributes.queryOptions()
+    trpc.admin.productAttributesRouter.getAllProductAttributes.queryOptions()
   );
 
   return {

@@ -333,7 +333,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
-          {/* DESCRIPTION */}
           {product.description && (
             <div>
               <p className="text-muted-foreground leading-relaxed">
@@ -342,7 +341,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           )}
 
-          {/* ATTRIBUTES */}
           {product.attributes && product.attributes.length > 0 && (
             <div className="space-y-4">
               {product.attributes.map((attribute: ProductAttribute) => {

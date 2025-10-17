@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatUSD } from "@/lib/utils";
+import { useAddToCart } from "../cart/hooks/use-add-to-cart";
 
 interface ProductCardProps {
   product: Product;
@@ -25,6 +26,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const minPrice = Math.min(...product.variants.map((v) => v.price));
   const maxPrice = Math.max(...product.variants.map((v) => v.price));
   const stock = product.variants.reduce((sum, v) => sum + v.stock_quantity, 0);
+
+  const { addToCart, isPending } = useAddToCart();
 
   return (
     <Link href={`/products/${product.slug}`}>
@@ -91,7 +94,12 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                addToCart({
+                  productVariantId: product.variants[0].id,
+                  quantity: 1,
+                });
               }}
+              disabled={isPending}
             >
               Add to Cart
             </Button>

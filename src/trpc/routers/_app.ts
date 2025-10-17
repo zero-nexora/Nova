@@ -10,22 +10,24 @@ import { permissionsRouter } from "@/queries/admin/permissions/produces";
 import { subcategoriesRouter } from "@/queries/admin/subcategories/produces";
 import { productsRouter as productsRouterClient } from "@/queries/client/products/produces";
 import { categoriesRouter as categoriesRouterClient } from "@/queries/client/categories/produces";
+import { productAttributesRouter } from "@/queries/admin/product-attributes/produces";
 
 export const appRouter = createTRPCRouter({
   admin: {
-    categoriesRouter,
-    subcategoriesRouter,
-    productsRouter,
-    permissionsRouter,
     rolesRouter,
+    productsRouter,
+    categoriesRouter,
+    permissionsRouter,
+    subcategoriesRouter,
+    productAttributesRouter,
   },
   upload: uploadRouter,
   client: {
-    categoriesRouterClient,
-    productsRouterClient,
-    wishlistsRouter,
-    usersRouter,
     cartsRouter,
+    usersRouter,
+    wishlistsRouter,
+    productsRouterClient,
+    categoriesRouterClient,
   },
 });
 
