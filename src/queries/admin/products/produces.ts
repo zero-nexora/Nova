@@ -13,7 +13,6 @@ import {
   validateSubcategory,
   validateVariants,
 } from "./utils";
-import { PrismaClient } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import {
   CreateProductSchema,
@@ -248,6 +247,13 @@ export const productsRouter = createTRPCRouter({
       const { name, description, categoryId, subcategoryId, images, variants } =
         input;
 
+      if (!variants) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "At least one variant is required",
+        });
+      }
+
       // Validate inputs
       await validateCategory(ctx.db, categoryId);
       if (subcategoryId) {
@@ -258,7 +264,7 @@ export const productsRouter = createTRPCRouter({
       const uniqueVariants = getUniqueVariants(variants);
 
       return await ctx.db.$transaction(async (tx) => {
-        const slug = await generateProductSlug(tx as PrismaClient, name);
+        const slug = await generateProductSlug(tx, name);
 
         const product = await tx.products.create({
           data: {
@@ -281,7 +287,7 @@ export const productsRouter = createTRPCRouter({
           });
         }
 
-        await createVariants(tx as PrismaClient, product.id, uniqueVariants);
+        await createVariants(tx, product.id, uniqueVariants);
 
         return { success: true };
       });
@@ -298,6 +304,13 @@ export const productsRouter = createTRPCRouter({
         images,
         variants,
       } = input;
+
+      if (!variants) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "At least one variant is required",
+        });
+      }
 
       const existingProduct = await ctx.db.products.findUnique({
         where: { id },
@@ -353,16 +366,12 @@ export const productsRouter = createTRPCRouter({
           );
         }
       }
-
-      // Validate variants
+      
       await validateVariants(ctx.db, variants, id);
 
-      // Ensure unique variants
       const uniqueVariants = getUniqueVariants(variants);
 
-      // Update product in a transaction
-      return await ctx.db.$transaction(async (tx) => {
-        // Prepare update data
+      return await ctx.db.$transaction(async (tx: Prisma.TransactionClient) => {
         const updateData: Prisma.ProductsUpdateInput = {
           updated_at: new Date(),
         };
@@ -370,7 +379,7 @@ export const productsRouter = createTRPCRouter({
         if (name !== undefined && name !== existingProduct.name) {
           updateData.name = name;
           updateData.slug = await generateProductSlug(
-            tx as PrismaClient,
+            tx,
             name,
             id
           );
@@ -393,14 +402,12 @@ export const productsRouter = createTRPCRouter({
             : { disconnect: true };
         }
 
-        // Update product
         await tx.products.update({
           where: { id },
           data: updateData,
           select: { id: true, name: true },
         });
 
-        // Update images
         if (images?.length) {
           const existingPublicIds = new Set(
             existingProduct.images.map((img) => img.public_id)
@@ -429,7 +436,6 @@ export const productsRouter = createTRPCRouter({
             uniqueVariants.filter((v) => v.id).map((v) => v.id!)
           );
 
-          // Delete variants not in the updated list
           const variantsToDelete = existingProduct.variants.filter(
             (v) => !newVariantIds.has(v.id)
           );
@@ -439,15 +445,13 @@ export const productsRouter = createTRPCRouter({
             });
           }
 
-          // Create or update variants
           await createOrUpdateVariants(
-            tx as PrismaClient,
+            tx,
             id,
             uniqueVariants,
             existingVariantIds
           );
         } else if (existingProduct.variants.length > 0) {
-          // Delete all variants if none provided
           await tx.product_Variants.deleteMany({
             where: { id: { in: existingProduct.variants.map((v) => v.id) } },
           });
@@ -573,7 +577,7 @@ export const productsRouter = createTRPCRouter({
 
       await ctx.db.$transaction(async (tx) => {
         await deleteProductDependencies(
-          tx as PrismaClient,
+          tx,
           id,
           product.variants.map((v) => v.id)
         );
@@ -602,7 +606,7 @@ export const productsRouter = createTRPCRouter({
       const deleted = await ctx.db.$transaction(async (tx) => {
         const variantIds = products.flatMap((p) => p.variants.map((v) => v.id));
         await deleteProductDependencies(
-          tx as PrismaClient,
+          tx,
           products.map((p) => p.id),
           variantIds
         );

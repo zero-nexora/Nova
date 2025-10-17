@@ -29,8 +29,6 @@ export const CustomConfirm = () => {
   };
 
   const getIcon = () => {
-    if (data?.icon) return data.icon;
-
     switch (data?.variant) {
       case "destructive":
         return <Trash2 className="w-6 h-6 text-red-500" />;
@@ -72,14 +70,14 @@ export const CustomConfirm = () => {
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={cancel} disabled={isLoading}>
-            {data?.cancelText || "Cancel"}
+            {"Cancel"}
           </Button>
           <Button
             variant={getButtonVariant()}
             onClick={handleConfirm}
             disabled={isLoading}
           >
-            {isLoading ? <Loading /> : data?.confirmText || "Confirm"}
+            {isLoading ? <Loading /> : "Confirm"}
           </Button>
         </DialogFooter>
       </DialogContent>

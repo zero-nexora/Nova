@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useMemo, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useState, useMemo, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import z from "zod";
@@ -44,6 +43,7 @@ import {
 } from "@/lib/utils";
 import { ProductBasicFields } from "./product-basic-fields-form";
 import { VariantFormSection } from "@/app/(admin)/admin/products/_components/variant-form-section";
+import { useForm } from "react-hook-form";
 
 interface UpdateProductFormProps {
   data: ProductResponse;
@@ -80,7 +80,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     defaultValues: {
       id: data.id,
       description: data.description || "",
-      name: data.name,
+      name: data.name || "",
       variants: [],
       images:
         data.images?.map((img) => ({
@@ -94,7 +94,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
     mode: "onChange",
   });
 
-  // Initialize variants from existing product data
   useEffect(() => {
     if (data.variants?.length > 0 && !isInitialized) {
       const initializedVariants: ProductVariant[] = data.variants.map(
@@ -190,7 +189,6 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         await deleteImagesAsync({ publicIds: imagePublicIdsToRemove });
       }
 
-      // Upload new images
       let newImages: { image_url: string; public_id: string }[] = [];
       if (selectedImages.length > 0) {
         const uploadResult = await uploadImagesAsync({
@@ -203,11 +201,9 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         }));
       }
 
-      // Combine existing and new images
       const existingImages = form.getValues("images") || [];
       values.images = [...existingImages, ...newImages];
 
-      // Prepare variants
       values.variants = prepareVariantsForSubmit();
 
       await updateProductAsync(values);
@@ -317,7 +313,7 @@ export function UpdateProductForm({ data }: UpdateProductFormProps) {
         />
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting} className="min-w-32">
+          <Button disabled={isSubmitting} className="min-w-32">
             {isSubmitting ? <Loading /> : "Update Product"}
           </Button>
         </div>

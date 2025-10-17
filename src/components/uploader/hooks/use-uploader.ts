@@ -47,12 +47,6 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
           ...currentPreviews,
           ...newPreviews,
         ]);
-
-        const message =
-          files.length === 1
-            ? "Image added successfully"
-            : `${files.length} images added successfully`;
-        toast.success(message);
       } catch (error) {
         console.error("File processing error:", error);
         const errorMessage =
@@ -67,12 +61,10 @@ export const useImageUploader = (maxFiles: number = MAX_FILE_CATEGORY) => {
     setLocalPreviews((currentPreviews) =>
       currentPreviews.filter((preview) => preview.id !== previewId)
     );
-    toast.success("Image removed");
   }, []);
 
   const clearAllPreviews = useCallback(() => {
     setLocalPreviews([]);
-    toast.success("All images cleared");
   }, []);
 
   const resetUploader = useCallback(() => {

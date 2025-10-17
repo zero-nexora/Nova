@@ -112,7 +112,7 @@ export const CreateProductSchema = z.object({
           .min(1, "At least one attribute value ID is required"),
       })
     )
-    .min(1, "At least one variant is required"),
+    .optional(),
 });
 
 export const UpdateProductSchema = z.object({
@@ -145,7 +145,7 @@ export const UpdateProductSchema = z.object({
           .min(1, "At least one attribute value ID is required"),
       })
     )
-    .min(1, "At least one variant is required"),
+    .optional(),
 });
 
 export const isDeletedValues = ["true", "false", "all"] as const;
@@ -172,7 +172,9 @@ export const toggleSchema = z.object({
 });
 
 export const toggleMultipleSchema = z.object({
-  ids: z.array(z.string().uuid("Invalid product ID")).min(1, "At least one product ID is required"),
+  ids: z
+    .array(z.string().uuid("Invalid product ID"))
+    .min(1, "At least one product ID is required"),
 });
 
 export const deleteSchema = z.object({
@@ -180,5 +182,7 @@ export const deleteSchema = z.object({
 });
 
 export const deleteMultipleSchema = z.object({
-  ids: z.array(z.string().uuid("Invalid product ID")).min(1, "At least one product ID is required"),
+  ids: z
+    .array(z.string().uuid("Invalid product ID"))
+    .min(1, "At least one product ID is required"),
 });

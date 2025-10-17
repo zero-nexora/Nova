@@ -1,13 +1,9 @@
 import { create } from "zustand";
-import { ReactNode } from "react";
 
 interface ConfirmData {
   title: string;
   description?: string;
-  confirmText?: string;
-  cancelText?: string;
   variant?: "default" | "destructive" | "warning";
-  icon?: ReactNode;
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
 }

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Error } from "@/components/global/error";
 import { Empty } from "@/components/global/empty";
+import { useConfirm } from "@/stores/confirm-store";
 import { ProductGrid, ProductGridSkeleton } from "./product-grid";
 import { InfiniteScroll } from "@/components/global/infinite-scroll";
 import { useProductFilters } from "../hooks/products/use-product-fillters";
@@ -23,6 +24,7 @@ export const ProductSection = ({
   wishlist,
 }: ProductSectionProps) => {
   const { filters } = useProductFilters();
+  const open = useConfirm((state) => state.open);
   const {
     deleteWishlistMultipleAsync,
     isPending: deleteWishlistMultiplePending,
@@ -38,9 +40,15 @@ export const ProductSection = ({
     });
 
   const handleDeleteWishlistMultiple = async () => {
-    await deleteWishlistMultipleAsync({
-      wishlistIds: products.map((product) => product.wishlist?.id) as string[],
-    });
+    open({
+      title: "Clear Wishlist",
+      description: "Are you sure you want to remove all items from your wishlist?",
+      onConfirm: async () => {
+        await deleteWishlistMultipleAsync({
+          wishlistIds: products.map((product) => product.wishlist?.id) as string[],
+        });
+      },
+    })
   };
 
   if (error) return <Error />;
@@ -55,7 +63,7 @@ export const ProductSection = ({
             disabled={deleteWishlistMultiplePending}
             onClick={handleDeleteWishlistMultiple}
             variant="outline"
-            className="shrink-0"
+            className="shrink-0 mb-6"
           >
             Clear all
           </Button>

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { ImageCarousel } from "./image-carousel";
+import { placeholderImage } from "@/lib/constants";
 import { Error } from "@/components/global/error";
 import { NotFound } from "@/components/global/not-found";
 import { useAddToCart } from "@/app/(client)/cart/hooks/use-add-to-cart";
@@ -42,117 +43,104 @@ interface ProductDetailProps {
   slug: string;
 }
 
+type SelectedAttributes = Record<string, string>;
+
 export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const { addToCartAsync, isPending: addToCartIsPending } = useAddToCart();
-
   const { toggleWishlistAsync, isPending: wishlistIsPending } =
     useToggleWishlist();
-
   const { product, error } = useGetProductBySlug(slug);
 
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [selectedAttributes, setSelectedAttributes] = useState<
-    Record<string, string>
-  >({});
-
-  const handleToggleWishlist = async () =>
-    await toggleWishlistAsync({ productId: product.id });
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedAttributes, setSelectedAttributes] =
+    useState<SelectedAttributes>({});
 
   const findMatchingVariant = (
-    selections: Record<string, string>
+    selections: SelectedAttributes
   ): Variant | undefined => {
-    return product.variants.find((variant: Variant) => {
-      const variantAttributeIds = new Set(
-        variant.attributes.map((attr) => attr.attributeValue.attribute.id)
+    return product.variants.find((variant) => {
+      const variantAttributeMap = new Map(
+        variant.attributes.map((attr) => [
+          attr.attributeValue.attribute.id,
+          attr.attributeValue.id,
+        ])
       );
 
-      const allSelectionsCovered = Object.keys(selections).every((key) =>
-        variantAttributeIds.has(key)
-      );
-      if (!allSelectionsCovered) return false;
-
-      const relevantSelections = Object.entries(selections).filter(([attrId]) =>
-        variantAttributeIds.has(attrId)
-      );
-
-      if (variant.attributes.length === 1) {
-        const variantAttr = variant.attributes[0];
-        return relevantSelections.some(
-          ([attrId, valueId]) =>
-            attrId === variantAttr.attributeValue.attribute.id &&
-            valueId === variantAttr.attributeValue.id
-        );
+      for (const [attrId, valueId] of Object.entries(selections)) {
+        if (variantAttributeMap.get(attrId) !== valueId) {
+          return false;
+        }
       }
 
-      if (relevantSelections.length !== variantAttributeIds.size) {
+      if (variant.attributes.length === 1) {
+        const [variantAttrId, variantValueId] = Array.from(
+          variantAttributeMap.entries()
+        )[0];
+        return selections[variantAttrId] === variantValueId;
+      }
+
+      if (variant.attributes.length !== Object.keys(selections).length) {
         return false;
       }
 
-      return relevantSelections.every(([attrId, valueId]) => {
-        return variant.attributes.some(
-          (variantAttr) =>
-            variantAttr.attributeValue.attribute.id === attrId &&
-            variantAttr.attributeValue.id === valueId
-        );
-      });
+      return true;
     });
   };
 
   const getAvailableValues = (
     attributeId: string,
-    tempSelections: Record<string, string>
+    tempSelections: SelectedAttributes
   ): Set<string> => {
     const availableValueIds = new Set<string>();
 
-    const selectedSingleAttrVariant = product.variants.find(
-      (variant: Variant) =>
-        variant.attributes.length === 1 &&
-        tempSelections[variant.attributes[0].attributeValue.attribute.id] ===
-          variant.attributes[0].attributeValue.id
+    const singleAttrVariant = product.variants.find(
+      (v) =>
+        v.attributes.length === 1 &&
+        tempSelections[v.attributes[0].attributeValue.attribute.id] ===
+          v.attributes[0].attributeValue.id
     );
 
-    if (selectedSingleAttrVariant) {
-      const variantAttr = selectedSingleAttrVariant.attributes[0];
-      if (variantAttr.attributeValue.attribute.id === attributeId) {
-        availableValueIds.add(variantAttr.attributeValue.id);
-        return availableValueIds;
-      }
+    if (
+      singleAttrVariant &&
+      singleAttrVariant.attributes[0].attributeValue.attribute.id ===
+        attributeId
+    ) {
+      availableValueIds.add(singleAttrVariant.attributes[0].attributeValue.id);
       return availableValueIds;
     }
 
-    const matchingVariants = product.variants.filter((variant: Variant) => {
-      const hasThisAttribute = variant.attributes.some(
+    const matchingVariants = product.variants.filter((variant) => {
+      const hasAttribute = variant.attributes.some(
         (attr) => attr.attributeValue.attribute.id === attributeId
       );
-      if (!hasThisAttribute) return false;
+      if (!hasAttribute) return false;
 
-      const matchesSelections = variant.attributes.every(
-        (variantAttr: VariantAttribute) => {
-          const attrId = variantAttr.attributeValue.attribute.id;
-          if (attrId === attributeId) return true;
+      const matchesSelection = variant.attributes.every((variantAttr) => {
+        const variantAttrId = variantAttr.attributeValue.attribute.id;
+        if (variantAttrId === attributeId) return true;
 
-          const selectedValue = tempSelections[attrId];
-          return (
-            !selectedValue || selectedValue === variantAttr.attributeValue.id
-          );
-        }
+        const selectedValue = tempSelections[variantAttrId];
+        return (
+          !selectedValue || selectedValue === variantAttr.attributeValue.id
+        );
+      });
+
+      if (!matchesSelection) return false;
+
+      const allSelectionsCovered = Object.keys(tempSelections).every(
+        (selectedAttrId) =>
+          selectedAttrId === attributeId ||
+          variant.attributes.some(
+            (attr) => attr.attributeValue.attribute.id === selectedAttrId
+          )
       );
 
-      const allSelectedAttrsCovered = Object.keys(tempSelections).every(
-        (key) => {
-          if (key === attributeId) return true;
-          return variant.attributes.some(
-            (attr) => attr.attributeValue.attribute.id === key
-          );
-        }
-      );
-
-      return matchesSelections && allSelectedAttrsCovered;
+      return allSelectionsCovered;
     });
 
-    matchingVariants.forEach((variant: Variant) => {
-      variant.attributes.forEach((variantAttr: VariantAttribute) => {
+    matchingVariants.forEach((variant) => {
+      variant.attributes.forEach((variantAttr) => {
         if (variantAttr.attributeValue.attribute.id === attributeId) {
           availableValueIds.add(variantAttr.attributeValue.id);
         }
@@ -165,43 +153,34 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
   const handleAttributeChange = (attributeId: string, valueId: string) => {
     setSelectedAttributes((prev) => {
       if (prev[attributeId] === valueId) {
-        const newAttributes = { ...prev };
-        delete newAttributes[attributeId];
-        return newAttributes;
+        const updated = { ...prev };
+        delete updated[attributeId];
+        return updated;
       }
 
-      const newAttributes = {
-        ...prev,
-        [attributeId]: valueId,
-      };
+      const updated = { ...prev, [attributeId]: valueId };
 
-      Object.keys(newAttributes).forEach((attrId) => {
+      Object.keys(updated).forEach((attrId) => {
         if (attrId !== attributeId) {
-          const availableValues = getAvailableValues(attrId, newAttributes);
-          if (!availableValues.has(newAttributes[attrId])) {
-            delete newAttributes[attrId];
+          const available = getAvailableValues(attrId, updated);
+          if (!available.has(updated[attrId])) {
+            delete updated[attrId];
           }
         }
       });
 
-      return newAttributes;
+      return updated;
     });
   };
 
-  const handleQuantityChange = (type: "increment" | "decrement") => {
-    if (type === "increment" && currentVariant && quantity < currentStock) {
-      setQuantity((prev) => prev + 1);
-    } else if (type === "decrement" && quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
-
   const currentVariant = findMatchingVariant(selectedAttributes);
+  const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
+  const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
 
   const hasEnoughSelections = (): boolean => {
     if (!currentVariant) return false;
 
-    const requiredAttributeIds = new Set(
+    const requiredAttrIds = new Set(
       currentVariant.attributes.map((attr) => attr.attributeValue.attribute.id)
     );
 
@@ -211,25 +190,31 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
       ];
     }
 
-    return Array.from(requiredAttributeIds).every(
-      (attrId) => selectedAttributes[attrId]
-    );
+    return Array.from(requiredAttrIds).every((id) => selectedAttributes[id]);
   };
 
   const allAttributesSelected = hasEnoughSelections();
-
-  const currentPrice = currentVariant ? currentVariant.price / 100 : 0;
-  const currentStock = currentVariant ? currentVariant.stock_quantity : 0;
   const canAddToCart =
     allAttributesSelected && currentVariant && currentStock > 0;
 
+  const handleQuantityChange = (type: "increment" | "decrement") => {
+    if (type === "increment" && currentVariant && quantity < currentStock) {
+      setQuantity((prev) => prev + 1);
+    } else if (type === "decrement" && quantity > 1) {
+      setQuantity((prev) => prev - 1);
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!currentVariant) return;
-    addToCartAsync({ productVariantId: currentVariant.id, quantity });
+    await addToCartAsync({ productVariantId: currentVariant.id, quantity });
+  };
+
+  const handleToggleWishlist = async () => {
+    await toggleWishlistAsync({ productId: product.id });
   };
 
   if (error) return <Error />;
-
   if (!product) return <NotFound />;
 
   return (
@@ -239,17 +224,14 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           <Card className="overflow-hidden mb-5">
             <CardContent className="p-0">
               <div className="aspect-square relative">
-                {product.images && product.images.length > 0 ? (
-                  <img
-                    src={product.images[selectedImageIndex]?.image_url}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-muted">
-                    No Image Available
-                  </div>
-                )}
+                <img
+                  src={
+                    product.images?.[selectedImageIndex]?.image_url ||
+                    placeholderImage
+                  }
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </CardContent>
           </Card>
@@ -296,7 +278,6 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <div>
             <h2 className="text-3xl font-bold mb-2">{product.name}</h2>
-
             <div className="flex items-center gap-2 mb-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -329,7 +310,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                   <>
                     <Badge
                       variant="outline"
-                      className="text-green-600 border-green-600"
+                      className="text-primary border-primary"
                     >
                       <Check className="w-3 h-3 mr-1" />
                       In Stock
@@ -341,7 +322,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 ) : (
                   <Badge
                     variant="outline"
-                    className="text-red-600 border-red-red"
+                    className="text-destructive border-destructive"
                   >
                     Out of Stock
                   </Badge>
@@ -352,6 +333,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
+          {/* DESCRIPTION */}
           {product.description && (
             <div>
               <p className="text-muted-foreground leading-relaxed">
@@ -360,6 +342,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
             </div>
           )}
 
+          {/* ATTRIBUTES */}
           {product.attributes && product.attributes.length > 0 && (
             <div className="space-y-4">
               {product.attributes.map((attribute: ProductAttribute) => {
@@ -411,6 +394,7 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
           <Separator />
 
+          {/* QUANTITY & ACTIONS */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <Label className="text-sm font-medium">Quantity:</Label>
@@ -447,11 +431,9 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 {!allAttributesSelected
                   ? "Select Options"
-                  : currentVariant
-                  ? currentStock === 0
-                    ? "Out of Stock"
-                    : "Add to Cart"
-                  : "Invalid Selection"}
+                  : currentStock === 0
+                  ? "Out of Stock"
+                  : "Add to Cart"}
               </Button>
               <Button
                 variant="outline"
@@ -459,16 +441,17 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
                 disabled={wishlistIsPending}
                 onClick={handleToggleWishlist}
                 className={cn(
-                  "relative group transition-all duration-300 hover:bg-red-50",
-                  product.wishlist && "border-red-300 hover:bg-red-100"
+                  "relative group transition-all duration-300 ",
+                  product.wishlist &&
+                    "border-destructive hover:bg-destructive/80"
                 )}
               >
                 <Heart
                   className={cn(
                     "w-4 h-4 transition-transform duration-300",
                     product.wishlist
-                      ? "fill-red-500 text-red-500 scale-110"
-                      : "fill-transparent text-gray-500 group-hover:scale-110 group-hover:text-red-400"
+                      ? "fill-destructive text-destructive scale-110"
+                      : "fill-transparent text-muted-foreground group-hover:scale-110 group-hover:text-destructive/60"
                   )}
                 />
               </Button>
@@ -476,6 +459,8 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
           </div>
 
           <Separator />
+
+          {/* METADATA */}
           <div className="text-sm text-muted-foreground">
             Updated: {new Date(product.updated_at).toLocaleDateString()}
           </div>

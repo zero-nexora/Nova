@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { CreateProductInput, UpdateProductInput } from "./types";
 
 export const generateProductSlug = async (
-  db: PrismaClient,
+  db: PrismaClient | Prisma.TransactionClient,
   name: string,
   excludeId?: string
 ): Promise<string> => {
@@ -73,9 +73,15 @@ export async function validateSubcategory(
 
 export async function validateVariants(
   db: PrismaClient,
-  variants: CreateProductInput["variants"],
+  variants: CreateProductInput["variants"] = [],
   productId: string | null
 ) {
+  if (!variants) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "At least one variant is required",
+    });
+  }
   const allAttributeValueIds = [
     ...new Set(variants.flatMap((v) => v.attributeValueIds)),
   ];
@@ -159,10 +165,16 @@ export function getUniqueVariants(
 }
 
 export async function createVariants(
-  tx: PrismaClient,
+  tx: Prisma.TransactionClient,
   productId: string,
   variants: CreateProductInput["variants"]
 ) {
+  if (!variants) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "At least one variant is required",
+    });
+  }
   for (const variant of variants) {
     const createdVariant = await tx.product_Variants.create({
       data: {
@@ -186,15 +198,29 @@ export async function createVariants(
 }
 
 export async function createOrUpdateVariants(
-  tx: PrismaClient,
+  tx: Prisma.TransactionClient,
   productId: string,
   variants: UpdateProductInput["variants"],
   existingVariantIds: Set<string>
 ) {
-  for (const variant of variants) {
-    if (variant.id && existingVariantIds.has(variant.id)) {
+  if (!variants || variants.length === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "At least one variant is required",
+    });
+  }
+
+  const variantsToUpdate = variants.filter(
+    (v) => v.id && existingVariantIds.has(v.id)
+  );
+  const variantsToCreate = variants.filter(
+    (v) => !v.id || !existingVariantIds.has(v.id)
+  );
+
+  for (const variant of variantsToUpdate) {
+    try {
       await tx.product_Variants.update({
-        where: { id: variant.id },
+        where: { id: variant.id! },
         data: {
           sku: variant.sku,
           price: variant.price,
@@ -204,10 +230,10 @@ export async function createOrUpdateVariants(
       });
 
       await tx.product_Variant_Attributes.deleteMany({
-        where: { product_variant_id: variant.id },
+        where: { product_variant_id: variant.id! },
       });
 
-      if (variant.attributeValueIds.length > 0) {
+      if (variant.attributeValueIds && variant.attributeValueIds.length > 0) {
         await tx.product_Variant_Attributes.createMany({
           data: variant.attributeValueIds.map((attrValueId) => ({
             product_variant_id: variant.id!,
@@ -215,7 +241,18 @@ export async function createOrUpdateVariants(
           })),
         });
       }
-    } else {
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Failed to update variant ${variant.id}: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      });
+    }
+  }
+
+  for (const variant of variantsToCreate) {
+    try {
       const newVariant = await tx.product_Variants.create({
         data: {
           product_id: productId,
@@ -226,7 +263,7 @@ export async function createOrUpdateVariants(
         select: { id: true },
       });
 
-      if (variant.attributeValueIds.length > 0) {
+      if (variant.attributeValueIds && variant.attributeValueIds.length > 0) {
         await tx.product_Variant_Attributes.createMany({
           data: variant.attributeValueIds.map((attrValueId) => ({
             product_variant_id: newVariant.id,
@@ -234,10 +271,16 @@ export async function createOrUpdateVariants(
           })),
         });
       }
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Failed to create variant: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      });
     }
   }
 }
-
 export async function fetchProductWithRelations(db: PrismaClient, id: string) {
   return db.products.findUnique({
     where: { id },
@@ -264,7 +307,7 @@ export function validateCategoryAndSubcategory(
 }
 
 export async function deleteProductDependencies(
-  tx: PrismaClient,
+  tx: Prisma.TransactionClient,
   productIds: string | string[],
   variantIds: string[]
 ) {
