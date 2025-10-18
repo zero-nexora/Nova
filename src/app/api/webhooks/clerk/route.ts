@@ -1,12 +1,12 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
+import { db } from "@/database/prisma";
+import { RoleName } from "@prisma/client";
 import type {
   WebhookEvent,
   UserJSON,
   DeletedObjectJSON,
 } from "@clerk/nextjs/server";
-import { db } from "@/database/prisma";
-import { RoleName } from "@prisma/client";
 
 const SIGNING_SECRET = process.env.CLERK_SIGNING_SECRET;
 
@@ -89,6 +89,21 @@ async function handleUserCreated(userData: UserJSON) {
     const role = await db.roles.findUnique({
       where: {
         name: RoleName.ADMIN,
+      },
+    });
+
+    if (role) {
+      await db.user_Roles.create({
+        data: {
+          role_id: role.id,
+          user_id: user.id,
+        },
+      });
+    }
+  } else {
+    const role = await db.roles.findUnique({
+      where: {
+        name: RoleName.CUSTOMER,
       },
     });
 

@@ -115,24 +115,20 @@ export function cleanUserRoleFilters(
   return {
     ...filters,
     roleId:
-      (filters.roleId === "" || filters.roleId === "all")
+      filters.roleId === "" || filters.roleId === "all"
         ? undefined
         : filters.roleId,
     search: filters.search === "" ? undefined : filters.search,
   };
 }
 
-export function hasAnyRole(user: User): boolean {
-  return user.roles.some((role) =>
-    Object.values(RoleName).includes(role.role.name)
-  );
-}
-
 export function isAdmin(user: User): boolean {
+  if (!user?.roles) return false;
   return user.roles.some((role) => role.role.name === RoleName.ADMIN) ?? false;
 }
 
 export function isAdminOrManageProduct(user: User): boolean {
+  if (!user?.roles) return false;
   return (
     user.roles.some(
       (role) =>
@@ -143,6 +139,7 @@ export function isAdminOrManageProduct(user: User): boolean {
 }
 
 export function isAdminOrManageCategory(user: User): boolean {
+  if (!user?.roles) return false;
   return (
     user.roles.some(
       (r) =>
@@ -152,23 +149,24 @@ export function isAdminOrManageCategory(user: User): boolean {
   );
 }
 
-export function isAdminOrManageStaff(user: User): boolean {
+export function isAdminOrManageRole(user: User): boolean {
+  if (!user?.roles) return false;
   return (
     user.roles.some(
       (role) =>
         role.role.name === RoleName.ADMIN ||
-        role.role.name === RoleName.MANAGE_STAFF
+        role.role.name === RoleName.MANAGE_ROLE
     ) ?? false
   );
 }
 
-export function isAdminOrManageOrder(user: User): boolean {
-  return (
-    user.roles.some(
-      (role) =>
-        role.role.name === RoleName.ADMIN ||
-        role.role.name === RoleName.MANAGE_ORDER
-    ) ?? false
+export function hasAnyManagementRole(user: User): boolean {
+  if (!user?.roles) return false;
+
+  return user.roles.some((r: { role: { name: RoleName } }) =>
+    ["ADMIN", "MANAGE_PRODUCT", "MANAGE_CATEGORY", "MANAGE_ROLE"].includes(
+      r.role.name
+    )
   );
 }
 
@@ -187,13 +185,10 @@ export function restrictSidebarRoutes(user: User | null): SidebarRoute[] {
 
       case "User & Role":
       case "Permission":
-        return isAdminOrManageStaff(user);
-
-      case "Order":
-        return isAdminOrManageOrder(user);
+        return isAdminOrManageRole(user);
 
       case "Setting":
-        return hasAnyRole(user);
+        return isAdmin(user);
       default:
         return false;
     }
@@ -311,17 +306,16 @@ export const extractProductImagePublicIds = (
     .filter((id): id is string => Boolean(id));
 };
 
-
 export function getAdminLink(user: User): string {
   if (!user?.roles?.length) return "/";
 
   const roleNames = user.roles.map((r: any) => r.role.name);
 
   if (roleNames.includes(RoleName.ADMIN)) return `${PREFIX}/dashboard`;
-  if (roleNames.includes(RoleName.MANAGE_CATEGORY)) return `${PREFIX}/categories`;
+  if (roleNames.includes(RoleName.MANAGE_CATEGORY))
+    return `${PREFIX}/categories`;
   if (roleNames.includes(RoleName.MANAGE_PRODUCT)) return `${PREFIX}/products`;
-  if (roleNames.includes(RoleName.MANAGE_STAFF)) return `${PREFIX}/roles`;
-  if (roleNames.includes(RoleName.MANAGE_ORDER)) return `${PREFIX}/orders`;
+  if (roleNames.includes(RoleName.MANAGE_ROLE)) return `${PREFIX}/roles`;
 
   return "/";
 }

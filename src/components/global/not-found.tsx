@@ -10,9 +10,9 @@ export const NotFound = () => (
     <Card className="max-w-md mx-auto">
       <CardContent className="flex flex-col items-center py-12">
         <AlertCircle className="w-12 h-12 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Page Not Found</h2>
+        <h2 className="text-xl font-semibold mb-2">Not Found</h2>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          The page you&apos;re looking for doesn&apos;t exist or has been moved
+          Oops! Nothing to display here.
         </p>
         <Link href={"/"}>
           <Button>

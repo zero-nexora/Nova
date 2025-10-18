@@ -6,22 +6,21 @@ import { useTRPC } from "@/trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const UserProvider = () => {
-  const queryClient = useQueryClient();
-  const { userId } = useAuth();
+  const { userId, isSignedIn } = useAuth();
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const queryKey = trpc.client.usersRouter.getCurrentUser.queryKey();
+  const queryOptions = trpc.client.usersRouter.getCurrentUser.queryOptions();
 
   useEffect(() => {
-    if (userId) {
-      queryClient.invalidateQueries(
-        trpc.client.usersRouter.getCurrentUser.queryOptions()
-      );
-    } else {
-      queryClient.setQueryData(
-        trpc.client.usersRouter.getCurrentUser.queryKey(),
-        null
-      );
+    if (!isSignedIn || !userId) {
+      queryClient.setQueryData(queryKey, null);
+      return;
     }
-  }, [userId, queryClient]);
+
+    queryClient.invalidateQueries(queryOptions);
+  }, [isSignedIn, userId, queryClient]);
 
   return null;
 };

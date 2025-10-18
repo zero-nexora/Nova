@@ -106,53 +106,51 @@ export const ProductTable = ({
   };
 
   return (
-    <Card className="bg-muted/10 border">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>
-            Products ({totalProducts})
-            {selectedCount > 0 && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({selectedCount} selected)
-              </span>
-            )}
-          </CardTitle>
-
-          <div className="flex items-center gap-2">
-            {selectedCount > 0 && (
-              <div className="flex items-center gap-2 mr-2 border-r pr-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkToggle}
-                  className="gap-2"
-                >
-                  Toggle Selected ({selectedCount})
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  className="gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Selected ({selectedCount})
-                </Button>
-              </div>
-            )}
-
-            {/* Export Button */}
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="font-bold">
+          Products ({totalProducts})
+          {selectedCount > 0 && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({selectedCount} selected)
+            </span>
+          )}
         </div>
-      </CardHeader>
 
-      <CardContent>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 && (
+            <div className="flex items-center gap-2 mr-2 border-r pr-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkToggle}
+                className="gap-2"
+              >
+                Toggle Selected ({selectedCount})
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Selected ({selectedCount})
+              </Button>
+            </div>
+          )}
+
+          {/* Export Button */}
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
+      </div>
+
+      <div>
         {/* Table */}
-        <div className={cn(isRefetching && "opacity-80 pointer-events-none")}>
+        <div className={cn("rounded-md border", isRefetching && "opacity-80 pointer-events-none")}>
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -197,10 +195,7 @@ export const ProductTable = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="text-center"
-                  >
+                  <TableCell colSpan={columns.length} className="text-center">
                     <Empty />
                   </TableCell>
                 </TableRow>
@@ -229,8 +224,7 @@ export const ProductTable = ({
         {/* Pagination */}
         {totalPages > 1 && (
           <>
-            <Separator className="mb-4" />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
                 Showing {(currentPage - 1) * pageSize + 1} to{" "}
                 {Math.min(currentPage * pageSize, totalProducts)} of{" "}
@@ -280,7 +274,7 @@ export const ProductTable = ({
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

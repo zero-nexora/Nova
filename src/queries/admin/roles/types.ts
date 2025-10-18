@@ -7,7 +7,6 @@ export interface User {
   email: string;
   image_url: string | null;
   roles: {
-    id: string;
     role: {
       id: string;
       name: RoleName;

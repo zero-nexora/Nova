@@ -9,7 +9,7 @@ import {
 const RolesPage = () => {
   return (
     <main className="flex flex-col gap-8">
-      <RoleGuardProvider check="adminOrManageStaff">
+      <RoleGuardProvider check="adminOrManageRole">
         <PageHeader
           title="Permissions"
           description="Control user access and roles."

@@ -198,14 +198,14 @@ export const SubcategoryDataTable = () => {
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-4 py-4">
+      <div className="flex items-center gap-4 py-4 flex-wrap">
         <Input
           placeholder="Search by subcategory name..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="max-w-72"
         />
         <Input
           placeholder="Search by category name..."
@@ -215,7 +215,7 @@ export const SubcategoryDataTable = () => {
           onChange={(event) =>
             table.getColumn("category_name")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="max-w-72"
         />
         <Select
           value={
@@ -235,7 +235,7 @@ export const SubcategoryDataTable = () => {
           </SelectContent>
         </Select>
         {table.getFilteredSelectedRowModel().rows.length > 0 && (
-          <div className="ml-auto flex gap-2">
+          <div className="flex gap-2">
             <Button variant="destructive" onClick={handleDeleteSelected}>
               Delete Selected
             </Button>

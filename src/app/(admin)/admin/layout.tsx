@@ -35,7 +35,7 @@ const LayoutAdmin = async ({ children }: LayoutAdminProps) => {
 
   return (
     <main>
-      <RoleGuardProvider check="hasAnyRole">
+      <RoleGuardProvider check="hasAnyManagementRole">
         <Sidebar />
         <div className="md:pl-[300px]">
           <InfoBar />

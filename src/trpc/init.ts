@@ -58,23 +58,17 @@ export const adminOrManageCategoryProcedure = createRoleProcedure(
 );
 
 export const adminOrManageStaffProcedure = createRoleProcedure(
-  [RoleName.ADMIN, RoleName.MANAGE_STAFF],
+  [RoleName.ADMIN, RoleName.MANAGE_ROLE],
   "Admins or Manage staff only"
-);
-
-export const adminOrManageOrderProcedure = createRoleProcedure(
-  [RoleName.ADMIN, RoleName.MANAGE_ORDER],
-  "Admins or Manage order only"
 );
 
 export const adminOrEmployee = createRoleProcedure(
   [
     RoleName.ADMIN,
-    RoleName.MANAGE_ORDER,
     RoleName.MANAGE_CATEGORY,
     RoleName.MANAGE_PRODUCT,
     RoleName.MANAGE_PRODUCT,
-    RoleName.MANAGE_STAFF,
+    RoleName.MANAGE_ROLE,
   ],
   "Admins or employee only"
 );

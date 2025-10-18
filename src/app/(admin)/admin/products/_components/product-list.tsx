@@ -62,7 +62,6 @@ export const ProductSection = ({
     [toggleProductDeletedMultipleAsync, openConfirm]
   );
 
-  // Bulk Delete Handler
   const handleBulkDelete = useCallback(
     async (selectedProducts: ProductResponse[]) => {
       if (selectedProducts.length === 0) return;

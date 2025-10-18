@@ -110,63 +110,52 @@ export const PermissionsTable = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-48 font-semibold py-4">
-                Permission
-              </TableHead>
-              {roles.map((role) => (
+              <TableHead />
+              {permissions.map((group) => (
                 <TableHead
-                  key={role.id}
+                  key={group.group}
                   className="text-center font-semibold py-4"
+                  colSpan={group.permissions.length}
                 >
-                  {role.name}
+                  {group.group}
                 </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {permissions.map((group) => (
-              <React.Fragment key={group.group}>
-                <TableRow>
-                  <TableCell
-                    colSpan={roles.length + 1}
-                    className="text-center font-bold py-4"
-                  >
-                    {group.group}
-                  </TableCell>
-                </TableRow>
-                {group.permissions.map((permission) => (
-                  <TableRow key={permission.id} className="transition-colors">
-                    <TableCell className="font-medium py-3 pl-6">
-                      {permission.name}
-                    </TableCell>
-                    {roles.map((role) => {
-                      const isChecked = getCheckboxState(
-                        role.id,
-                        permission.id
-                      );
-                      return (
-                        <TableCell key={role.id} className="text-center py-3">
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={() =>
-                              handleTogglePermission(
-                                role.id,
-                                permission.id,
-                                isChecked
-                              )
-                            }
-                            disabled={isPending}
-                            className={cn(
-                              "h-5 w-5",
-                              isPending && "opacity-50 cursor-not-allowed"
-                            )}
-                          />
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </React.Fragment>
+            {roles.map((role) => (
+              <TableRow key={role.id} className="transition-colors">
+                <TableCell className="font-medium py-3 pl-6">
+                  {role.name}
+                </TableCell>
+                {permissions.map((group) =>
+                  group.permissions.map((permission) => {
+                    const isChecked = getCheckboxState(role.id, permission.id);
+                    return (
+                      <TableCell
+                        key={permission.id}
+                        className="text-center py-3"
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={() =>
+                            handleTogglePermission(
+                              role.id,
+                              permission.id,
+                              isChecked
+                            )
+                          }
+                          disabled={isPending}
+                          className={cn(
+                            "h-5 w-5",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        />
+                      </TableCell>
+                    );
+                  })
+                )}
+              </TableRow>
             ))}
           </TableBody>
         </Table>
@@ -183,5 +172,5 @@ export const PermissionsTableSkeleton = () => {
       </div>
       <Skeleton className="h-96 w-full" />
     </div>
-  )
-}
+  );
+};

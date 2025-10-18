@@ -1,12 +1,12 @@
+import type { SearchParams } from "nuqs";
+import { DEFAULT_LIMIT } from "@/lib/constants";
+import { cleanUserRoleFilters } from "@/lib/utils";
+import { getQueryClient, trpc } from "@/trpc/server";
+import { UserRoleView } from "./_components/user-role-view";
+import { loaderUserRoleFilters } from "./hooks/user-filters";
 import { PageHeader } from "@/components/global/page-header";
 import { RoleGuardProvider } from "@/providers/role-guard-provider";
-import { getQueryClient, trpc } from "@/trpc/server";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { loaderUserRoleFilters } from "./hooks/user-filters";
-import type { SearchParams } from "nuqs";
-import { cleanUserRoleFilters } from "@/lib/utils";
-import { DEFAULT_LIMIT } from "@/lib/constants";
-import { UserRoleView } from "./_components/user-role-view";
 
 interface ProductPageProps {
   searchParams: Promise<SearchParams>;
@@ -26,7 +26,7 @@ const RolesPage = async ({ searchParams }: ProductPageProps) => {
 
   return (
     <main className="space-y-4">
-      <RoleGuardProvider check="adminOrManageStaff">
+      <RoleGuardProvider check="adminOrManageRole">
         <PageHeader
           title="User Roles"
           description="Configure roles for user access."

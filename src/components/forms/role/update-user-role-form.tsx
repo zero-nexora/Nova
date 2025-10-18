@@ -70,7 +70,6 @@ export const UpdateUserRoleForm = ({ user }: UpdateUserRoleFormProps) => {
 
   return (
     <div className="space-y-6 rounded-lg">
-      {/* User Info Section */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">

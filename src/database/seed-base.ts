@@ -4,21 +4,24 @@ import { RoleName, PermissionName } from "@prisma/client";
 const ROLE_PERMISSIONS_MAP: Record<RoleName, PermissionName[]> = {
   [RoleName.ADMIN]: Object.values(PermissionName),
   [RoleName.MANAGE_PRODUCT]: [
-    PermissionName.READ_PRODUCT,
-    PermissionName.CREATE_PRODUCT,
+    PermissionName.CREATE,
+    PermissionName.READ,
+    PermissionName.UPDATE,
+    PermissionName.DELETE,
   ],
   [RoleName.MANAGE_CATEGORY]: [
-    PermissionName.READ_CATEGORY,
-    PermissionName.CREATE_CATEGORY,
+    PermissionName.CREATE,
+    PermissionName.READ,
+    PermissionName.UPDATE,
+    PermissionName.DELETE,
   ],
-  [RoleName.MANAGE_STAFF]: [
-    PermissionName.READ_STAFF,
-    PermissionName.CREATE_STAFF,
+  [RoleName.MANAGE_ROLE]: [
+    PermissionName.CREATE,
+    PermissionName.READ,
+    PermissionName.UPDATE,
+    PermissionName.DELETE,
   ],
-  [RoleName.MANAGE_ORDER]: [
-    PermissionName.READ_ORDER,
-    PermissionName.CREATE_ORDER,
-  ],
+  [RoleName.CUSTOMER]: [PermissionName.READ],
 };
 
 function createDescription(enumValue: string): string {

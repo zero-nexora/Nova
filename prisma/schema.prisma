@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// npx prisma migrate reset
+// npx prisma migrate dev --name init
+// npx prisma generate
+
 enum OrderStatus {
   PENDING
   DELIVERED
@@ -44,30 +48,15 @@ enum RoleName {
   ADMIN
   MANAGE_PRODUCT
   MANAGE_CATEGORY
-  MANAGE_STAFF
-  MANAGE_ORDER
+  MANAGE_ROLE
+  CUSTOMER
 }
 
 enum PermissionName {
-  CREATE_PRODUCT
-  READ_PRODUCT
-  UPDATE_PRODUCT
-  DELETE_PRODUCT
-
-  CREATE_CATEGORY
-  READ_CATEGORY
-  UPDATE_CATEGORY
-  DELETE_CATEGORY
-
-  CREATE_STAFF
-  READ_STAFF
-  UPDATE_STAFF
-  DELETE_STAFF
-
-  CREATE_ORDER
-  READ_ORDER
-  UPDATE_ORDER
-  DELETE_ORDER
+  CREATE
+  READ
+  UPDATE
+  DELETE
 }
 
 model Users {

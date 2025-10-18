@@ -1,23 +1,21 @@
 "use client";
 
-import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
 import { Forbidden } from "@/components/global/forbidden";
+import { useGetCurrentUser } from "@/app/(client)/users/hooks/use-get-current-user";
 import {
-  hasAnyRole,
+  hasAnyManagementRole,
   isAdmin,
   isAdminOrManageCategory,
-  isAdminOrManageOrder,
   isAdminOrManageProduct,
-  isAdminOrManageStaff,
+  isAdminOrManageRole,
 } from "@/lib/utils";
 
 type RoleCheckType =
-  | "hasAnyRole"
+  | "hasAnyManagementRole"
   | "admin"
   | "adminOrManageProduct"
   | "adminOrManageCategory"
-  | "adminOrManageStaff"
-  | "adminOrManageOrder";
+  | "adminOrManageRole";
 
 interface RoleGuardProps {
   check: RoleCheckType;
@@ -32,9 +30,6 @@ export const RoleGuardProvider = ({ check, children }: RoleGuardProps) => {
   let allowed = false;
 
   switch (check) {
-    case "hasAnyRole":
-      allowed = hasAnyRole(user);
-      break;
     case "admin":
       allowed = isAdmin(user);
       break;
@@ -44,11 +39,11 @@ export const RoleGuardProvider = ({ check, children }: RoleGuardProps) => {
     case "adminOrManageCategory":
       allowed = isAdminOrManageCategory(user);
       break;
-    case "adminOrManageStaff":
-      allowed = isAdminOrManageStaff(user);
+    case "adminOrManageRole":
+      allowed = isAdminOrManageRole(user);
       break;
-    case "adminOrManageOrder":
-      allowed = isAdminOrManageOrder(user);
+    case "hasAnyManagementRole":
+      allowed = hasAnyManagementRole(user);
       break;
     default:
       allowed = false;

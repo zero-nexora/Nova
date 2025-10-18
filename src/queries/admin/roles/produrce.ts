@@ -1,5 +1,5 @@
 import z from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma, RoleName } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { UserByRoleResponse } from "./types";
 import { DEFAULT_LIMIT, DEFAULT_PAGE } from "@/lib/constants";
@@ -35,7 +35,13 @@ export const rolesRouter = createTRPCRouter({
 
       const where: Prisma.UsersWhereInput = {
         id: { not: ctx.userId },
-
+        roles: {
+          none: {
+            role: {
+              name: RoleName.ADMIN,
+            },
+          },
+        },
         ...(roleId && {
           roles: {
             some: { role_id: roleId },
@@ -62,7 +68,6 @@ export const rolesRouter = createTRPCRouter({
             image_url: true,
             roles: {
               select: {
-                id: true,
                 role: {
                   select: {
                     id: true,
@@ -122,36 +127,56 @@ export const rolesRouter = createTRPCRouter({
       }
 
       const updatedUser = await ctx.db.$transaction(async (tx) => {
-        const currentRoles = await tx.user_Roles.findMany({
-          where: { user_id: userId },
-          select: { role_id: true },
+        const adminRole = await tx.roles.findFirst({
+          where: { name: { equals: RoleName.ADMIN } },
+          select: { id: true },
         });
 
-        const currentRoleIds = new Set(currentRoles.map((r) => r.role_id));
+        const isAdminRoleIncluded = adminRole && roleIds.includes(adminRole.id);
 
-        const rolesToAdd = roleIds.filter((id) => !currentRoleIds.has(id));
-
-        const rolesToRemove = [...currentRoleIds].filter(
-          (id) => !roleIds.includes(id)
-        );
-
-        if (rolesToAdd.length > 0) {
-          await tx.user_Roles.createMany({
-            data: rolesToAdd.map((roleId) => ({
-              user_id: userId,
-              role_id: roleId,
-            })),
-            skipDuplicates: true,
-          });
-        }
-
-        if (rolesToRemove.length > 0) {
+        if (isAdminRoleIncluded) {
           await tx.user_Roles.deleteMany({
-            where: {
+            where: { user_id: userId },
+          });
+
+          await tx.user_Roles.create({
+            data: {
               user_id: userId,
-              role_id: { in: rolesToRemove },
+              role_id: adminRole.id,
             },
           });
+        } else {
+          const currentRoles = await tx.user_Roles.findMany({
+            where: { user_id: userId },
+            select: { role_id: true },
+          });
+
+          const currentRoleIds = new Set(currentRoles.map((r) => r.role_id));
+
+          const rolesToAdd = roleIds.filter((id) => !currentRoleIds.has(id));
+
+          const rolesToRemove = [...currentRoleIds].filter(
+            (id) => !roleIds.includes(id)
+          );
+
+          if (rolesToAdd.length > 0) {
+            await tx.user_Roles.createMany({
+              data: rolesToAdd.map((roleId) => ({
+                user_id: userId,
+                role_id: roleId,
+              })),
+              skipDuplicates: true,
+            });
+          }
+
+          if (rolesToRemove.length > 0) {
+            await tx.user_Roles.deleteMany({
+              where: {
+                user_id: userId,
+                role_id: { in: rolesToRemove },
+              },
+            });
+          }
         }
 
         return tx.users.findUnique({

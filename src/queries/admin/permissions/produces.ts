@@ -33,17 +33,15 @@ export const permissionsRouter = createTRPCRouter({
       });
 
       const groupPermissionsBySuffix = (permissions: typeof allPermissions) => {
-        const knownSuffixes = ["CATEGORY", "PRODUCT", "ORDER", "STAFF"];
         const grouped: { [key: string]: typeof allPermissions } = {};
 
         permissions.forEach((permission) => {
-          const suffix = permission.name.split("_").pop() || "UNKNOWN";
-          const groupKey = knownSuffixes.includes(suffix) ? suffix : "UNKNOWN";
+          const suffix = permission.name;
 
-          if (!grouped[groupKey]) {
-            grouped[groupKey] = [];
+          if (!grouped[suffix]) {
+            grouped[suffix] = [];
           }
-          grouped[groupKey].push(permission);
+          grouped[suffix].push(permission);
         });
 
         Object.keys(grouped).forEach((key) => {
@@ -52,7 +50,13 @@ export const permissionsRouter = createTRPCRouter({
 
         const sortedGroups = Object.keys(grouped)
           .sort((a, b) => {
-            const order = ["CATEGORY", "PRODUCT", "ORDER", "STAFF", "UNKNOWN"];
+            const order = [
+              "MANAGE_CATEGORY",
+              "MANAGE_PRODUCT",
+              "MANAGE_ROLE",
+              "ADMIN",
+              "CUSTOMER",
+            ];
             return order.indexOf(a) - order.indexOf(b);
           })
           .map((key) => ({
