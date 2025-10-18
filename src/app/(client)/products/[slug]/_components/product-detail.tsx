@@ -99,51 +99,39 @@ export const ProductDetail = ({ slug }: ProductDetailProps) => {
 
       const availableValueIds = new Set<string>();
 
-      const singleAttrVariant = product.variants.find((v) => {
-        if (v.attributes.length !== 1) return false;
-        const attr = v.attributes[0];
-        return (
-          tempSelections[attr.attributeValue.attribute.id] ===
-          attr.attributeValue.id
-        );
-      });
-
-      if (
-        singleAttrVariant &&
-        singleAttrVariant.attributes[0]?.attributeValue?.attribute?.id ===
-          attributeId
-      ) {
-        const valueId = singleAttrVariant.attributes[0]?.attributeValue?.id;
-        if (valueId) availableValueIds.add(valueId);
+      if (Object.keys(tempSelections).length === 0) {
+        product.variants.forEach((variant) => {
+          variant.attributes?.forEach((attr) => {
+            if (attr?.attributeValue?.attribute?.id === attributeId) {
+              const valueId = attr?.attributeValue?.id;
+              if (valueId) availableValueIds.add(valueId);
+            }
+          });
+        });
         return availableValueIds;
       }
 
       const compatibleVariants = product.variants.filter((variant) => {
-        const hasAttribute = variant.attributes?.some?.(
+        const variantAttrMap = createVariantAttributeMap(variant);
+
+        const hasAttribute = variant.attributes?.some(
           (attr) => attr?.attributeValue?.attribute?.id === attributeId
         );
 
         if (!hasAttribute) return false;
 
-        const matchesSelections = variant.attributes?.every?.((variantAttr) => {
-          const variantAttrId = variantAttr?.attributeValue?.attribute?.id;
-          if (!variantAttrId) return false;
-
-          if (variantAttrId === attributeId) return true;
-
-          const selectedValue = tempSelections[variantAttrId];
-          return (
-            !selectedValue || selectedValue === variantAttr?.attributeValue?.id
-          );
-        });
-
-        return !!matchesSelections;
+        return Object.entries(tempSelections).every(
+          ([selectedAttrId, valueId]) => {
+            if (selectedAttrId === attributeId) return true;
+            return variantAttrMap.get(selectedAttrId) === valueId;
+          }
+        );
       });
 
       compatibleVariants.forEach((variant) => {
-        variant.attributes?.forEach?.((variantAttr) => {
-          if (variantAttr?.attributeValue?.attribute?.id === attributeId) {
-            const valueId = variantAttr?.attributeValue?.id;
+        variant.attributes?.forEach((attr) => {
+          if (attr?.attributeValue?.attribute?.id === attributeId) {
+            const valueId = attr?.attributeValue?.id;
             if (valueId) availableValueIds.add(valueId);
           }
         });
